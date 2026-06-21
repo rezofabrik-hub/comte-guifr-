@@ -21,8 +21,6 @@
     <!-- Icônes : FontAwesome exclusif pour une stabilité absolue -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <!-- PDF.js pour lecture des ODJ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -84,27 +82,21 @@
 
         const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr' };
         const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
-        // --- HELPERS IA ANALYSE ODJ ---
-        const extractPDFText = async (file) => {
-            const pdfjsLib = window['pdfjs-dist/build/pdf'];
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
+        const analyzeODJWithAI = async (file, apiKey) => {
             const ab = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({data: ab}).promise;
-            let text = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                text += content.items.map(x => x.str).join(' ') + '\n';
-            }
-            return text;
-        };
-
-        const analyzeODJWithAI = async (text, apiKey) => {
+            const bytes = new Uint8Array(ab);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            const base64 = btoa(binary);
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{parts: [{text: `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux\n\nTexte ODJ:\n${text}`}]}],
+                    contents: [{parts: [
+                        {inline_data: {mime_type: 'application/pdf', data: base64}},
+                        {text: `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux`}
+                    ]}],
                     generationConfig: { temperature: 0, maxOutputTokens: 512 }
                 })
             });
@@ -636,14 +628,11 @@
                 const file = e.target.files[0]; if(!file) return;
                 setLoading(true); setAiError(''); setAnalyzing(false);
                 try {
-                    const [url, pdfText] = await Promise.all([
-                        window.FB_API.uploadFile(file, 'cg51/agenda-odj'),
-                        apiKey ? extractPDFText(file) : Promise.resolve(null)
-                    ]);
+                    const url = await window.FB_API.uploadFile(file, 'cg51/agenda-odj');
                     s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
-                    if (apiKey && pdfText) {
+                    if (apiKey) {
                         setAnalyzing(true);
-                        const result = await analyzeODJWithAI(pdfText, apiKey);
+                        const result = await analyzeODJWithAI(file, apiKey);
                         s(prev => ({
                             ...prev,
                             date: result.date || prev.date,
