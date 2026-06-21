@@ -20,6 +20,9 @@
     
     <!-- Icônes : FontAwesome exclusif pour une stabilité absolue -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- PDF.js pour lecture des ODJ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -81,6 +84,43 @@
 
         const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr' };
         const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
+        // --- HELPERS IA ANALYSE ODJ ---
+        const extractPDFText = async (file) => {
+            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const ab = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(x => x.str).join(' ') + '\n';
+            }
+            return text;
+        };
+
+        const analyzeODJWithAI = async (text, apiKey) => {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens: 512,
+                    messages: [{role: 'user', content: `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux\n\nTexte ODJ:\n${text}`}]
+                })
+            });
+            if (!res.ok) throw new Error('Erreur API Claude ' + res.status);
+            const data = await res.json();
+            let jsonStr = data.content[0].text.trim();
+            if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
+            return JSON.parse(jsonStr);
+        };
+
         const normalizeGrade = (g) => {
             const x = (g || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (x.includes('maitre')) return 'maitre';
@@ -592,17 +632,36 @@
             );
         }
 
-        function AgendaForm({ initialData, onSave, onCancel }) {
+        function AgendaForm({ initialData, onSave, onCancel, apiKey }) {
             const [f, s] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'Tenue Régulière', visibility:'Apprenti', sujet:'', agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', planches: [], odjFile:null });
             const [loading, setLoading] = useState(false);
+            const [analyzing, setAnalyzing] = useState(false);
+            const [aiError, setAiError] = useState('');
 
-            const handleAI = (e) => {
+            const handleAI = async (e) => {
                 const file = e.target.files[0]; if(!file) return;
-                setLoading(true);
-                window.FB_API.uploadFile(file, 'cg51/agenda-odj')
-                    .then(url => { s(prev => ({...prev, odjFile: { name: file.name, data: url }})); })
-                    .catch(err => console.error("Envoi du fichier échoué", err))
-                    .finally(() => setLoading(false));
+                setLoading(true); setAiError(''); setAnalyzing(false);
+                try {
+                    const [url, pdfText] = await Promise.all([
+                        window.FB_API.uploadFile(file, 'cg51/agenda-odj'),
+                        apiKey ? extractPDFText(file) : Promise.resolve(null)
+                    ]);
+                    s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
+                    if (apiKey && pdfText) {
+                        setAnalyzing(true);
+                        const result = await analyzeODJWithAI(pdfText, apiKey);
+                        s(prev => ({
+                            ...prev,
+                            date: result.date || prev.date,
+                            visibility: result.visibility || prev.visibility,
+                            sujet: result.sujet || prev.sujet,
+                            planches: result.planche_auteur ? [{title: result.planche_titre || '', author: result.planche_auteur, grade: result.visibility}] : prev.planches
+                        }));
+                    }
+                } catch(err) {
+                    console.error("Erreur analyse ODJ", err);
+                    setAiError("Analyse IA échouée — vérifiez la clé API ou remplissez manuellement.");
+                } finally { setLoading(false); setAnalyzing(false); }
             };
 
             return (
@@ -617,7 +676,9 @@
                                 <button type="button" onClick={()=>s({...f, odjFile: null})} className="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase underline">Retirer le fichier</button>
                             </div>
                         )}
-                        {loading && <p className="mt-2 text-[10px] font-bold text-amber-600 animate-pulse uppercase tracking-widest font-serif">Envoi du fichier...</p>}
+                        {loading && !analyzing && <p className="mt-2 text-[10px] font-bold text-amber-600 animate-pulse uppercase tracking-widest font-serif">Envoi du fichier...</p>}
+                        {analyzing && <p className="mt-2 text-[10px] font-bold text-blue-600 animate-pulse uppercase tracking-widest font-serif">Analyse IA en cours...</p>}
+                        {aiError && <p className="mt-2 text-[10px] font-bold text-red-500 uppercase">{aiError}</p>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-slate-800">
                         <input type="date" value={f.date} onChange={e=>s({...f,date:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold font-serif" required />
@@ -641,12 +702,27 @@
                     </div>
 
                     <textarea placeholder="Résumé de l'ordre du jour..." value={f.sujet} onChange={e=>s({...f,sujet:e.target.value})} className="w-full border p-4 rounded-xl h-24 outline-none focus:border-amber-500 shadow-inner font-serif" required></textarea>
+                    {f.planches && f.planches.length > 0 && (
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 animate-fade">
+                            <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-3 font-sans">Planche détectée automatiquement</p>
+                            {f.planches.map((p, i) => (
+                                <div key={i} className="bg-white p-3 rounded-lg border border-blue-100 space-y-2">
+                                    <input type="text" value={p.title} onChange={e=>{const pl=[...f.planches]; pl[i]={...pl[i],title:e.target.value}; s({...f,planches:pl});}} placeholder="Titre de la planche" className="w-full border p-2 rounded text-sm font-bold outline-none focus:border-amber-500" />
+                                    <input type="text" value={p.author} onChange={e=>{const pl=[...f.planches]; pl[i]={...pl[i],author:e.target.value}; s({...f,planches:pl});}} placeholder="Auteur" className="w-full border p-2 rounded text-sm outline-none focus:border-amber-500" />
+                                    <select value={p.grade} onChange={e=>{const pl=[...f.planches]; pl[i]={...pl[i],grade:e.target.value}; s({...f,planches:pl});}} className="w-full border p-2 rounded text-sm outline-none focus:border-amber-500">
+                                        <option>Apprenti</option><option>Compagnon</option><option>Maître</option>
+                                    </select>
+                                </div>
+                            ))}
+                            <button type="button" onClick={()=>s({...f,planches:[]})} className="mt-2 text-red-400 text-[10px] font-bold uppercase hover:underline">Effacer</button>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-4 uppercase font-bold text-[10px] tracking-widest font-sans font-bold"><button type="button" onClick={onCancel} className="text-slate-400 font-sans">Annuler</button><button type="submit" className="bg-amber-600 text-white px-10 py-3 rounded-xl shadow-lg hover:bg-amber-700 font-serif">Enregistrer la tenue</button></div>
                 </form>
             );
         }
 
-        function AgendaView({ items, canEdit, onAdd, onUpdate, onDelete, canSee }) {
+        function AgendaView({ items, canEdit, onAdd, onUpdate, onDelete, canSee, apiKey }) {
             const [isA, sA] = useState(false);
             const [editingItem, setEditingItem] = useState(null);
             const [vMode, sV] = useState('cal');
@@ -726,9 +802,10 @@
 
                     {(isA || editingItem) && (
                         <div className="bg-white p-8 rounded-2xl border mb-8 animate-fade shadow-xl font-sans">
-                            <AgendaForm 
+                            <AgendaForm
                                 key={editingItem ? editingItem.id : 'new'}
-                                initialData={editingItem} 
+                                initialData={editingItem}
+                                apiKey={apiKey}
                                 onSave={async(d)=>{
                                     if(editingItem) {
                                         await onUpdate(editingItem.id, d);
@@ -1138,6 +1215,9 @@
             const [logeLogo, setLogeLogo] = useState(null);
             const [logeIdentity, setLogeIdentity] = useState({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
             const [reglementFile, setReglementFile] = useState(null);
+            const [claudeApiKey, setClaudeApiKey] = useState('');
+            const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+            const [apiKeyInput, setApiKeyInput] = useState('');
             const [selectedPlanche, setSelectedPlanche] = useState(null);
             const [isArchitect, setIsArchitect] = useState(false);
             const [pendingNameMatch, setPendingNameMatch] = useState('');
@@ -1165,6 +1245,7 @@
                 const unsubLogo = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'branding'), d => d.exists() && setLogeLogo(d.data().logoData));
                 const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' }));
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
+                const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
                 const unsubMembers = api.onSnapshot(path('members'), async (s) => {
                     if (s.empty) {
@@ -1184,7 +1265,7 @@
                     } else { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
                 });
                 
-                return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
+                return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
             }, [api, fbUser]);
 
             const handleLogin = async (n, gradeKey, p) => {
@@ -1277,16 +1358,35 @@
                                         </div>
                                     )}
                                 </div>
+                                {isArchitect && (
+                                    <button onClick={()=>setShowApiKeyModal(true)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${claudeApiKey ? 'text-blue-400 hover:bg-slate-800' : 'text-red-400 hover:bg-slate-800'}`} title="Clé API Intelligence Artificielle">
+                                        IA {claudeApiKey ? '✓' : '✗'}
+                                    </button>
+                                )}
                                 <button onClick={() => { api.signOut(api.auth); setIsLogged(false); setIsArchitect(false); setUnlockedGrades({apprenti:false,compagnon:false,maitre:false}); setMemberName(''); setMemberRole(''); setActiveView('home'); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors font-sans"><SmartIcon name="LogOut" size={20}/></button>
                             </div>
                         </div>
                     </nav>
+                    {showApiKeyModal && (
+                        <div className="fixed inset-0 bg-slate-900/90 z-[200] flex items-center justify-center p-4 animate-fade">
+                            <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+                                <h2 className="text-xl font-serif font-bold mb-2">Clé API Intelligence Artificielle</h2>
+                                <p className="text-slate-500 text-sm mb-6">Permet l'analyse automatique des ODJ (grade, planche, auteur). Créez votre clé sur <strong>console.anthropic.com</strong>.</p>
+                                <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)} placeholder="sk-ant-api03-..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
+                                <div className="flex gap-3">
+                                    <button onClick={()=>setShowApiKeyModal(false)} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl">Annuler</button>
+                                    {claudeApiKey && <button onClick={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:''}); setShowApiKeyModal(false); }} className="text-red-400 font-bold text-xs uppercase py-3 px-4 border border-red-200 rounded-xl">Supprimer</button>}
+                                    <button onClick={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:apiKeyInput.trim()}); setShowApiKeyModal(false); }} className="flex-1 bg-amber-600 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md">Enregistrer</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
                         {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
-                        {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} />}
+                        {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
                         {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} />}
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} />}
