@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function email() {
+      return request.auth.token.email;
+    }
+    function isApprenti() {
+      return email() in ['apprenti@cg51-virtuel.fr','compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+    }
+    function isCompagnon() {
+      return email() in ['compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+    }
+    function isMaitre() {
+      return email() in ['maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+    }
+    function isArchitecte() {
+      return email() == 'architecte@cg51-virtuel.fr';
+    }
+
+    match /artifacts/{appId}/public/data/members/{memberId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isMaitre();
+    }
+
+    match /artifacts/{appId}/public/data/agenda/{itemId} {
+      allow read: if isSignedIn() && (
+        resource.data.visibility == 'Apprenti' ||
+        (resource.data.visibility == 'Compagnon' && isCompagnon()) ||
+        (resource.data.visibility == 'Maître' && isMaitre())
+      );
+      allow create: if isMaitre();
+      allow update, delete: if isMaitre();
+    }
+
+    match /artifacts/{appId}/public/data/planches/{docId} {
+      allow read: if isSignedIn() && (
+        (resource.data.grade == 'Apprenti') ||
+        (resource.data.grade == 'Compagnon' && isCompagnon()) ||
+        ((resource.data.grade == 'Maître' || resource.data.grade == 'Maitre') && isMaitre())
+      );
+      allow create: if isApprenti();
+      allow update, delete: if isMaitre();
+    }
+
+    match /artifacts/{appId}/public/data/bibliotheque/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isArchitecte();
+    }
+
+    match /artifacts/{appId}/public/data/liens/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isArchitecte();
+    }
+
+    match /artifacts/{appId}/public/data/settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isArchitecte();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
