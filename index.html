@@ -100,23 +100,17 @@
         };
 
         const analyzeODJWithAI = async (text, apiKey) => {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
-                headers: {
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'content-type': 'application/json',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
+                headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'claude-haiku-4-5-20251001',
-                    max_tokens: 512,
-                    messages: [{role: 'user', content: `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux\n\nTexte ODJ:\n${text}`}]
+                    contents: [{parts: [{text: `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux\n\nTexte ODJ:\n${text}`}]}],
+                    generationConfig: { temperature: 0, maxOutputTokens: 512 }
                 })
             });
-            if (!res.ok) throw new Error('Erreur API Claude ' + res.status);
+            if (!res.ok) throw new Error('Erreur API Gemini ' + res.status);
             const data = await res.json();
-            let jsonStr = data.content[0].text.trim();
+            let jsonStr = data.candidates[0].content.parts[0].text.trim();
             if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
             return JSON.parse(jsonStr);
         };
@@ -1371,8 +1365,8 @@
                         <div className="fixed inset-0 bg-slate-900/90 z-[200] flex items-center justify-center p-4 animate-fade">
                             <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
                                 <h2 className="text-xl font-serif font-bold mb-2">Clé API Intelligence Artificielle</h2>
-                                <p className="text-slate-500 text-sm mb-6">Permet l'analyse automatique des ODJ (grade, planche, auteur). Créez votre clé sur <strong>console.anthropic.com</strong>.</p>
-                                <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)} placeholder="sk-ant-api03-..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
+                                <p className="text-slate-500 text-sm mb-6">Permet l'analyse automatique des ODJ (grade, planche, auteur). Clé gratuite sur <strong>aistudio.google.com/app/apikey</strong>.</p>
+                                <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)} placeholder="AIza..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
                                 <div className="flex gap-3">
                                     <button onClick={()=>setShowApiKeyModal(false)} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl">Annuler</button>
                                     {claudeApiKey && <button onClick={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:''}); setShowApiKeyModal(false); }} className="text-red-400 font-bold text-xs uppercase py-3 px-4 border border-red-200 rounded-xl">Supprimer</button>}
