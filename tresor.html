@@ -37,7 +37,7 @@
     <!-- Firebase (module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc }
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -52,7 +52,7 @@
         const fbApp = initializeApp(firebaseConfig);
         window.TRESOR_DB = {
             db: getFirestore(fbApp),
-            collection, getDocs, addDoc, updateDoc, deleteDoc, doc
+            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot
         };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -112,32 +112,39 @@
             const [isLoading,    setIsLoading]    = useState(true);
 
             useEffect(() => {
-                const load = async () => {
-                    // Attendre Firebase
+                let unsubUsers, unsubPayments;
+
+                const setup = async () => {
                     if (!window.TRESOR_DB) {
                         await new Promise(r => document.addEventListener('firebase-ready', r, { once: true }));
                     }
-                    const { db, collection, getDocs, addDoc } = window.TRESOR_DB;
+                    const { db, collection, addDoc, onSnapshot } = window.TRESOR_DB;
 
-                    try {
-                        const usersSnap = await getDocs(collection(db, 'users'));
-                        let loadedUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    let usersReady    = false;
+                    let paymentsReady = false;
+                    const checkReady  = () => { if (usersReady && paymentsReady) setIsLoading(false); };
 
+                    unsubUsers = onSnapshot(collection(db, 'users'), async (snap) => {
+                        let loadedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         if (!loadedUsers.find(u => u.role === 'admin')) {
                             const admin = { name: 'Laurent Mienville (Trésorier)', role: 'admin', pin: '20LM' };
                             const ref   = await addDoc(collection(db, 'users'), admin);
                             loadedUsers.push({ id: ref.id, ...admin });
                         }
                         setUsers(loadedUsers);
+                        usersReady = true;
+                        checkReady();
+                    }, err => console.error('Erreur users :', err));
 
-                        const paySnap = await getDocs(collection(db, 'payments'));
-                        setPayments(paySnap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    } catch (err) {
-                        console.error('Erreur Firebase :', err);
-                    }
-                    setIsLoading(false);
+                    unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
+                        setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                        paymentsReady = true;
+                        checkReady();
+                    }, err => console.error('Erreur payments :', err));
                 };
-                load();
+
+                setup();
+                return () => { unsubUsers?.(); unsubPayments?.(); };
             }, []);
 
             if (isLoading) return (
