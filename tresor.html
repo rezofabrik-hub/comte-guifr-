@@ -37,7 +37,7 @@
     <!-- Firebase (module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot }
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -52,7 +52,7 @@
         const fbApp = initializeApp(firebaseConfig);
         window.TRESOR_DB = {
             db: getFirestore(fbApp),
-            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot
+            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc
         };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -90,7 +90,6 @@
         const ChevronUp     = mkIcon('fas fa-chevron-up');
 
         // ── Constantes ───────────────────────────────────────────────────
-        const CAPITATION_CIBLE = 200;
         const PAYMENT_METHODS = [
             { id: 'virement', label: 'Virement',  icon: CreditCard    },
             { id: 'cheque',   label: 'Chèque',    icon: FileSignature },
@@ -108,21 +107,23 @@
         function App() {
             const [users,        setUsers]        = useState([]);
             const [payments,     setPayments]     = useState([]);
+            const [settings,     setSettings]     = useState({ nomLoge: 'Trésor de la Loge', capitationCible: 200 });
             const [loggedInUser, setLoggedInUser] = useState(null);
             const [isLoading,    setIsLoading]    = useState(true);
 
             useEffect(() => {
-                let unsubUsers, unsubPayments;
+                let unsubUsers, unsubPayments, unsubSettings;
 
                 const setup = async () => {
                     if (!window.TRESOR_DB) {
                         await new Promise(r => document.addEventListener('firebase-ready', r, { once: true }));
                     }
-                    const { db, collection, addDoc, onSnapshot } = window.TRESOR_DB;
+                    const { db, collection, addDoc, onSnapshot, doc } = window.TRESOR_DB;
 
                     let usersReady    = false;
                     let paymentsReady = false;
-                    const checkReady  = () => { if (usersReady && paymentsReady) setIsLoading(false); };
+                    let settingsReady = false;
+                    const checkReady  = () => { if (usersReady && paymentsReady && settingsReady) setIsLoading(false); };
 
                     unsubUsers = onSnapshot(collection(db, 'users'), async (snap) => {
                         let loadedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -141,10 +142,21 @@
                         paymentsReady = true;
                         checkReady();
                     }, err => console.error('Erreur payments :', err));
+
+                    unsubSettings = onSnapshot(doc(db, 'settings', 'loge'), (snap) => {
+                        if (snap.exists()) {
+                            setSettings({
+                                nomLoge: snap.data().nomLoge || 'Trésor de la Loge',
+                                capitationCible: snap.data().capitationCible || 200
+                            });
+                        }
+                        settingsReady = true;
+                        checkReady();
+                    }, err => { settingsReady = true; checkReady(); console.error('Erreur settings :', err); });
                 };
 
                 setup();
-                return () => { unsubUsers?.(); unsubPayments?.(); };
+                return () => { unsubUsers?.(); unsubPayments?.(); unsubSettings?.(); };
             }, []);
 
             if (isLoading) return (
@@ -154,7 +166,7 @@
             );
 
             if (!loggedInUser)
-                return <LoginScreen users={users} onLogin={setLoggedInUser} />;
+                return <LoginScreen users={users} onLogin={setLoggedInUser} settings={settings} />;
 
             if (loggedInUser.role === 'admin')
                 return (
@@ -164,6 +176,7 @@
                         onLogout={() => setLoggedInUser(null)}
                         currentUser={loggedInUser}
                         setLoggedInUser={setLoggedInUser}
+                        settings={settings} setSettings={setSettings}
                     />
                 );
 
@@ -172,12 +185,13 @@
                     user={loggedInUser}
                     payments={payments.filter(p => String(p.memberId) === String(loggedInUser.id))}
                     onLogout={() => setLoggedInUser(null)}
+                    settings={settings}
                 />
             );
         }
 
         // ── 1. Écran de connexion ────────────────────────────────────────
-        function LoginScreen({ users, onLogin }) {
+        function LoginScreen({ users, onLogin, settings }) {
             const [selectedUserId, setSelectedUserId] = useState('');
             const [pin,       setPin]       = useState('');
             const [error,     setError]     = useState('');
@@ -206,7 +220,7 @@
                 <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
                     <div className="sm:mx-auto sm:w-full sm:max-w-md">
                         <div className="flex justify-center text-indigo-900 mb-4"><Shield size={48} /></div>
-                        <h2 className="text-center text-3xl font-extrabold text-gray-900">Trésor de la Loge</h2>
+                        <h2 className="text-center text-3xl font-extrabold text-gray-900">{settings.nomLoge}</h2>
                         <p className="mt-2 text-center text-sm text-gray-600 font-bold uppercase tracking-widest">Gestion des Capitations</p>
                     </div>
 
@@ -281,7 +295,7 @@
         }
 
         // ── 2. Espace Trésorier ──────────────────────────────────────────
-        function AdminDashboard({ users, setUsers, payments, setPayments, onLogout, currentUser, setLoggedInUser }) {
+        function AdminDashboard({ users, setUsers, payments, setPayments, onLogout, currentUser, setLoggedInUser, settings, setSettings }) {
             const [activeTab,        setActiveTab]        = useState('members');
             const [expandedMemberId, setExpandedMemberId] = useState(null);
             const [modalConfig,      setModalConfig]      = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
@@ -302,13 +316,59 @@
             const [adminNameInput, setAdminNameInput] = useState(currentUser.name);
             const [isProcessing,   setIsProcessing]   = useState(false);
 
+            // Paramètres
+            const [nomLogeInput,       setNomLogeInput]       = useState(settings.nomLoge);
+            const [capitationInput,    setCapitationInput]    = useState(settings.capitationCible);
+            const [pinActuel,          setPinActuel]          = useState('');
+            const [pinNouveau,         setPinNouveau]         = useState('');
+            const [pinConfirm,         setPinConfirm]         = useState('');
+            const [settingsMsg,        setSettingsMsg]        = useState(null);
+
             const members = users.filter(u => u.role === 'member');
             const maxMembersLimit = 60;
+            const capitationCible = settings.capitationCible;
 
             const getMemberStatus = (total) => {
-                if (total >= CAPITATION_CIBLE) return { color: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', label: 'À jour' };
-                if (total > 0)                return { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500', label: 'En cours' };
+                if (total >= capitationCible) return { color: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', label: 'À jour' };
+                if (total > 0)               return { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500', label: 'En cours' };
                 return { color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', label: 'Aucun versement' };
+            };
+
+            const handleSaveSettings = async (e) => {
+                e.preventDefault();
+                if (isProcessing) return;
+                setIsProcessing(true);
+                setSettingsMsg(null);
+                const { db, doc, setDoc } = window.TRESOR_DB;
+                try {
+                    await setDoc(doc(db, 'settings', 'loge'), {
+                        nomLoge: nomLogeInput.trim() || 'Trésor de la Loge',
+                        capitationCible: parseFloat(capitationInput) || 200
+                    });
+                    setSettings({ nomLoge: nomLogeInput.trim(), capitationCible: parseFloat(capitationInput) });
+                    setSettingsMsg({ type: 'ok', text: 'Paramètres enregistrés.' });
+                } catch { setSettingsMsg({ type: 'err', text: 'Erreur lors de la sauvegarde.' }); }
+                setIsProcessing(false);
+            };
+
+            const handleChangePin = async (e) => {
+                e.preventDefault();
+                if (isProcessing) return;
+                setSettingsMsg(null);
+                if (pinActuel.toUpperCase() !== currentUser.pin) { setSettingsMsg({ type: 'err', text: 'Code actuel incorrect.' }); return; }
+                if (pinNouveau.length < 4) { setSettingsMsg({ type: 'err', text: 'Le nouveau code doit faire au moins 4 caractères.' }); return; }
+                if (pinNouveau.toUpperCase() !== pinConfirm.toUpperCase()) { setSettingsMsg({ type: 'err', text: 'Les deux codes ne correspondent pas.' }); return; }
+                setIsProcessing(true);
+                const { db, doc, updateDoc } = window.TRESOR_DB;
+                try {
+                    const newPin = pinNouveau.toUpperCase();
+                    await updateDoc(doc(db, 'users', currentUser.id), { pin: newPin });
+                    setUsers(users.map(u => String(u.id) === String(currentUser.id) ? { ...u, pin: newPin } : u));
+                    setLoggedInUser({ ...currentUser, pin: newPin });
+                    setPinActuel(''); setPinNouveau(''); setPinConfirm('');
+                    setSettingsMsg({ type: 'ok', text: 'Code d\'accès modifié avec succès.' });
+                } catch { setSettingsMsg({ type: 'err', text: 'Erreur lors du changement de code.' }); }
+                setIsProcessing(false);
             };
 
             const showModal = (type, title, message, onConfirm = null) =>
@@ -429,9 +489,9 @@
                 m.pin.toLowerCase().includes(searchTerm.toLowerCase())
             );
 
-            const totalAsso    = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-            const objectifGlobal = members.length * CAPITATION_CIBLE;
-            const resteGlobal  = Math.max(0, objectifGlobal - totalAsso);
+            const totalAsso      = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+            const objectifGlobal = members.length * capitationCible;
+            const resteGlobal    = Math.max(0, objectifGlobal - totalAsso);
 
             return (
                 <div className="min-h-screen bg-gray-100 pb-12">
@@ -496,7 +556,7 @@
                                 <div>
                                     <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Frères/Sœurs sur le Tableau</h2>
                                     <p className="text-3xl font-black text-gray-900">{members.length} <span className="text-xl text-gray-400 font-medium">/ {maxMembersLimit}</span></p>
-                                    <p className="text-xs font-medium text-blue-700 mt-1">Soit {CAPITATION_CIBLE} € par Frère/Sœur</p>
+                                    <p className="text-xs font-medium text-blue-700 mt-1">Soit {capitationCible} € par Frère/Sœur</p>
                                 </div>
                             </div>
                         </div>
@@ -508,6 +568,9 @@
                             </button>
                             <button onClick={() => setActiveTab('payments')} className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center flex-1 sm:flex-none ${activeTab === 'payments' ? 'bg-indigo-900 text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}>
                                 <CreditCard size={18} className="mr-2" /> Saisir un règlement
+                            </button>
+                            <button onClick={() => { setActiveTab('parametres'); setSettingsMsg(null); setNomLogeInput(settings.nomLoge); setCapitationInput(settings.capitationCible); }} className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center flex-1 sm:flex-none ${activeTab === 'parametres' ? 'bg-indigo-900 text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}>
+                                <Key size={18} className="mr-2" /> Paramètres
                             </button>
                         </div>
 
@@ -674,7 +737,7 @@
                                                             <div className="text-right mr-4">
                                                                 <div className="text-sm text-gray-500 font-medium">Capitation versée</div>
                                                                 <div className="text-xl font-black text-gray-900">{memberTotal.toFixed(2)} €</div>
-                                                                <div className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">Reste : {Math.max(0, CAPITATION_CIBLE - memberTotal).toFixed(2)} €</div>
+                                                                <div className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">Reste : {Math.max(0, capitationCible - memberTotal).toFixed(2)} €</div>
                                                             </div>
                                                             {isEditingThis ? (
                                                                 <div className="flex space-x-1">
@@ -722,6 +785,65 @@
                             </div>
                         )}
 
+                        {/* ── Onglet Paramètres ── */}
+                        {activeTab === 'parametres' && (
+                            <div className="space-y-8 animate-fade">
+                                {settingsMsg && (
+                                    <div className={`p-4 rounded-xl font-bold text-center border ${settingsMsg.type === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                                        {settingsMsg.text}
+                                    </div>
+                                )}
+
+                                {/* Nom de la loge & Capitation */}
+                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-indigo-900">
+                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+                                        <Shield className="mr-3 text-indigo-900" size={28} /> Paramètres de la Loge
+                                    </h3>
+                                    <form onSubmit={handleSaveSettings} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom de la Loge</label>
+                                            <input type="text" value={nomLogeInput} onChange={e => setNomLogeInput(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 font-bold text-gray-900 text-lg" placeholder="Ex: Loge Les Trois Lumières" />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant de la capitation annuelle (€)</label>
+                                            <input type="number" step="0.01" min="0" value={capitationInput} onChange={e => setCapitationInput(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 font-black text-indigo-900 text-lg" placeholder="200.00" />
+                                        </div>
+                                        <div className="sm:col-span-2 flex justify-end pt-4 border-t border-gray-200">
+                                            <button type="submit" disabled={isProcessing} className="px-8 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all flex items-center shadow-lg">
+                                                <Save size={18} className="mr-2" /> Enregistrer les paramètres
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                {/* Changement de code PIN */}
+                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-800">
+                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
+                                        <Lock className="mr-3 text-gray-800" size={28} /> Changer mon code d'accès
+                                    </h3>
+                                    <form onSubmit={handleChangePin} className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Code actuel *</label>
+                                            <input type="text" value={pinActuel} onChange={e => setPinActuel(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nouveau code *</label>
+                                            <input type="text" value={pinNouveau} onChange={e => setPinNouveau(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Confirmer le code *</label>
+                                            <input type="text" value={pinConfirm} onChange={e => setPinConfirm(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
+                                        </div>
+                                        <div className="sm:col-span-3 flex justify-end pt-4 border-t border-gray-200">
+                                            <button type="submit" disabled={isProcessing} className="px-8 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 transition-all flex items-center shadow-lg">
+                                                <Key size={18} className="mr-2" /> Changer le code
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
                         <CustomModal
                             isOpen={modalConfig.isOpen}
                             type={modalConfig.type}
@@ -759,13 +881,14 @@
         }
 
         // ── 3. Espace Frère/Sœur ────────────────────────────────────────
-        function MemberDashboard({ user, payments, onLogout }) {
+        function MemberDashboard({ user, payments, onLogout, settings }) {
+            const capitationCible = settings.capitationCible;
             const totalPaid   = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-            const resteAPayer = Math.max(0, CAPITATION_CIBLE - totalPaid);
+            const resteAPayer = Math.max(0, capitationCible - totalPaid);
 
             let headerColor = 'from-red-700 to-red-900';
             let statusText  = 'Aucun versement de capitation';
-            if (totalPaid >= CAPITATION_CIBLE) { headerColor = 'from-green-600 to-green-800'; statusText = 'Capitation annuelle à jour'; }
+            if (totalPaid >= capitationCible) { headerColor = 'from-green-600 to-green-800'; statusText = 'Capitation annuelle à jour'; }
             else if (totalPaid > 0)            { headerColor = 'from-yellow-600 to-yellow-700'; statusText = 'Règlement en cours'; }
 
             const getMethodDisplay = (methodId) => {
@@ -866,7 +989,7 @@
                                             <Banknote size={40} className="text-gray-300" />
                                         </div>
                                         <p className="text-gray-900 text-xl font-black mb-2">Aucun règlement consigné</p>
-                                        <p className="text-gray-600 font-medium">Votre retard de capitation envers la Loge s'élève à {CAPITATION_CIBLE.toFixed(2)} €.</p>
+                                        <p className="text-gray-600 font-medium">Votre retard de capitation envers la Loge s'élève à {capitationCible.toFixed(2)} €.</p>
                                         <p className="text-gray-500 text-sm mt-4 italic">En cas d'erreur ou d'omission, veuillez vous rapprocher du Frère Trésorier.</p>
                                     </li>
                                 )}
