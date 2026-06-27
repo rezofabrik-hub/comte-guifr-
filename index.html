@@ -114,19 +114,7 @@
             return 'apprenti';
         };
 
-        const LOGE_MEMBERS_INIT = [
-            { name: 'V∴M∴ Bruno RAMON', role: 'Vénérable Maître' },
-            { name: 'Sœur Lydie HERVÉ', role: '1er Surveillant' },
-            { name: 'Frère Julien DURAN', role: '2nd Surveillant' },
-            { name: 'Frère Claude CARCELLER', role: 'Orateur' },
-            { name: 'Frère Jean Félix LEVY', role: 'Secrétaire' },
-            { name: 'Frère David LOIRET', role: 'Trésorier' },
-            { name: 'Sœur Mat∴ CARU∴', role: 'Hospitalière' },
-            { name: 'Sœur Renée OLENDER', role: 'Maître des Cérémonies' },
-            { name: 'Sœur Marie SIONÉ', role: 'Experte' },
-            { name: 'Sœur Nicole', role: 'Compagnon' },
-            { name: 'Frère Laurent', role: 'Compagnon' }
-        ];
+        const LOGE_MEMBERS_INIT = [];
 
         const LIENS_INIT = [
             { t: "Hiram.be", d: "Le weblog de la Franc-Maçonnerie. Fondé en 2004.", u: "https://www.hiram.be/" },
@@ -252,7 +240,7 @@
                     { text: "La géométrie n'est pas seulement une science des mesures, c'est l'art d'ordonner sa propre vie.", author: "Le Travail au Midi" }
                 ],
                 maitre: [
-                    { text: "L'assiduité est notre premier devoir. Continuons à tailler notre pierre brute.", author: "V∴M∴ Bruno RAMON" },
+                    { text: "L'assiduité est notre premier devoir. Continuons à tailler notre pierre brute.", author: "Tradition Maçonnique" },
                     { text: "La mort n'est qu'un passage. Rassemblons ce qui est épars pour que la Lumière ne s'éteigne jamais.", author: "Sagesse du Maître" },
                     { text: "Connais-toi toi-même, et tu connaîtras l'univers et les dieux.", author: "Temple de Delphes" }
                 ]
@@ -268,7 +256,7 @@
 
             const openIdEdit = () => {
                 setIdForm({ 
-                    name: logeIdentity?.name || 'R∴L∴ Comte Guifré n°51', 
+                    name: logeIdentity?.name || 'Votre Loge', 
                     rite: logeIdentity?.rite || '', 
                     obedience: logeIdentity?.obedience || '' 
                 });
@@ -281,7 +269,7 @@
             };
 
             const clearId = async () => {
-                await onSaveIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+                await onSaveIdentity({ name: 'Votre Loge', rite: '', obedience: '' });
                 setIsEditingId(false);
             };
 
@@ -446,7 +434,7 @@
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>Renée</strong> au <a href="tel:0621677999" className="text-amber-700 font-bold hover:underline font-sans">06 21 67 79 99</a> au moins <strong>48h à l'avance</strong>.</p>
+                                        <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de l'Intendant(e) au moins <strong>48h à l'avance</strong>.</p>
                                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex justify-between items-center">
                                             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Prix</p>
                                             <p className="text-xl font-black text-slate-900 font-serif">10,00 €</p>
@@ -1046,11 +1034,7 @@
                                     <i className="fa-solid fa-ruler-combined text-5xl"></i>
                                 </div>
                                 <h2 className="text-3xl font-serif text-white mb-2">L'Architecte du Temple</h2>
-                                <p className="text-amber-500 font-bold mb-6 tracking-[0.2em] uppercase text-sm">Laurent Mienville</p>
                                 <p className="text-slate-300 text-sm mb-10 leading-relaxed italic font-serif">"Création, assistance et maintenance de la Loge Virtuelle. Toujours sur les colonnes en cas de besoin."</p>
-                                <a href="tel:0684059255" className="inline-flex items-center bg-amber-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-widest shadow-lg hover:bg-amber-500 transition-colors">
-                                    <SmartIcon name="Phone" size={18} className="mr-3"/> 06 84 05 92 55
-                                </a>
                             </div>
                         </div>
                     )}
@@ -1196,7 +1180,7 @@
             const [books, setBooks] = useState([]);
             const [liens, setLiens] = useState([]);
             const [logeLogo, setLogeLogo] = useState(null);
-            const [logeIdentity, setLogeIdentity] = useState({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+            const [logeIdentity, setLogeIdentity] = useState({ name: 'Votre Loge', rite: '', obedience: '' });
             const [reglementFile, setReglementFile] = useState(null);
             const [claudeApiKey, setClaudeApiKey] = useState('');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -1226,7 +1210,7 @@
                 const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
                 
                 const unsubLogo = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'branding'), d => d.exists() && setLogeLogo(d.data().logoData));
-                const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' }));
+                const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'Votre Loge', rite: '', obedience: '' }));
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
@@ -1321,7 +1305,7 @@
                         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4 text-white">
                             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveView('home')}>
                                 {logeLogo ? <img src={logeLogo} className="w-10 h-10 object-contain" /> : <SmartIcon name="Landmark" size={24} className="text-white"/>}
-                                <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'}</span>
+                                <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'Votre Loge'}</span>
                             </div>
                             <div className="flex flex-wrap justify-center items-center gap-2 font-serif text-[10px]">
                                 <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="landmark" label="Parvis" />
@@ -1375,7 +1359,7 @@
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView('home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade="apprenti" currentUser={memberName} />}
                     </main>
-                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>
+                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Votre Loge'} — Orient</footer>
                 </div>
             );
         }
