@@ -3,21 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trésor de la Loge</title>
-
-    <!-- PWA / Mobile -->
+    <title>Gestion des Cotisations</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1e1b4b">
 
-    <!-- Moteurs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Icônes & Polices -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
@@ -30,14 +25,14 @@
 <body>
     <div id="root">
         <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#1e1b4b;color:#a5b4fc;font-weight:700;font-size:1.2rem;letter-spacing:0.12em;font-family:'Inter',sans-serif;">
-            Ouverture du Trésor…
+            Chargement…
         </div>
     </div>
 
-    <!-- Firebase (module) -->
+    <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc }
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -50,206 +45,381 @@
         };
 
         const fbApp = initializeApp(firebaseConfig);
-        window.TRESOR_DB = {
+        window.APP_DB = {
             db: getFirestore(fbApp),
-            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc
+            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc
         };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
 
-    <!-- Application React -->
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useCallback } = React;
 
-        // ── Icônes FontAwesome en composants React ──────────────────────
-        const mkIcon = (faClass) => ({ size = 20, className = '' }) => (
-            <i
-                className={`${faClass} ${className}`}
-                style={{ fontSize: typeof size === 'number' ? `${size}px` : size, lineHeight: 1 }}
-                aria-hidden="true"
-            />
+        // ── Icônes ───────────────────────────────────────────────────────
+        const mkIcon = (cls) => ({ size = 20, className = '' }) => (
+            <i className={`${cls} ${className}`} style={{ fontSize: typeof size === 'number' ? `${size}px` : size, lineHeight: 1 }} aria-hidden="true" />
         );
-        const Users         = mkIcon('fas fa-users');
-        const Shield        = mkIcon('fas fa-shield');
-        const LogOut        = mkIcon('fas fa-right-from-bracket');
-        const Plus          = mkIcon('fas fa-plus');
-        const Trash2        = mkIcon('fas fa-trash');
-        const Edit2         = mkIcon('fas fa-pen');
-        const Calendar      = mkIcon('fas fa-calendar');
-        const Euro          = mkIcon('fas fa-euro-sign');
-        const Lock          = mkIcon('fas fa-lock');
-        const UserPlus      = mkIcon('fas fa-user-plus');
-        const Save          = mkIcon('fas fa-floppy-disk');
-        const XIcon         = mkIcon('fas fa-xmark');
-        const Search        = mkIcon('fas fa-magnifying-glass');
-        const CreditCard    = mkIcon('fas fa-credit-card');
-        const Banknote      = mkIcon('fas fa-money-bill');
-        const FileSignature = mkIcon('fas fa-file-signature');
-        const Key           = mkIcon('fas fa-key');
-        const ChevronDown   = mkIcon('fas fa-chevron-down');
-        const ChevronUp     = mkIcon('fas fa-chevron-up');
+        const IcoShield   = mkIcon('fas fa-shield-halved');
+        const IcoUsers    = mkIcon('fas fa-users');
+        const IcoLogout   = mkIcon('fas fa-right-from-bracket');
+        const IcoPlus     = mkIcon('fas fa-plus');
+        const IcoTrash    = mkIcon('fas fa-trash');
+        const IcoEdit     = mkIcon('fas fa-pen');
+        const IcoCal      = mkIcon('fas fa-calendar');
+        const IcoEuro     = mkIcon('fas fa-euro-sign');
+        const IcoLock     = mkIcon('fas fa-lock');
+        const IcoSave     = mkIcon('fas fa-floppy-disk');
+        const IcoX        = mkIcon('fas fa-xmark');
+        const IcoSearch   = mkIcon('fas fa-magnifying-glass');
+        const IcoCard     = mkIcon('fas fa-credit-card');
+        const IcoBill     = mkIcon('fas fa-money-bill');
+        const IcoFile     = mkIcon('fas fa-file-signature');
+        const IcoKey      = mkIcon('fas fa-key');
+        const IcoDown     = mkIcon('fas fa-chevron-down');
+        const IcoUp       = mkIcon('fas fa-chevron-up');
+        const IcoGear     = mkIcon('fas fa-gear');
+        const IcoWand     = mkIcon('fas fa-wand-magic-sparkles');
+        const IcoUserPlus = mkIcon('fas fa-user-plus');
+        const IcoCopy     = mkIcon('fas fa-copy');
 
-        // ── Constantes ───────────────────────────────────────────────────
         const PAYMENT_METHODS = [
-            { id: 'virement', label: 'Virement',  icon: CreditCard    },
-            { id: 'cheque',   label: 'Chèque',    icon: FileSignature },
-            { id: 'especes',  label: 'Espèces',   icon: Banknote      },
+            { id: 'virement',  label: 'Virement',  icon: IcoCard },
+            { id: 'cheque',    label: 'Chèque',    icon: IcoFile },
+            { id: 'especes',   label: 'Espèces',   icon: IcoBill },
+            { id: 'cb',        label: 'Carte bancaire', icon: IcoCard },
+            { id: 'autre',     label: 'Autre',     icon: IcoEuro },
         ];
 
-        const generateRandomPin = () => {
-            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            let pin = '';
-            for (let i = 0; i < 4; i++) pin += chars.charAt(Math.floor(Math.random() * chars.length));
+        // Charset sans ambiguïtés visuelles (pas 0/O, 1/I/L)
+        const PIN_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+        const generateUniquePin = (existingPins = new Set(), length = 8) => {
+            let pin, attempts = 0;
+            do {
+                pin = Array.from({ length }, () => PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)]).join('');
+                attempts++;
+            } while (existingPins.has(pin) && attempts < 1000);
             return pin;
         };
 
-        // ── App principale ───────────────────────────────────────────────
+        // ── App ──────────────────────────────────────────────────────────
         function App() {
+            const [appState,     setAppState]     = useState('loading'); // loading|setup|login|admin|member
             const [users,        setUsers]        = useState([]);
             const [payments,     setPayments]     = useState([]);
-            const [settings,     setSettings]     = useState({ nomLoge: 'Trésor de la Loge', capitationCible: 200 });
+            const [settings,     setSettings]     = useState(null);
             const [loggedInUser, setLoggedInUser] = useState(null);
-            const [isLoading,    setIsLoading]    = useState(true);
 
             useEffect(() => {
                 let unsubUsers, unsubPayments, unsubSettings;
 
                 const setup = async () => {
-                    if (!window.TRESOR_DB) {
+                    if (!window.APP_DB) {
                         await new Promise(r => document.addEventListener('firebase-ready', r, { once: true }));
                     }
-                    const { db, collection, addDoc, onSnapshot, doc } = window.TRESOR_DB;
+                    const { db, collection, onSnapshot, doc } = window.APP_DB;
 
-                    let usersReady    = false;
-                    let paymentsReady = false;
-                    let settingsReady = false;
-                    const checkReady  = () => { if (usersReady && paymentsReady && settingsReady) setIsLoading(false); };
-
-                    unsubUsers = onSnapshot(collection(db, 'users'), async (snap) => {
-                        let loadedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        if (!loadedUsers.find(u => u.role === 'admin')) {
-                            const admin = { name: 'Laurent Mienville (Trésorier)', role: 'admin', pin: '20LM' };
-                            const ref   = await addDoc(collection(db, 'users'), admin);
-                            loadedUsers.push({ id: ref.id, ...admin });
+                    let usersReady = false, paymentsReady = false, settingsReady = false;
+                    const checkReady = () => {
+                        if (usersReady && paymentsReady && settingsReady) {
+                            // appState will be set by settings listener
                         }
-                        setUsers(loadedUsers);
+                    };
+
+                    unsubSettings = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
+                        if (snap.exists() && snap.data().configured) {
+                            setSettings(snap.data());
+                            setAppState(prev => prev === 'loading' || prev === 'setup' ? 'login' : prev);
+                        } else {
+                            setSettings(null);
+                            setAppState('setup');
+                        }
+                        settingsReady = true;
+                        checkReady();
+                    }, () => { setAppState('setup'); settingsReady = true; checkReady(); });
+
+                    unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+                        setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                         usersReady = true;
                         checkReady();
-                    }, err => console.error('Erreur users :', err));
+                    });
 
                     unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
                         setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                         paymentsReady = true;
                         checkReady();
-                    }, err => console.error('Erreur payments :', err));
-
-                    unsubSettings = onSnapshot(doc(db, 'settings', 'loge'), (snap) => {
-                        if (snap.exists()) {
-                            setSettings({
-                                nomLoge: snap.data().nomLoge || 'Trésor de la Loge',
-                                capitationCible: snap.data().capitationCible || 200
-                            });
-                        }
-                        settingsReady = true;
-                        checkReady();
-                    }, err => { settingsReady = true; checkReady(); console.error('Erreur settings :', err); });
+                    });
                 };
 
                 setup();
                 return () => { unsubUsers?.(); unsubPayments?.(); unsubSettings?.(); };
             }, []);
 
-            if (isLoading) return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-indigo-900 font-bold text-xl animate-pulse">
-                    Ouverture du Trésor…
+            const handleLogin = (user) => {
+                setLoggedInUser(user);
+                setAppState(user.role === 'admin' ? 'admin' : 'member');
+            };
+            const handleLogout = () => { setLoggedInUser(null); setAppState('login'); };
+
+            if (appState === 'loading') return (
+                <div className="min-h-screen flex items-center justify-center bg-indigo-950 text-indigo-300 font-bold text-xl animate-pulse">
+                    Chargement…
                 </div>
             );
 
-            if (!loggedInUser)
-                return <LoginScreen users={users} onLogin={setLoggedInUser} settings={settings} />;
+            if (appState === 'setup') return (
+                <SetupWizard onDone={() => setAppState('login')} />
+            );
 
-            if (loggedInUser.role === 'admin')
-                return (
-                    <AdminDashboard
-                        users={users} setUsers={setUsers}
-                        payments={payments} setPayments={setPayments}
-                        onLogout={() => setLoggedInUser(null)}
-                        currentUser={loggedInUser}
-                        setLoggedInUser={setLoggedInUser}
-                        settings={settings} setSettings={setSettings}
-                    />
-                );
+            if (appState === 'login') return (
+                <LoginScreen users={users} settings={settings} onLogin={handleLogin} />
+            );
 
-            return (
+            if (appState === 'admin') return (
+                <AdminDashboard
+                    users={users} setUsers={setUsers}
+                    payments={payments} setPayments={setPayments}
+                    settings={settings} setSettings={setSettings}
+                    currentUser={loggedInUser} setLoggedInUser={setLoggedInUser}
+                    onLogout={handleLogout}
+                />
+            );
+
+            if (appState === 'member') return (
                 <MemberDashboard
                     user={loggedInUser}
                     payments={payments.filter(p => String(p.memberId) === String(loggedInUser.id))}
-                    onLogout={() => setLoggedInUser(null)}
                     settings={settings}
+                    onLogout={handleLogout}
                 />
+            );
+
+            return null;
+        }
+
+        // ── Assistant de configuration (premier lancement) ───────────────
+        function SetupWizard({ onDone }) {
+            const [step,          setStep]         = useState(1);
+            const [nomAsso,       setNomAsso]      = useState('');
+            const [labelMembre,   setLabelMembre]  = useState('Membre');
+            const [labelRespons,  setLabelRespons] = useState('Responsable');
+            const [nomRespons,    setNomRespons]   = useState('');
+            const [pinRespons,    setPinRespons]   = useState('');
+            const [pinConfirm,    setPinConfirm]   = useState('');
+            const [cotisation,    setCotisation]   = useState('');
+            const [error,         setError]        = useState('');
+            const [saving,        setSaving]       = useState(false);
+
+            const validateStep = () => {
+                setError('');
+                if (step === 1) {
+                    if (!nomAsso.trim()) { setError("Veuillez saisir le nom de l'association."); return; }
+                    setStep(2);
+                } else if (step === 2) {
+                    if (!labelMembre.trim() || !labelRespons.trim()) { setError('Veuillez remplir les deux champs.'); return; }
+                    setStep(3);
+                } else if (step === 3) {
+                    if (!nomRespons.trim()) { setError('Veuillez saisir le nom du responsable.'); return; }
+                    if (pinRespons.length < 4) { setError('Le code doit faire au moins 4 caractères.'); return; }
+                    if (pinRespons !== pinConfirm) { setError('Les deux codes ne correspondent pas.'); return; }
+                    setStep(4);
+                } else if (step === 4) {
+                    if (!cotisation || isNaN(parseFloat(cotisation)) || parseFloat(cotisation) <= 0) {
+                        setError('Veuillez saisir un montant de cotisation valide.');
+                        return;
+                    }
+                    handleFinish();
+                }
+            };
+
+            const handleFinish = async () => {
+                setSaving(true);
+                const { db, doc, setDoc, collection, addDoc } = window.APP_DB;
+                try {
+                    await setDoc(doc(db, 'settings', 'config'), {
+                        configured: true,
+                        nomAssociation: nomAsso.trim(),
+                        labelMembre: labelMembre.trim(),
+                        labelResponsable: labelRespons.trim(),
+                        cotisationCible: parseFloat(cotisation),
+                    });
+                    await addDoc(collection(db, 'users'), {
+                        name: nomRespons.trim(),
+                        role: 'admin',
+                        pin: pinRespons.toUpperCase(),
+                    });
+                } catch (e) {
+                    setError('Erreur lors de la configuration. Veuillez réessayer.');
+                    setSaving(false);
+                    return;
+                }
+                setSaving(false);
+                onDone();
+            };
+
+            const steps = [
+                { n: 1, label: "Association" },
+                { n: 2, label: "Terminologie" },
+                { n: 3, label: "Responsable" },
+                { n: 4, label: "Cotisation" },
+            ];
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-indigo-800 flex flex-col items-center justify-center px-4 py-12">
+                    <div className="w-full max-w-lg">
+                        <div className="text-center mb-10">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-700 rounded-2xl mb-4 shadow-lg">
+                                <IcoWand size={32} className="text-white" />
+                            </div>
+                            <h1 className="text-3xl font-black text-white">Configuration initiale</h1>
+                            <p className="text-indigo-300 mt-2 font-medium">Paramétrez votre application en quelques étapes</p>
+                        </div>
+
+                        {/* Barre de progression */}
+                        <div className="flex items-center justify-center mb-8 space-x-2">
+                            {steps.map((s, i) => (
+                                <React.Fragment key={s.n}>
+                                    <div className="flex flex-col items-center">
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all ${step > s.n ? 'bg-green-500 border-green-500 text-white' : step === s.n ? 'bg-white border-white text-indigo-900' : 'bg-transparent border-indigo-500 text-indigo-400'}`}>
+                                            {step > s.n ? '✓' : s.n}
+                                        </div>
+                                        <span className={`text-xs mt-1 font-bold ${step >= s.n ? 'text-white' : 'text-indigo-500'}`}>{s.label}</span>
+                                    </div>
+                                    {i < steps.length - 1 && <div className={`flex-1 h-0.5 mb-5 ${step > s.n ? 'bg-green-500' : 'bg-indigo-600'}`} />}
+                                </React.Fragment>
+                            ))}
+                        </div>
+
+                        <div className="bg-white rounded-3xl shadow-2xl p-8 animate-fade">
+                            {step === 1 && (
+                                <div>
+                                    <h2 className="text-xl font-black text-gray-900 mb-2">Nom de votre association</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Ce nom apparaîtra sur l'écran de connexion.</p>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Nom de l'association *</label>
+                                    <input type="text" value={nomAsso} onChange={e => setNomAsso(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : Club Sportif Dupont, Amicale des…" autoFocus />
+                                </div>
+                            )}
+                            {step === 2 && (
+                                <div>
+                                    <h2 className="text-xl font-black text-gray-900 mb-2">Terminologie</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Choisissez les mots utilisés dans l'application.</p>
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Comment appeler les membres ? *</label>
+                                            <input type="text" value={labelMembre} onChange={e => setLabelMembre(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : Membre, Adhérent, Bénévole, Joueur…" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Comment appeler le responsable ? *</label>
+                                            <input type="text" value={labelRespons} onChange={e => setLabelRespons(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : Trésorier, Responsable, Président…" />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {step === 3 && (
+                                <div>
+                                    <h2 className="text-xl font-black text-gray-900 mb-2">Compte {labelRespons}</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Créez le compte administrateur principal.</p>
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom du {labelRespons} *</label>
+                                            <input type="text" value={nomRespons} onChange={e => setNomRespons(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Votre nom complet" autoFocus />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Choisissez votre code d'accès *</label>
+                                            <input type="text" value={pinRespons} onChange={e => setPinRespons(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Minimum 4 caractères" maxLength={12} />
+                                            <p className="text-xs text-gray-400 mt-1">Lettres et chiffres, sensible à la casse en majuscule</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Confirmez le code *</label>
+                                            <input type="text" value={pinConfirm} onChange={e => setPinConfirm(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Répétez le code" maxLength={12} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {step === 4 && (
+                                <div>
+                                    <h2 className="text-xl font-black text-gray-900 mb-2">Montant de la cotisation</h2>
+                                    <p className="text-gray-500 text-sm mb-6">Montant annuel que chaque membre doit régler. Modifiable à tout moment dans les Paramètres.</p>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Montant annuel (€) *</label>
+                                    <input type="number" step="0.01" min="1" value={cotisation} onChange={e => setCotisation(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-2xl focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00" autoFocus />
+                                    <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800 font-medium">
+                                        <strong>Récapitulatif</strong><br />
+                                        Association : <strong>{nomAsso}</strong><br />
+                                        {labelMembre}s / {labelRespons}<br />
+                                        Responsable : <strong>{nomRespons}</strong>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="mt-4 text-red-600 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-100">{error}</div>
+                            )}
+
+                            <div className="flex justify-between mt-8">
+                                {step > 1 ? (
+                                    <button onClick={() => { setError(''); setStep(step - 1); }} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                                        ← Retour
+                                    </button>
+                                ) : <div />}
+                                <button onClick={validateStep} disabled={saving} className="px-8 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all shadow-lg flex items-center">
+                                    {saving ? 'Enregistrement…' : step === 4 ? <><IcoWand size={18} className="mr-2" /> Lancer l'application</> : 'Suivant →'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             );
         }
 
-        // ── 1. Écran de connexion ────────────────────────────────────────
-        function LoginScreen({ users, onLogin, settings }) {
-            const [selectedUserId, setSelectedUserId] = useState('');
-            const [pin,       setPin]       = useState('');
-            const [error,     setError]     = useState('');
-            const [loginMode, setLoginMode] = useState('admin');
+        // ── Écran de connexion ───────────────────────────────────────────
+        function LoginScreen({ users, settings, onLogin }) {
+            const [mode,       setMode]    = useState('admin');
+            const [memberId,   setMemberId]  = useState('');
+            const [pin,        setPin]     = useState('');
+            const [error,      setError]   = useState('');
 
-            const adminUser  = users.find(u => u.role === 'admin');
+            const adminUser   = users.find(u => u.role === 'admin');
             const memberUsers = users.filter(u => u.role === 'member');
+            const lbl = settings?.labelMembre || 'Membre';
+            const lblR = settings?.labelResponsable || 'Responsable';
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 setError('');
-                const upperPin = pin.toUpperCase();
-
-                if (loginMode === 'admin') {
-                    if (upperPin === adminUser?.pin) onLogin(adminUser);
-                    else setError('Code Trésorier incorrect.');
+                const up = pin.toUpperCase();
+                if (mode === 'admin') {
+                    if (up === adminUser?.pin) onLogin(adminUser);
+                    else setError(`Code ${lblR} incorrect.`);
                 } else {
-                    if (!selectedUserId) { setError('Veuillez sélectionner votre nom.'); return; }
-                    const user = users.find(u => String(u.id) === String(selectedUserId));
-                    if (user && user.pin === upperPin) onLogin(user);
+                    if (!memberId) { setError('Veuillez sélectionner votre nom.'); return; }
+                    const user = users.find(u => String(u.id) === memberId);
+                    if (user && user.pin === up) onLogin(user);
                     else setError("Code d'accès incorrect.");
                 }
             };
 
             return (
                 <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-                    <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                        <div className="flex justify-center text-indigo-900 mb-4"><Shield size={48} /></div>
-                        <h2 className="text-center text-3xl font-extrabold text-gray-900">{settings.nomLoge}</h2>
-                        <p className="mt-2 text-center text-sm text-gray-600 font-bold uppercase tracking-widest">Gestion des Capitations</p>
+                    <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+                        <div className="flex justify-center text-indigo-900 mb-4"><IcoShield size={48} /></div>
+                        <h2 className="text-3xl font-extrabold text-gray-900">{settings?.nomAssociation || 'Gestion des Cotisations'}</h2>
+                        <p className="mt-2 text-sm text-gray-600 font-bold uppercase tracking-widest">Gestion des Cotisations</p>
                     </div>
-
                     <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-xl sm:px-10 border border-gray-100">
-                            <div className="flex justify-center space-x-4 mb-8">
-                                <button
-                                    onClick={() => { setLoginMode('admin'); setError(''); setPin(''); }}
-                                    className={`px-4 py-2 flex items-center rounded-lg font-bold transition-all ${loginMode === 'admin' ? 'bg-indigo-900 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                                >
-                                    <Shield size={18} className="mr-2" /> Plateau du Trésorier
+                            <div className="flex justify-center space-x-3 mb-8">
+                                <button onClick={() => { setMode('admin'); setError(''); setPin(''); }} className={`px-4 py-2 flex items-center rounded-lg font-bold transition-all text-sm ${mode === 'admin' ? 'bg-indigo-900 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                    <IcoShield size={16} className="mr-2" /> {lblR}
                                 </button>
-                                <button
-                                    onClick={() => { setLoginMode('member'); setError(''); setPin(''); }}
-                                    className={`px-4 py-2 flex items-center rounded-lg font-bold transition-all ${loginMode === 'member' ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                                >
-                                    <Users size={18} className="mr-2" /> Frère/Sœur
+                                <button onClick={() => { setMode('member'); setError(''); setPin(''); }} className={`px-4 py-2 flex items-center rounded-lg font-bold transition-all text-sm ${mode === 'member' ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                    <IcoUsers size={16} className="mr-2" /> {lbl}
                                 </button>
                             </div>
-
-                            <form className="space-y-6" onSubmit={handleSubmit}>
-                                {loginMode === 'member' && (
+                            <form className="space-y-5" onSubmit={handleSubmit}>
+                                {mode === 'member' && (
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Identité</label>
-                                        <select
-                                            value={selectedUserId}
-                                            onChange={e => setSelectedUserId(e.target.value)}
-                                            className="block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-blue-800 focus:border-blue-800 sm:text-sm rounded-lg border bg-gray-50"
-                                        >
+                                        <select value={memberId} onChange={e => setMemberId(e.target.value)} className="block w-full pl-3 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-800">
                                             <option value="">-- Sélectionnez votre nom --</option>
                                             {memberUsers.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
                                                 <option key={u.id} value={u.id}>{u.name}</option>
@@ -257,35 +427,16 @@
                                         </select>
                                     </div>
                                 )}
-
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                                        {loginMode === 'admin' ? "Code d'accès du Trésorier" : "Code d'accès personnel"}
-                                    </label>
-                                    <div className="relative rounded-lg shadow-sm">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <Lock className="h-5 w-5 text-gray-400" size={20} />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={pin}
-                                            onChange={e => setPin(e.target.value.toUpperCase())}
-                                            className="focus:ring-indigo-800 focus:border-indigo-800 block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 border bg-gray-50 font-mono tracking-widest uppercase text-lg"
-                                            placeholder="Renseigner votre code d'accès"
-                                            maxLength={6}
-                                        />
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Code d'accès</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><IcoLock size={18} className="text-gray-400" /></div>
+                                        <input type="text" value={pin} onChange={e => setPin(e.target.value.toUpperCase())} className="block w-full pl-10 py-3 border border-gray-300 rounded-lg bg-gray-50 font-mono tracking-widest uppercase text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Votre code" maxLength={12} />
                                     </div>
                                 </div>
-
-                                {error && (
-                                    <div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100 text-center">{error}</div>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-bold text-white ${loginMode === 'admin' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-blue-800 hover:bg-blue-700'} transition-colors mt-4`}
-                                >
-                                    Accéder au Trésor
+                                {error && <div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100 text-center">{error}</div>}
+                                <button type="submit" className={`w-full py-3 rounded-lg font-black text-white text-base transition-colors ${mode === 'admin' ? 'bg-indigo-900 hover:bg-indigo-800' : 'bg-blue-800 hover:bg-blue-700'}`}>
+                                    Accéder
                                 </button>
                             </form>
                         </div>
@@ -294,370 +445,468 @@
             );
         }
 
-        // ── 2. Espace Trésorier ──────────────────────────────────────────
-        function AdminDashboard({ users, setUsers, payments, setPayments, onLogout, currentUser, setLoggedInUser, settings, setSettings }) {
-            const [activeTab,        setActiveTab]        = useState('members');
-            const [expandedMemberId, setExpandedMemberId] = useState(null);
-            const [modalConfig,      setModalConfig]      = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+        // ── Tableau de bord Responsable ──────────────────────────────────
+        function AdminDashboard({ users, setUsers, payments, setPayments, settings, setSettings, currentUser, setLoggedInUser, onLogout }) {
+            const [tab,            setTab]           = useState('membres');
+            const [expandedId,     setExpandedId]    = useState(null);
+            const [modal,          setModal]         = useState({ open: false });
+            const [processing,     setProcessing]    = useState(false);
 
-            const [editingPaymentId, setEditingPaymentId] = useState(null);
-            const [payMemberId,      setPayMemberId]      = useState('');
-            const [payAmount,        setPayAmount]        = useState('');
-            const [payDate,          setPayDate]          = useState('');
-            const [payMethod,        setPayMethod]        = useState('virement');
-            const [payNote,          setPayNote]          = useState('');
+            // Paiement
+            const [editPayId,  setEditPayId]  = useState(null);
+            const [payMember,  setPayMember]  = useState('');
+            const [payAmount,  setPayAmount]  = useState('');
+            const [payDate,    setPayDate]    = useState('');
+            const [payMethod,  setPayMethod]  = useState('virement');
+            const [payNote,    setPayNote]    = useState('');
 
-            const [newMemberName,   setNewMemberName]   = useState('');
-            const [searchTerm,      setSearchTerm]      = useState('');
-            const [editingMemberId, setEditingMemberId] = useState(null);
-            const [editMemberName,  setEditMemberName]  = useState('');
+            // Membres
+            const [newName,      setNewName]      = useState('');
+            const [search,       setSearch]       = useState('');
+            const [editMemberId, setEditMemberId] = useState(null);
+            const [editName,     setEditName]     = useState('');
 
-            const [isEditingAdmin, setIsEditingAdmin] = useState(false);
-            const [adminNameInput, setAdminNameInput] = useState(currentUser.name);
-            const [isProcessing,   setIsProcessing]   = useState(false);
+            // Admin nom
+            const [editingAdmin, setEditingAdmin] = useState(false);
+            const [adminName,    setAdminName]    = useState(currentUser.name);
 
             // Paramètres
-            const [nomLogeInput,       setNomLogeInput]       = useState(settings.nomLoge);
-            const [capitationInput,    setCapitationInput]    = useState(settings.capitationCible);
-            const [pinActuel,          setPinActuel]          = useState('');
-            const [pinNouveau,         setPinNouveau]         = useState('');
-            const [pinConfirm,         setPinConfirm]         = useState('');
-            const [settingsMsg,        setSettingsMsg]        = useState(null);
+            const [pNomAsso,    setPNomAsso]    = useState(settings?.nomAssociation || '');
+            const [pLblMembre,  setPLblMembre]  = useState(settings?.labelMembre || 'Membre');
+            const [pLblResp,    setPLblResp]    = useState(settings?.labelResponsable || 'Responsable');
+            const [pCotisation, setPCotisation] = useState(settings?.cotisationCible || '');
+            const [pPinActuel,  setPPinActuel]  = useState('');
+            const [pPinNew,     setPPinNew]     = useState('');
+            const [pPinConfirm, setPPinConfirm] = useState('');
+            const [settingsMsg, setSettingsMsg] = useState(null);
+
+            const lbl  = settings?.labelMembre || 'Membre';
+            const lblR = settings?.labelResponsable || 'Responsable';
+            const cotisation = settings?.cotisationCible || 0;
+            const MAX_MEMBERS = 200;
 
             const members = users.filter(u => u.role === 'member');
-            const maxMembersLimit = 60;
-            const capitationCible = settings.capitationCible;
+            const existingPins = new Set(users.map(u => u.pin));
 
-            const getMemberStatus = (total) => {
-                if (total >= capitationCible) return { color: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', label: 'À jour' };
-                if (total > 0)               return { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500', label: 'En cours' };
+            const statusOf = (total) => {
+                if (total >= cotisation) return { color: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', label: 'À jour' };
+                if (total > 0)          return { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500', label: 'En cours' };
                 return { color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', label: 'Aucun versement' };
             };
 
-            const handleSaveSettings = async (e) => {
+            const methodOf = (id) => PAYMENT_METHODS.find(m => m.id === id) || { label: 'Autre', icon: IcoEuro };
+
+            const showModal = (cfg) => setModal({ open: true, ...cfg });
+            const closeModal = () => setModal({ open: false });
+
+            // ─ Admin name
+            const saveAdminName = async () => {
+                if (!adminName.trim() || processing) return;
+                setProcessing(true);
+                const { db, doc, updateDoc } = window.APP_DB;
+                await updateDoc(doc(db, 'users', currentUser.id), { name: adminName });
+                setUsers(users.map(u => u.id === currentUser.id ? { ...u, name: adminName } : u));
+                setLoggedInUser({ ...currentUser, name: adminName });
+                setEditingAdmin(false);
+                setProcessing(false);
+            };
+
+            // ─ Payments
+            const savePayment = async (e) => {
                 e.preventDefault();
-                if (isProcessing) return;
-                setIsProcessing(true);
-                setSettingsMsg(null);
-                const { db, doc, setDoc } = window.TRESOR_DB;
+                if (!payMember || !payAmount || !payDate || processing) return;
+                setProcessing(true);
+                const { db, doc, updateDoc, addDoc, collection } = window.APP_DB;
+                const data = { memberId: payMember, amount: parseFloat(payAmount), date: payDate, method: payMethod, note: payNote };
                 try {
-                    await setDoc(doc(db, 'settings', 'loge'), {
-                        nomLoge: nomLogeInput.trim() || 'Trésor de la Loge',
-                        capitationCible: parseFloat(capitationInput) || 200
-                    });
-                    setSettings({ nomLoge: nomLogeInput.trim(), capitationCible: parseFloat(capitationInput) });
-                    setSettingsMsg({ type: 'ok', text: 'Paramètres enregistrés.' });
-                } catch { setSettingsMsg({ type: 'err', text: 'Erreur lors de la sauvegarde.' }); }
-                setIsProcessing(false);
-            };
-
-            const handleChangePin = async (e) => {
-                e.preventDefault();
-                if (isProcessing) return;
-                setSettingsMsg(null);
-                if (pinActuel.toUpperCase() !== currentUser.pin) { setSettingsMsg({ type: 'err', text: 'Code actuel incorrect.' }); return; }
-                if (pinNouveau.length < 4) { setSettingsMsg({ type: 'err', text: 'Le nouveau code doit faire au moins 4 caractères.' }); return; }
-                if (pinNouveau.toUpperCase() !== pinConfirm.toUpperCase()) { setSettingsMsg({ type: 'err', text: 'Les deux codes ne correspondent pas.' }); return; }
-                setIsProcessing(true);
-                const { db, doc, updateDoc } = window.TRESOR_DB;
-                try {
-                    const newPin = pinNouveau.toUpperCase();
-                    await updateDoc(doc(db, 'users', currentUser.id), { pin: newPin });
-                    setUsers(users.map(u => String(u.id) === String(currentUser.id) ? { ...u, pin: newPin } : u));
-                    setLoggedInUser({ ...currentUser, pin: newPin });
-                    setPinActuel(''); setPinNouveau(''); setPinConfirm('');
-                    setSettingsMsg({ type: 'ok', text: 'Code d\'accès modifié avec succès.' });
-                } catch { setSettingsMsg({ type: 'err', text: 'Erreur lors du changement de code.' }); }
-                setIsProcessing(false);
-            };
-
-            const showModal = (type, title, message, onConfirm = null) =>
-                setModalConfig({ isOpen: true, type, title, message, onConfirm });
-            const closeModal = () => setModalConfig(m => ({ ...m, isOpen: false }));
-
-            const getMethodDisplay = (methodId) => {
-                const method = PAYMENT_METHODS.find(m => m.id === methodId);
-                return method ? { label: method.label, icon: method.icon } : { label: 'Inconnu', icon: Euro };
-            };
-
-            // ── Admin name ──
-            const handleUpdateAdminName = async () => {
-                if (!adminNameInput.trim() || isProcessing) return;
-                setIsProcessing(true);
-                const { db, doc, updateDoc } = window.TRESOR_DB;
-                try {
-                    await updateDoc(doc(db, 'users', currentUser.id), { name: adminNameInput });
-                    setUsers(users.map(u => String(u.id) === String(currentUser.id) ? { ...u, name: adminNameInput } : u));
-                    setLoggedInUser({ ...currentUser, name: adminNameInput });
-                    setIsEditingAdmin(false);
-                } catch { showModal('alert', 'Erreur', 'Erreur lors de la modification du nom.'); }
-                setIsProcessing(false);
-            };
-
-            // ── Payments ──
-            const handleSavePayment = async (e) => {
-                e.preventDefault();
-                if (!payMemberId || !payAmount || !payDate || !payMethod || isProcessing) return;
-                setIsProcessing(true);
-                const { db, doc, updateDoc, addDoc, collection } = window.TRESOR_DB;
-
-                try {
-                    if (editingPaymentId) {
-                        const data = { memberId: payMemberId, amount: parseFloat(payAmount), date: payDate, method: payMethod, note: payNote };
-                        await updateDoc(doc(db, 'payments', editingPaymentId), data);
-                        setPayments(payments.map(p => p.id === editingPaymentId ? { id: editingPaymentId, ...data } : p));
-                        setEditingPaymentId(null);
+                    if (editPayId) {
+                        await updateDoc(doc(db, 'payments', editPayId), data);
+                        setPayments(payments.map(p => p.id === editPayId ? { id: editPayId, ...data } : p));
+                        setEditPayId(null);
                     } else {
-                        const data = { memberId: payMemberId, amount: parseFloat(payAmount), date: payDate, method: payMethod, note: payNote };
                         const ref = await addDoc(collection(db, 'payments'), data);
                         setPayments([...payments, { id: ref.id, ...data }]);
                     }
-                    setPayMemberId(''); setPayAmount(''); setPayDate(''); setPayNote(''); setPayMethod('virement');
-                } catch { showModal('alert', 'Erreur', 'Erreur lors de la sauvegarde du paiement.'); }
-                setIsProcessing(false);
+                    setPayMember(''); setPayAmount(''); setPayDate(''); setPayNote(''); setPayMethod('virement');
+                } catch { showModal({ type: 'alert', title: 'Erreur', message: 'Erreur lors de la sauvegarde.' }); }
+                setProcessing(false);
             };
 
-            const editPayment = (payment) => {
-                setEditingPaymentId(payment.id);
-                setPayMemberId(payment.memberId);
-                setPayAmount(payment.amount);
-                setPayDate(payment.date);
-                setPayMethod(payment.method || 'virement');
-                setPayNote(payment.note || '');
+            const startEditPay = (p) => {
+                setEditPayId(p.id); setPayMember(p.memberId); setPayAmount(p.amount);
+                setPayDate(p.date); setPayMethod(p.method || 'virement'); setPayNote(p.note || '');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const deletePayment = (id) => {
-                showModal('confirm', 'Supprimer le versement', 'Voulez-vous vraiment supprimer définitivement ce versement ?', async () => {
+            const deletePay = (id) => showModal({
+                type: 'confirm', title: 'Supprimer ce versement ?',
+                message: 'Cette action est irréversible.',
+                onConfirm: async () => {
                     closeModal();
-                    const { db, doc, deleteDoc } = window.TRESOR_DB;
+                    const { db, doc, deleteDoc } = window.APP_DB;
                     await deleteDoc(doc(db, 'payments', id));
                     setPayments(payments.filter(p => p.id !== id));
-                });
-            };
-
-            const cancelEdit = () => {
-                setEditingPaymentId(null);
-                setPayMemberId(''); setPayAmount(''); setPayDate(''); setPayMethod('virement'); setPayNote('');
-            };
-
-            // ── Members ──
-            const handleAddMember = async (e) => {
-                e.preventDefault();
-                if (!newMemberName.trim() || isProcessing) return;
-                if (members.length >= maxMembersLimit) { showModal('alert', 'Limite atteinte', 'Le nombre maximum de Frères/Sœurs est atteint.'); return; }
-                setIsProcessing(true);
-                const { db, collection, addDoc } = window.TRESOR_DB;
-                try {
-                    const member = { name: newMemberName, role: 'member', pin: generateRandomPin() };
-                    const ref = await addDoc(collection(db, 'users'), member);
-                    setUsers([...users, { id: ref.id, ...member }]);
-                    setNewMemberName('');
-                } catch { showModal('alert', 'Erreur', "Erreur lors de l'intégration du Frère/Sœur."); }
-                setIsProcessing(false);
-            };
-
-            const handleUpdateMemberName = async (memberId) => {
-                if (!editMemberName.trim() || isProcessing) return;
-                setIsProcessing(true);
-                const { db, doc, updateDoc } = window.TRESOR_DB;
-                try {
-                    await updateDoc(doc(db, 'users', memberId), { name: editMemberName });
-                    setUsers(users.map(u => String(u.id) === String(memberId) ? { ...u, name: editMemberName } : u));
-                    setEditingMemberId(null);
-                    setEditMemberName('');
-                } catch { showModal('alert', 'Erreur', 'Erreur lors de la modification du nom.'); }
-                setIsProcessing(false);
-            };
-
-            const deleteMember = (memberId) => {
-                const memberPayments = payments.filter(p => String(p.memberId) === String(memberId));
-                if (memberPayments.length > 0) {
-                    showModal('alert', 'Action impossible', `Ce Frère/Sœur a ${memberPayments.length} versement(s) enregistré(s). Veuillez d'abord les supprimer du registre.`);
-                    return;
                 }
-                showModal('confirm', 'Rayer du Tableau', "Voulez-vous vraiment retirer ce Frère/Sœur du Tableau de Loge ? Son accès sera détruit.", async () => {
-                    closeModal();
-                    const { db, doc, deleteDoc } = window.TRESOR_DB;
-                    await deleteDoc(doc(db, 'users', memberId));
-                    setUsers(users.filter(u => u.id !== memberId));
+            });
+
+            // ─ Members
+            const addMember = async (e) => {
+                e.preventDefault();
+                if (!newName.trim() || processing) return;
+                if (members.length >= MAX_MEMBERS) { showModal({ type: 'alert', title: 'Limite atteinte', message: `Vous avez atteint la limite de ${MAX_MEMBERS} ${lbl.toLowerCase()}s.` }); return; }
+                setProcessing(true);
+                const { db, collection, addDoc } = window.APP_DB;
+                const pin = generateUniquePin(existingPins);
+                try {
+                    const ref = await addDoc(collection(db, 'users'), { name: newName.trim(), role: 'member', pin });
+                    setUsers([...users, { id: ref.id, name: newName.trim(), role: 'member', pin }]);
+                    existingPins.add(pin);
+                    setNewName('');
+                } catch { showModal({ type: 'alert', title: 'Erreur', message: "Erreur lors de l'ajout." }); }
+                setProcessing(false);
+            };
+
+            const saveMemberName = async (id) => {
+                if (!editName.trim() || processing) return;
+                setProcessing(true);
+                const { db, doc, updateDoc } = window.APP_DB;
+                await updateDoc(doc(db, 'users', id), { name: editName.trim() });
+                setUsers(users.map(u => u.id === id ? { ...u, name: editName.trim() } : u));
+                setEditMemberId(null); setEditName('');
+                setProcessing(false);
+            };
+
+            const regeneratePin = async (member) => {
+                showModal({
+                    type: 'confirm', title: 'Régénérer le code ?',
+                    message: `Un nouveau code unique sera créé pour ${member.name}. L'ancien ne fonctionnera plus.`,
+                    onConfirm: async () => {
+                        closeModal();
+                        const { db, doc, updateDoc } = window.APP_DB;
+                        const newPin = generateUniquePin(existingPins);
+                        await updateDoc(doc(db, 'users', member.id), { pin: newPin });
+                        setUsers(users.map(u => u.id === member.id ? { ...u, pin: newPin } : u));
+                        existingPins.add(newPin);
+                    }
                 });
             };
 
-            const filteredMembers = members.filter(m =>
-                m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                m.pin.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            const deleteMember = (id) => {
+                const hasPay = payments.some(p => String(p.memberId) === String(id));
+                if (hasPay) { showModal({ type: 'alert', title: 'Impossible', message: `Ce ${lbl.toLowerCase()} a des versements enregistrés. Supprimez-les d'abord.` }); return; }
+                showModal({
+                    type: 'confirm', title: `Retirer ce ${lbl.toLowerCase()} ?`,
+                    message: 'Son accès sera supprimé définitivement.',
+                    onConfirm: async () => {
+                        closeModal();
+                        const { db, doc, deleteDoc } = window.APP_DB;
+                        await deleteDoc(doc(db, 'users', id));
+                        setUsers(users.filter(u => u.id !== id));
+                    }
+                });
+            };
 
-            const totalAsso      = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-            const objectifGlobal = members.length * capitationCible;
-            const resteGlobal    = Math.max(0, objectifGlobal - totalAsso);
+            // ─ Settings
+            const saveSettings = async (e) => {
+                e.preventDefault();
+                if (processing) return;
+                setProcessing(true); setSettingsMsg(null);
+                const { db, doc, setDoc } = window.APP_DB;
+                try {
+                    const data = {
+                        configured: true,
+                        nomAssociation: pNomAsso.trim() || settings.nomAssociation,
+                        labelMembre: pLblMembre.trim() || 'Membre',
+                        labelResponsable: pLblResp.trim() || 'Responsable',
+                        cotisationCible: parseFloat(pCotisation) || cotisation,
+                    };
+                    await setDoc(doc(db, 'settings', 'config'), data);
+                    setSettings(data);
+                    setSettingsMsg({ ok: true, text: 'Paramètres enregistrés.' });
+                } catch { setSettingsMsg({ ok: false, text: 'Erreur lors de la sauvegarde.' }); }
+                setProcessing(false);
+            };
+
+            const changePin = async (e) => {
+                e.preventDefault();
+                if (processing) return;
+                setSettingsMsg(null);
+                if (pPinActuel.toUpperCase() !== currentUser.pin) { setSettingsMsg({ ok: false, text: 'Code actuel incorrect.' }); return; }
+                if (pPinNew.length < 4) { setSettingsMsg({ ok: false, text: 'Le nouveau code doit faire au moins 4 caractères.' }); return; }
+                if (pPinNew.toUpperCase() !== pPinConfirm.toUpperCase()) { setSettingsMsg({ ok: false, text: 'Les deux codes ne correspondent pas.' }); return; }
+                setProcessing(true);
+                const { db, doc, updateDoc } = window.APP_DB;
+                const newPin = pPinNew.toUpperCase();
+                await updateDoc(doc(db, 'users', currentUser.id), { pin: newPin });
+                setUsers(users.map(u => u.id === currentUser.id ? { ...u, pin: newPin } : u));
+                setLoggedInUser({ ...currentUser, pin: newPin });
+                setPPinActuel(''); setPPinNew(''); setPPinConfirm('');
+                setSettingsMsg({ ok: true, text: 'Code modifié avec succès.' });
+                setProcessing(false);
+            };
+
+            const totalAsso   = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+            const objectif    = members.length * cotisation;
+            const resteGlobal = Math.max(0, objectif - totalAsso);
+            const filtered    = members.filter(m => m.name.toLowerCase().includes(search.toLowerCase()) || m.pin.toLowerCase().includes(search.toLowerCase()));
 
             return (
                 <div className="min-h-screen bg-gray-100 pb-12">
                     {/* Nav */}
-                    <nav className="bg-indigo-950 shadow-lg border-b-4 border-indigo-900">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between h-16">
-                                <div className="flex items-center text-white font-extrabold text-xl tracking-tight">
-                                    <Shield className="mr-3 text-indigo-400" size={24} /> Plateau du Trésorier
-                                </div>
-                                <div className="flex items-center">
-                                    {isEditingAdmin ? (
-                                        <div className="flex items-center mr-2 sm:mr-6 bg-indigo-900 border border-indigo-700 p-1 rounded-lg">
-                                            <input
-                                                type="text"
-                                                value={adminNameInput}
-                                                onChange={e => setAdminNameInput(e.target.value)}
-                                                className="w-28 sm:w-48 px-2 py-1 text-sm font-bold text-gray-900 rounded-md focus:outline-none"
-                                                autoFocus
-                                            />
-                                            <button onClick={handleUpdateAdminName} className="p-1 ml-1 text-green-400 hover:bg-indigo-800 rounded transition-colors" title="Enregistrer"><Save size={16} /></button>
-                                            <button onClick={() => setIsEditingAdmin(false)} className="p-1 ml-1 text-red-400 hover:bg-indigo-800 rounded transition-colors" title="Annuler"><XIcon size={16} /></button>
-                                        </div>
-                                    ) : (
-                                        <span className="text-indigo-200 mr-4 sm:mr-6 flex items-center font-medium text-sm">
-                                            <span className="hidden sm:inline">Officier : </span>
-                                            <strong className="text-white sm:ml-1.5 mr-2">{currentUser.name}</strong>
-                                            <button onClick={() => { setAdminNameInput(currentUser.name); setIsEditingAdmin(true); }} className="text-indigo-400 hover:text-white p-1 hover:bg-indigo-800 rounded transition-colors" title="Modifier le nom">
-                                                <Edit2 size={14} />
-                                            </button>
-                                        </span>
-                                    )}
-                                    <button onClick={onLogout} className="bg-indigo-900 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center transition-colors text-sm font-bold shadow-sm">
-                                        <LogOut size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Quitter l'office</span>
-                                    </button>
-                                </div>
+                    <nav className="bg-indigo-950 border-b-4 border-indigo-900 shadow-lg">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+                            <div className="flex items-center text-white font-extrabold text-lg tracking-tight">
+                                <IcoShield className="mr-3 text-indigo-400" size={22} />
+                                {settings?.nomAssociation || 'Gestion des Cotisations'}
+                            </div>
+                            <div className="flex items-center">
+                                {editingAdmin ? (
+                                    <div className="flex items-center mr-4 bg-indigo-900 border border-indigo-700 p-1 rounded-lg">
+                                        <input value={adminName} onChange={e => setAdminName(e.target.value)} className="w-36 sm:w-48 px-2 py-1 text-sm font-bold text-gray-900 rounded focus:outline-none" autoFocus />
+                                        <button onClick={saveAdminName} className="p-1 ml-1 text-green-400 hover:bg-indigo-800 rounded"><IcoSave size={15} /></button>
+                                        <button onClick={() => setEditingAdmin(false)} className="p-1 ml-1 text-red-400 hover:bg-indigo-800 rounded"><IcoX size={15} /></button>
+                                    </div>
+                                ) : (
+                                    <span className="text-indigo-200 mr-4 text-sm font-medium flex items-center">
+                                        <strong className="text-white mr-2">{currentUser.name}</strong>
+                                        <button onClick={() => { setAdminName(currentUser.name); setEditingAdmin(true); }} className="text-indigo-400 hover:text-white p-1 rounded hover:bg-indigo-800 transition-colors"><IcoEdit size={13} /></button>
+                                    </span>
+                                )}
+                                <button onClick={onLogout} className="bg-indigo-900 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center text-sm font-bold transition-colors">
+                                    <IcoLogout size={15} className="sm:mr-2" /><span className="hidden sm:inline">Déconnexion</span>
+                                </button>
                             </div>
                         </div>
                     </nav>
 
                     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                         {/* Résumé */}
-                        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 flex items-center">
-                                <div className="bg-indigo-100 p-4 rounded-xl text-indigo-900 mr-4"><Euro size={28} /></div>
-                                <div>
-                                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Trésor de la Loge</h2>
-                                    <p className="text-3xl font-black text-gray-900">{totalAsso.toFixed(2)} <span className="text-xl text-gray-500">€</span></p>
-                                    <p className="text-xs font-medium text-indigo-700 mt-1">Prévisionnel global : {objectifGlobal.toFixed(2)} €</p>
+                        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+                            {[
+                                { icon: IcoEuro, bg: 'bg-indigo-100', color: 'text-indigo-900', label: 'Caisse totale', value: `${totalAsso.toFixed(2)} €`, sub: `Objectif : ${objectif.toFixed(2)} €`, subColor: 'text-indigo-700' },
+                                { icon: IcoCal,  bg: 'bg-yellow-100', color: 'text-yellow-700', label: 'Reste à encaisser', value: `${resteGlobal.toFixed(2)} €`, sub: 'Pour atteindre l\'objectif', subColor: 'text-yellow-700' },
+                                { icon: IcoUsers,bg: 'bg-blue-100',   color: 'text-blue-800',   label: `${lbl}s inscrits`, value: `${members.length} / ${MAX_MEMBERS}`, sub: `Cotisation : ${cotisation} € / pers.`, subColor: 'text-blue-700' },
+                            ].map((c, i) => (
+                                <div key={i} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 flex items-center">
+                                    <div className={`${c.bg} p-4 rounded-xl ${c.color} mr-4 flex-shrink-0`}><c.icon size={26} /></div>
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{c.label}</div>
+                                        <div className="text-2xl font-black text-gray-900">{c.value}</div>
+                                        <div className={`text-xs font-medium ${c.subColor} mt-1`}>{c.sub}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 flex items-center">
-                                <div className="bg-yellow-100 p-4 rounded-xl text-yellow-700 mr-4"><Calendar size={28} /></div>
-                                <div>
-                                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Reste à percevoir</h2>
-                                    <p className="text-3xl font-black text-gray-900">{resteGlobal.toFixed(2)} <span className="text-xl text-gray-500">€</span></p>
-                                    <p className="text-xs font-medium text-yellow-700 mt-1">Pour que la Loge soit à jour</p>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 flex items-center">
-                                <div className="bg-blue-100 p-4 rounded-xl text-blue-800 mr-4"><Users size={28} /></div>
-                                <div>
-                                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Frères/Sœurs sur le Tableau</h2>
-                                    <p className="text-3xl font-black text-gray-900">{members.length} <span className="text-xl text-gray-400 font-medium">/ {maxMembersLimit}</span></p>
-                                    <p className="text-xs font-medium text-blue-700 mt-1">Soit {capitationCible} € par Frère/Sœur</p>
-                                </div>
-                            </div>
+                            ))}
                         </div>
 
                         {/* Onglets */}
-                        <div className="mb-8 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 bg-white p-2 rounded-xl shadow-sm w-full sm:w-auto border border-gray-200">
-                            <button onClick={() => setActiveTab('members')} className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center flex-1 sm:flex-none ${activeTab === 'members' ? 'bg-indigo-900 text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}>
-                                <UserPlus size={18} className="mr-2" /> Tableau de Loge & Codes
-                            </button>
-                            <button onClick={() => setActiveTab('payments')} className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center flex-1 sm:flex-none ${activeTab === 'payments' ? 'bg-indigo-900 text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}>
-                                <CreditCard size={18} className="mr-2" /> Saisir un règlement
-                            </button>
-                            <button onClick={() => { setActiveTab('parametres'); setSettingsMsg(null); setNomLogeInput(settings.nomLoge); setCapitationInput(settings.capitationCible); }} className={`px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center flex-1 sm:flex-none ${activeTab === 'parametres' ? 'bg-indigo-900 text-white shadow-md' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}>
-                                <Key size={18} className="mr-2" /> Paramètres
-                            </button>
+                        <div className="mb-8 flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-xl shadow-sm border border-gray-200 w-full">
+                            {[
+                                { id: 'membres',   label: `${lbl}s & Codes`,      icon: IcoUserPlus },
+                                { id: 'payments',  label: 'Saisir un versement',  icon: IcoCard },
+                                { id: 'parametres',label: 'Paramètres',           icon: IcoGear },
+                            ].map(t => (
+                                <button key={t.id}
+                                    onClick={() => { setTab(t.id); setSettingsMsg(null); if (t.id === 'parametres') { setPNomAsso(settings?.nomAssociation || ''); setPLblMembre(settings?.labelMembre || ''); setPLblResp(settings?.labelResponsable || ''); setPCotisation(settings?.cotisationCible || ''); }}}
+                                    className={`flex-1 px-5 py-3 rounded-lg font-bold transition-all flex items-center justify-center text-sm ${tab === t.id ? 'bg-indigo-900 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+                                >
+                                    <t.icon size={17} className="mr-2" />{t.label}
+                                </button>
+                            ))}
                         </div>
 
-                        {/* ── Onglet Paiements ── */}
-                        {activeTab === 'payments' && (
+                        {/* ── Onglet Membres ── */}
+                        {tab === 'membres' && (
+                            <div className="space-y-8 animate-fade">
+                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-900">
+                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center">
+                                        <IcoUserPlus className="mr-3 text-gray-800" size={24} /> Ajouter un {lbl}
+                                    </h3>
+                                    <form onSubmit={addMember} className="flex flex-col md:flex-row gap-4 items-end">
+                                        <div className="flex-grow w-full">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom complet</label>
+                                            <input type="text" required value={newName} onChange={e => setNewName(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-gray-900 focus:outline-none" placeholder={`Nom du ${lbl.toLowerCase()}`} />
+                                        </div>
+                                        <button type="submit" disabled={members.length >= MAX_MEMBERS || processing} className="w-full md:w-auto px-6 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 transition-all flex items-center justify-center shadow-lg">
+                                            <IcoKey size={17} className="mr-2" /> Générer le code & Ajouter
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+                                    <div className="px-6 py-5 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-lg font-black text-gray-900">Registre des {lbl}s</h3>
+                                            <p className="text-sm text-gray-500 mt-1">Codes uniques à 8 caractères · {members.length}/{MAX_MEMBERS} inscrits</p>
+                                        </div>
+                                        <div className="relative w-full md:w-72">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><IcoSearch size={18} className="text-gray-400" /></div>
+                                            <input type="text" className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-900 font-medium text-sm focus:outline-none" placeholder={`Rechercher un ${lbl.toLowerCase()} ou code…`} value={search} onChange={e => setSearch(e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <ul className="divide-y divide-gray-100">
+                                        {filtered.sort((a, b) => a.name.localeCompare(b.name)).map(member => {
+                                            const mp    = payments.filter(p => String(p.memberId) === String(member.id));
+                                            const total = mp.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+                                            const st    = statusOf(total);
+                                            const expanded = expandedId === member.id;
+                                            const editing  = editMemberId === member.id;
+
+                                            return (
+                                                <li key={member.id} className="flex flex-col hover:bg-gray-50 transition-colors group">
+                                                    <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                        <div className="flex flex-col w-full md:w-1/3">
+                                                            {editing ? (
+                                                                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-white border border-indigo-400 rounded-lg py-2 px-3 font-black text-gray-900 text-base focus:ring-2 focus:ring-indigo-900 focus:outline-none" autoFocus />
+                                                            ) : (
+                                                                <div className="text-base font-black text-gray-900">{member.name}</div>
+                                                            )}
+                                                            <div className="mt-2 inline-flex items-center w-max px-3 py-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-lg">
+                                                                <IcoLock size={12} className="mr-2 text-indigo-600" />
+                                                                <span className="text-xs font-bold uppercase tracking-wider mr-2 opacity-70">Code</span>
+                                                                <strong className="text-base font-mono tracking-widest">{member.pin}</strong>
+                                                                <button onClick={() => navigator.clipboard?.writeText(member.pin)} className="ml-2 text-indigo-400 hover:text-indigo-700 transition-colors" title="Copier"><IcoCopy size={13} /></button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex-1 flex flex-col items-start md:items-center">
+                                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold border ${st.color}`}>
+                                                                <span className={`h-2 w-2 mr-2 rounded-full ${st.dot}`}></span>{st.label}
+                                                            </span>
+                                                            <button onClick={() => setExpandedId(expanded ? null : member.id)} className="mt-2 text-xs font-bold text-indigo-800 hover:text-indigo-950 flex items-center bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200 transition-colors">
+                                                                {mp.length} versement(s) {expanded ? <IcoUp size={13} className="ml-1" /> : <IcoDown size={13} className="ml-1" />}
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3">
+                                                            <div className="text-right">
+                                                                <div className="text-xs text-gray-500 font-medium">Versé</div>
+                                                                <div className="text-lg font-black text-gray-900">{total.toFixed(2)} €</div>
+                                                                <div className="text-xs font-bold text-gray-400">Reste : {Math.max(0, cotisation - total).toFixed(2)} €</div>
+                                                            </div>
+                                                            {editing ? (
+                                                                <div className="flex space-x-1">
+                                                                    <button onClick={() => saveMemberName(member.id)} className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-xl" title="Enregistrer"><IcoSave size={18} /></button>
+                                                                    <button onClick={() => setEditMemberId(null)} className="p-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl" title="Annuler"><IcoX size={18} /></button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => { setEditMemberId(member.id); setEditName(member.name); }} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Modifier le nom"><IcoEdit size={17} /></button>
+                                                                    <button onClick={() => regeneratePin(member)} className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl transition-colors" title="Nouveau code"><IcoKey size={17} /></button>
+                                                                    <button onClick={() => deleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Supprimer"><IcoTrash size={17} /></button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {expanded && (
+                                                        <div className="bg-indigo-50 border-t border-indigo-100 p-5 animate-fade">
+                                                            <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-3 flex items-center">
+                                                                <IcoCal size={14} className="mr-2" /> Historique — {member.name}
+                                                            </h4>
+                                                            {mp.length > 0 ? (
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                                    {[...mp].sort((a, b) => new Date(a.date) - new Date(b.date)).map((pay, idx) => (
+                                                                        <div key={pay.id} className="bg-white border border-indigo-100 p-3 rounded-xl flex justify-between items-center">
+                                                                            <div>
+                                                                                <div className="text-xs font-bold text-indigo-600 uppercase mb-0.5">Versement n°{idx + 1}</div>
+                                                                                <div className="text-sm font-bold text-gray-900">{new Date(pay.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                                                                <div className="text-xs text-gray-500">{methodOf(pay.method).label}{pay.note ? ` — ${pay.note}` : ''}</div>
+                                                                            </div>
+                                                                            <div className="text-base font-black text-indigo-900">{parseFloat(pay.amount || 0).toFixed(2)} €</div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : <p className="text-sm text-gray-500 italic">Aucun versement enregistré.</p>}
+                                                        </div>
+                                                    )}
+                                                </li>
+                                            );
+                                        })}
+                                        {filtered.length === 0 && (
+                                            <li className="py-12 text-center text-gray-400 font-medium">Aucun résultat.</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Onglet Versements ── */}
+                        {tab === 'payments' && (
                             <div className="space-y-8 animate-fade">
                                 <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-indigo-900">
-                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
-                                        {editingPaymentId
-                                            ? <><Edit2 className="mr-3 text-indigo-900" size={28} /> Modifier le règlement</>
-                                            : <><Plus className="mr-3 text-indigo-900" size={28} /> Enregistrer une capitation</>}
+                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center">
+                                        {editPayId ? <><IcoEdit className="mr-3 text-indigo-900" size={24} /> Modifier</> : <><IcoPlus className="mr-3 text-indigo-900" size={24} /> Enregistrer un versement</>}
                                     </h3>
-                                    <form onSubmit={handleSavePayment} className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-6">
+                                    <form onSubmit={savePayment} className="grid grid-cols-1 gap-5 sm:grid-cols-6">
                                         <div className="sm:col-span-3">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Frère/Sœur *</label>
-                                            <select required value={payMemberId} onChange={e => setPayMemberId(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 focus:border-indigo-800 font-medium text-gray-900">
-                                                <option value="">Sélectionnez un Frère/Sœur…</option>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">{lbl} *</label>
+                                            <select required value={payMember} onChange={e => setPayMember(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none">
+                                                <option value="">Sélectionnez…</option>
                                                 {members.sort((a, b) => a.name.localeCompare(b.name)).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="sm:col-span-3">
                                             <label className="block text-sm font-bold text-gray-700 mb-2">Date *</label>
-                                            <input type="date" required value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 focus:border-indigo-800 font-medium text-gray-900" />
+                                            <input type="date" required value={payDate} onChange={e => setPayDate(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
                                         </div>
                                         <div className="sm:col-span-3">
                                             <label className="block text-sm font-bold text-gray-700 mb-2">Montant (€) *</label>
-                                            <input type="number" step="0.01" min="0" required value={payAmount} onChange={e => setPayAmount(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 focus:border-indigo-800 font-black text-indigo-900 text-lg" placeholder="0.00" />
+                                            <input type="number" step="0.01" min="0" required value={payAmount} onChange={e => setPayAmount(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00" />
                                         </div>
                                         <div className="sm:col-span-3">
                                             <label className="block text-sm font-bold text-gray-700 mb-2">Mode de règlement *</label>
-                                            <select required value={payMethod} onChange={e => setPayMethod(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 focus:border-indigo-800 font-medium text-gray-900">
+                                            <select required value={payMethod} onChange={e => setPayMethod(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none">
                                                 {PAYMENT_METHODS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                             </select>
                                         </div>
                                         <div className="sm:col-span-6">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Remarque interne (Optionnel)</label>
-                                            <input type="text" value={payNote} onChange={e => setPayNote(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 focus:border-indigo-800 text-gray-900" placeholder="Ex: Reste 50 € à régler à la prochaine Tenue…" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Remarque (optionnel)</label>
+                                            <input type="text" value={payNote} onChange={e => setPayNote(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : solde, acompte, arrondi…" />
                                         </div>
-                                        <div className="sm:col-span-6 flex justify-end space-x-4 pt-4 border-t border-gray-200">
-                                            {editingPaymentId && (
-                                                <button type="button" onClick={cancelEdit} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Annuler</button>
-                                            )}
-                                            <button type="submit" disabled={isProcessing} className="px-8 py-3 rounded-xl shadow-lg shadow-indigo-200 font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all flex items-center">
-                                                {editingPaymentId
-                                                    ? <><Save className="mr-2" size={18} /> Mettre à jour</>
-                                                    : <><Plus className="mr-2" size={18} /> Valider le versement</>}
+                                        <div className="sm:col-span-6 flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                                            {editPayId && <button type="button" onClick={() => { setEditPayId(null); setPayMember(''); setPayAmount(''); setPayDate(''); setPayNote(''); setPayMethod('virement'); }} className="px-5 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Annuler</button>}
+                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all flex items-center shadow-lg">
+                                                {editPayId ? <><IcoSave className="mr-2" size={17} /> Mettre à jour</> : <><IcoPlus className="mr-2" size={17} /> Valider le versement</>}
                                             </button>
                                         </div>
                                     </form>
                                 </div>
 
-                                {/* Livre de trésor */}
+                                {/* Liste des versements */}
                                 <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
                                     <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
-                                        <h3 className="text-lg font-black text-gray-800">Livre d'Architecture du Trésor</h3>
+                                        <h3 className="text-lg font-black text-gray-800">Tous les versements</h3>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full divide-y divide-gray-200">
                                             <thead className="bg-white">
                                                 <tr>
-                                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Frère/Sœur</th>
-                                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mode</th>
-                                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
-                                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                                    {['Date', lbl, 'Mode', 'Montant', 'Actions'].map((h, i) => (
+                                                        <th key={h} className={`px-5 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider ${i >= 3 ? 'text-right' : 'text-left'}`}>{h}</th>
+                                                    ))}
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-100">
-                                                {[...payments].sort((a, b) => new Date(b.date) - new Date(a.date)).map(payment => {
-                                                    const member = users.find(u => String(u.id) === String(payment.memberId));
-                                                    const methodInfo = getMethodDisplay(payment.method);
-                                                    const MethodIcon = methodInfo.icon;
+                                                {[...payments].sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => {
+                                                    const m = users.find(u => String(u.id) === String(p.memberId));
+                                                    const met = methodOf(p.method);
+                                                    const MI = met.icon;
                                                     return (
-                                                        <tr key={payment.id} className={`transition-colors ${editingPaymentId === payment.id ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}>
-                                                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">{new Date(payment.date).toLocaleDateString('fr-FR')}</td>
-                                                            <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-900">{member ? member.name : <span className="text-red-500 italic font-normal">Rayé du Tableau</span>}</td>
-                                                            <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-500 font-medium">
-                                                                <span className="flex items-center"><MethodIcon size={18} className="mr-2 text-indigo-800" />{methodInfo.label}</span>
-                                                            </td>
-                                                            <td className="px-6 py-5 whitespace-nowrap text-right text-base font-black text-gray-900">{parseFloat(payment.amount || 0).toFixed(2)} €</td>
-                                                            <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                                                                <button onClick={() => editPayment(payment)} className="p-2 text-gray-500 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition-colors mr-2"><Edit2 size={18} /></button>
-                                                                <button onClick={() => deletePayment(payment.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                        <tr key={p.id} className={`transition-colors ${editPayId === p.id ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}>
+                                                            <td className="px-5 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">{new Date(p.date).toLocaleDateString('fr-FR')}</td>
+                                                            <td className="px-5 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{m ? m.name : <span className="text-red-400 italic font-normal">Supprimé</span>}</td>
+                                                            <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap"><span className="flex items-center"><MI size={16} className="mr-2 text-indigo-700" />{met.label}</span></td>
+                                                            <td className="px-5 py-4 text-right text-base font-black text-gray-900 whitespace-nowrap">{parseFloat(p.amount || 0).toFixed(2)} €</td>
+                                                            <td className="px-5 py-4 text-right whitespace-nowrap">
+                                                                <button onClick={() => startEditPay(p)} className="p-2 text-gray-400 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg mr-1 transition-colors"><IcoEdit size={16} /></button>
+                                                                <button onClick={() => deletePay(p.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><IcoTrash size={16} /></button>
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
+                                                {payments.length === 0 && (
+                                                    <tr><td colSpan={5} className="py-10 text-center text-gray-400 font-medium">Aucun versement enregistré.</td></tr>
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -665,286 +914,152 @@
                             </div>
                         )}
 
-                        {/* ── Onglet Membres ── */}
-                        {activeTab === 'members' && (
-                            <div className="space-y-8 animate-fade">
-                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-900">
-                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
-                                        <UserPlus className="mr-3 text-gray-800" size={28} /> Intégrer un Frère/Sœur au Tableau
-                                    </h3>
-                                    <form onSubmit={handleAddMember} className="flex flex-col md:flex-row gap-4 items-end">
-                                        <div className="flex-grow w-full">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Identité complète</label>
-                                            <input type="text" required value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 font-medium text-gray-900" placeholder="Ex: Jean Dupont" />
-                                        </div>
-                                        <button type="submit" disabled={members.length >= maxMembersLimit || isProcessing} className="w-full md:w-auto px-8 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 transition-all flex items-center justify-center shadow-lg">
-                                            <Key size={18} className="mr-2" /> Générer Code & Ajouter
-                                        </button>
-                                    </form>
-                                </div>
-
-                                {/* Tableau de Loge */}
-                                <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
-                                    <div className="px-6 py-6 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <h3 className="text-xl font-black text-gray-900">Tableau de Loge</h3>
-                                            <p className="text-sm text-gray-500 font-medium mt-1">Codes de sécurité à communiquer aux Frères/Sœurs.</p>
-                                        </div>
-                                        <div className="relative w-full md:w-72">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-5 w-5 text-gray-400" size={20} /></div>
-                                            <input type="text" className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-900 font-medium text-sm" placeholder="Rechercher un Frère/Sœur ou code…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                                        </div>
-                                    </div>
-
-                                    <ul className="divide-y divide-gray-100">
-                                        {filteredMembers.sort((a, b) => a.name.localeCompare(b.name)).map(member => {
-                                            const memberPayments = payments.filter(p => String(p.memberId) === String(member.id)).sort((a, b) => new Date(a.date) - new Date(b.date));
-                                            const memberTotal    = memberPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-                                            const status         = getMemberStatus(memberTotal);
-                                            const isExpanded     = expandedMemberId === member.id;
-                                            const isEditingThis  = editingMemberId === member.id;
-
-                                            return (
-                                                <li key={member.id} className="flex flex-col hover:bg-gray-50 transition-colors group">
-                                                    <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
-                                                        <div className="flex flex-col w-full md:w-1/3">
-                                                            {isEditingThis ? (
-                                                                <input type="text" value={editMemberName} onChange={e => setEditMemberName(e.target.value)} className="w-full bg-white border border-indigo-400 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-900 font-black text-gray-900 text-lg shadow-sm" autoFocus />
-                                                            ) : (
-                                                                <div className="text-lg font-black text-gray-900">{member.name}</div>
-                                                            )}
-                                                            <div className="mt-2 inline-flex items-center w-max px-3 py-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-lg shadow-sm">
-                                                                <Lock size={14} className="mr-2 text-indigo-700" />
-                                                                <span className="text-xs font-bold uppercase tracking-wider mr-2 opacity-80">Accès</span>
-                                                                <strong className="text-lg font-mono tracking-widest">{member.pin}</strong>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex-1 flex flex-col items-start md:items-center mb-4 md:mb-0">
-                                                            <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold border ${status.color} shadow-sm`}>
-                                                                <span className={`h-2.5 w-2.5 mr-2.5 rounded-full ${status.dot}`}></span>{status.label}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
-                                                                className="mt-3 text-sm font-bold text-indigo-800 hover:text-indigo-950 flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors border border-indigo-200"
-                                                            >
-                                                                {memberPayments.length} versement(s) consigné(s)
-                                                                {isExpanded ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between md:justify-end w-full md:w-1/3">
-                                                            <div className="text-right mr-4">
-                                                                <div className="text-sm text-gray-500 font-medium">Capitation versée</div>
-                                                                <div className="text-xl font-black text-gray-900">{memberTotal.toFixed(2)} €</div>
-                                                                <div className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">Reste : {Math.max(0, capitationCible - memberTotal).toFixed(2)} €</div>
-                                                            </div>
-                                                            {isEditingThis ? (
-                                                                <div className="flex space-x-1">
-                                                                    <button onClick={() => handleUpdateMemberName(member.id)} className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors shadow-md" title="Enregistrer"><Save size={20} /></button>
-                                                                    <button onClick={() => setEditingMemberId(null)} className="p-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl transition-colors shadow-sm" title="Annuler"><XIcon size={20} /></button>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button onClick={() => { setEditingMemberId(member.id); setEditMemberName(member.name); }} className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Corriger le nom"><Edit2 size={20} /></button>
-                                                                    <button onClick={() => deleteMember(member.id)} className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Rayer du Tableau"><Trash2 size={20} /></button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Historique étendu */}
-                                                    {isExpanded && (
-                                                        <div className="bg-indigo-50 border-t border-indigo-100 p-6 animate-fade">
-                                                            <h4 className="text-sm font-black text-indigo-900 uppercase tracking-wider mb-4 flex items-center">
-                                                                <Calendar size={16} className="mr-2" /> Historique détaillé de {member.name}
-                                                            </h4>
-                                                            {memberPayments.length > 0 ? (
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                    {memberPayments.map((pay, idx) => (
-                                                                        <div key={pay.id} className="bg-white border border-indigo-100 p-3 rounded-xl flex justify-between items-center shadow-sm">
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-indigo-600 uppercase mb-1">Versement n°{idx + 1}</div>
-                                                                                <div className="text-sm font-bold text-gray-900">{new Date(pay.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                                                                                <div className="text-xs text-gray-500 mt-0.5">{getMethodDisplay(pay.method).label}{pay.note ? ` – ${pay.note}` : ''}</div>
-                                                                            </div>
-                                                                            <div className="text-lg font-black text-indigo-900">{parseFloat(pay.amount || 0).toFixed(2)} €</div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <p className="text-sm text-gray-500 italic">Aucun versement consigné pour ce Frère/Sœur.</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
-                            </div>
-                        )}
-
                         {/* ── Onglet Paramètres ── */}
-                        {activeTab === 'parametres' && (
+                        {tab === 'parametres' && (
                             <div className="space-y-8 animate-fade">
                                 {settingsMsg && (
-                                    <div className={`p-4 rounded-xl font-bold text-center border ${settingsMsg.type === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                                    <div className={`p-4 rounded-xl font-bold text-center border ${settingsMsg.ok ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-100'}`}>
                                         {settingsMsg.text}
                                     </div>
                                 )}
 
-                                {/* Nom de la loge & Capitation */}
+                                {/* Paramètres généraux */}
                                 <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-indigo-900">
-                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
-                                        <Shield className="mr-3 text-indigo-900" size={28} /> Paramètres de la Loge
+                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center">
+                                        <IcoGear className="mr-3 text-indigo-900" size={24} /> Paramètres de l'association
                                     </h3>
-                                    <form onSubmit={handleSaveSettings} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <form onSubmit={saveSettings} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                         <div className="sm:col-span-2">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom de la Loge</label>
-                                            <input type="text" value={nomLogeInput} onChange={e => setNomLogeInput(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 font-bold text-gray-900 text-lg" placeholder="Ex: Loge Les Trois Lumières" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom de l'association</label>
+                                            <input type="text" value={pNomAsso} onChange={e => setPNomAsso(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour les membres</label>
+                                            <input type="text" value={pLblMembre} onChange={e => setPLblMembre(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Membre, Adhérent…" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour le responsable</label>
+                                            <input type="text" value={pLblResp} onChange={e => setPLblResp(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Trésorier, Responsable…" />
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant de la capitation annuelle (€)</label>
-                                            <input type="number" step="0.01" min="0" value={capitationInput} onChange={e => setCapitationInput(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-800 font-black text-indigo-900 text-lg" placeholder="200.00" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant de la cotisation annuelle (€)</label>
+                                            <input type="number" step="0.01" min="0" value={pCotisation} onChange={e => setPCotisation(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-xl focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
                                         </div>
                                         <div className="sm:col-span-2 flex justify-end pt-4 border-t border-gray-200">
-                                            <button type="submit" disabled={isProcessing} className="px-8 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all flex items-center shadow-lg">
-                                                <Save size={18} className="mr-2" /> Enregistrer les paramètres
+                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg">
+                                                <IcoSave size={17} className="mr-2" /> Enregistrer
                                             </button>
                                         </div>
                                     </form>
                                 </div>
 
-                                {/* Changement de code PIN */}
+                                {/* Changement de code */}
                                 <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-800">
-                                    <h3 className="text-2xl font-black text-gray-900 mb-6 flex items-center">
-                                        <Lock className="mr-3 text-gray-800" size={28} /> Changer mon code d'accès
+                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center">
+                                        <IcoLock className="mr-3 text-gray-800" size={24} /> Changer mon code d'accès
                                     </h3>
-                                    <form onSubmit={handleChangePin} className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Code actuel *</label>
-                                            <input type="text" value={pinActuel} onChange={e => setPinActuel(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nouveau code *</label>
-                                            <input type="text" value={pinNouveau} onChange={e => setPinNouveau(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Confirmer le code *</label>
-                                            <input type="text" value={pinConfirm} onChange={e => setPinConfirm(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 focus:ring-2 focus:ring-gray-800 font-mono tracking-widest uppercase text-lg font-bold" placeholder="••••" maxLength={6} />
-                                        </div>
+                                    <form onSubmit={changePin} className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                                        {[
+                                            { label: 'Code actuel', val: pPinActuel, set: setPPinActuel },
+                                            { label: 'Nouveau code', val: pPinNew, set: setPPinNew },
+                                            { label: 'Confirmer', val: pPinConfirm, set: setPPinConfirm },
+                                        ].map(f => (
+                                            <div key={f.label}>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">{f.label} *</label>
+                                                <input type="text" value={f.val} onChange={e => f.set(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-gray-800 focus:outline-none" placeholder="••••" maxLength={12} />
+                                            </div>
+                                        ))}
                                         <div className="sm:col-span-3 flex justify-end pt-4 border-t border-gray-200">
-                                            <button type="submit" disabled={isProcessing} className="px-8 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 transition-all flex items-center shadow-lg">
-                                                <Key size={18} className="mr-2" /> Changer le code
+                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center shadow-lg">
+                                                <IcoKey size={17} className="mr-2" /> Changer le code
                                             </button>
                                         </div>
                                     </form>
                                 </div>
                             </div>
                         )}
-
-                        <CustomModal
-                            isOpen={modalConfig.isOpen}
-                            type={modalConfig.type}
-                            title={modalConfig.title}
-                            message={modalConfig.message}
-                            onConfirm={modalConfig.onConfirm}
-                            onCancel={closeModal}
-                        />
                     </div>
-                </div>
-            );
-        }
 
-        // ── Modal ────────────────────────────────────────────────────────
-        function CustomModal({ isOpen, type, title, message, onConfirm, onCancel }) {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/70 px-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform transition-all border border-indigo-100">
-                        <h3 className="text-2xl font-black text-indigo-950 mb-4">{title}</h3>
-                        <p className="text-gray-700 mb-8 font-medium text-lg leading-snug">{message}</p>
-                        <div className="flex justify-end space-x-4">
-                            <button onClick={onCancel} className="px-6 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-                                {type === 'confirm' ? 'Annuler' : 'Fermer'}
-                            </button>
-                            {type === 'confirm' && (
-                                <button onClick={onConfirm} className="px-6 py-3 rounded-xl font-bold text-white bg-red-700 hover:bg-red-800 transition-colors shadow-lg shadow-red-200">
-                                    Confirmer
-                                </button>
-                            )}
+                    {/* Modal */}
+                    {modal.open && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/70 px-4 backdrop-blur-sm">
+                            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-indigo-100">
+                                <h3 className="text-xl font-black text-indigo-950 mb-3">{modal.title}</h3>
+                                <p className="text-gray-700 mb-8 font-medium">{modal.message}</p>
+                                <div className="flex justify-end space-x-3">
+                                    <button onClick={closeModal} className="px-5 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+                                        {modal.type === 'confirm' ? 'Annuler' : 'Fermer'}
+                                    </button>
+                                    {modal.type === 'confirm' && (
+                                        <button onClick={modal.onConfirm} className="px-5 py-3 rounded-xl font-bold text-white bg-red-700 hover:bg-red-800 transition-colors">
+                                            Confirmer
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             );
         }
 
-        // ── 3. Espace Frère/Sœur ────────────────────────────────────────
-        function MemberDashboard({ user, payments, onLogout, settings }) {
-            const capitationCible = settings.capitationCible;
+        // ── Espace Membre ────────────────────────────────────────────────
+        function MemberDashboard({ user, payments, settings, onLogout }) {
+            const cotisation  = settings?.cotisationCible || 0;
+            const lbl         = settings?.labelMembre || 'Membre';
             const totalPaid   = payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-            const resteAPayer = Math.max(0, capitationCible - totalPaid);
+            const reste       = Math.max(0, cotisation - totalPaid);
 
-            let headerColor = 'from-red-700 to-red-900';
-            let statusText  = 'Aucun versement de capitation';
-            if (totalPaid >= capitationCible) { headerColor = 'from-green-600 to-green-800'; statusText = 'Capitation annuelle à jour'; }
-            else if (totalPaid > 0)            { headerColor = 'from-yellow-600 to-yellow-700'; statusText = 'Règlement en cours'; }
+            let hColor = 'from-red-700 to-red-900';
+            let hText  = 'Aucun versement enregistré';
+            if (totalPaid >= cotisation) { hColor = 'from-green-600 to-green-800'; hText = 'Cotisation à jour ✓'; }
+            else if (totalPaid > 0)      { hColor = 'from-yellow-600 to-yellow-700'; hText = 'Règlement en cours'; }
 
-            const getMethodDisplay = (methodId) => {
-                const method = PAYMENT_METHODS.find(m => m.id === methodId);
-                return method ? { label: method.label, icon: method.icon } : { label: 'Inconnu', icon: Euro };
-            };
+            const methodOf = (id) => PAYMENT_METHODS.find(m => m.id === id) || { label: 'Autre', icon: IcoEuro };
 
-            // Ajouter numéro chronologique puis retrier par date décroissante
-            const sortedPayments = [...payments]
+            const sorted = [...payments]
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
-                .map((p, i) => ({ ...p, chronologicalNumber: i + 1 }))
+                .map((p, i) => ({ ...p, num: i + 1 }))
                 .sort((a, b) => new Date(b.date) - new Date(a.date));
 
             return (
                 <div className="min-h-screen bg-gray-50 pb-12">
                     <nav className="bg-white shadow-sm border-b border-gray-200">
-                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between h-16">
-                                <div className="flex items-center text-indigo-950 font-black text-xl">
-                                    <Users className="mr-3 text-indigo-800" size={24} /> Espace Personnel
-                                </div>
-                                <div className="flex items-center">
-                                    <button onClick={onLogout} className="text-gray-600 hover:text-indigo-950 px-3 py-2 rounded-lg flex items-center font-bold transition-colors bg-gray-100 hover:bg-gray-200">
-                                        <LogOut size={16} className="mr-2" /> Quitter l'espace
-                                    </button>
-                                </div>
+                        <div className="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center">
+                            <div className="font-black text-indigo-950 text-lg flex items-center">
+                                <IcoUsers className="mr-3 text-indigo-800" size={22} /> Mon espace {lbl}
                             </div>
+                            <button onClick={onLogout} className="text-gray-600 hover:text-indigo-950 px-3 py-2 rounded-lg flex items-center font-bold bg-gray-100 hover:bg-gray-200 transition-colors text-sm">
+                                <IcoLogout size={15} className="mr-2" /> Déconnexion
+                            </button>
                         </div>
                     </nav>
 
-                    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-                        {/* En-tête membre */}
-                        <div className={`bg-gradient-to-br ${headerColor} shadow-xl shadow-gray-200/50 rounded-3xl p-8 mb-8 text-white flex flex-col md:flex-row items-center justify-between border border-white/10 relative overflow-hidden animate-fade`}>
-                            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
-                            <div className="flex items-center mb-8 md:mb-0 w-full md:w-auto relative z-10">
-                                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white font-black text-2xl backdrop-blur-sm shadow-inner">
+                    <div className="max-w-4xl mx-auto py-8 px-4">
+                        {/* En-tête */}
+                        <div className={`bg-gradient-to-br ${hColor} rounded-3xl p-8 mb-8 text-white flex flex-col md:flex-row items-center justify-between relative overflow-hidden animate-fade border border-white/10`}>
+                            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-36 h-36 bg-white opacity-10 rounded-full blur-2xl"></div>
+                            <div className="flex items-center mb-6 md:mb-0 relative z-10">
+                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl backdrop-blur-sm">
                                     {user.name.charAt(0)}
                                 </div>
-                                <div className="ml-5">
-                                    <h2 className="text-3xl font-black leading-tight drop-shadow-sm">{user.name}</h2>
-                                    <div className="inline-flex items-center mt-2 bg-black/20 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-sm shadow-sm">
-                                        <Shield size={14} className="mr-2 opacity-80" />
-                                        <span className="text-sm font-bold">{statusText}</span>
+                                <div className="ml-4">
+                                    <h2 className="text-2xl font-black">{user.name}</h2>
+                                    <div className="inline-flex items-center mt-1 bg-black/20 px-3 py-1 rounded-full text-sm font-bold border border-white/20">
+                                        {hText}
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full md:w-auto flex flex-row gap-4 bg-black/20 p-5 rounded-2xl border border-white/20 backdrop-blur-sm relative z-10 shadow-inner">
-                                <div className="text-center px-4">
-                                    <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Total versé</p>
-                                    <p className="text-4xl font-black drop-shadow-md">{totalPaid.toFixed(2)} <span className="text-2xl opacity-80">€</span></p>
-                                    <p className="text-xs font-bold mt-1 opacity-90 text-white bg-white/20 px-2 py-1 rounded-md inline-block">en {payments.length} versement(s)</p>
+                            <div className="flex gap-4 bg-black/20 p-5 rounded-2xl border border-white/20 relative z-10">
+                                <div className="text-center px-3">
+                                    <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Versé</p>
+                                    <p className="text-3xl font-black">{totalPaid.toFixed(2)} <span className="text-xl opacity-70">€</span></p>
+                                    <p className="text-xs font-bold mt-1 opacity-80">en {payments.length} versement(s)</p>
                                 </div>
-                                {resteAPayer > 0 && (
-                                    <div className="text-center border-l border-white/20 pl-8 pr-4">
-                                        <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Reste dû</p>
-                                        <p className="text-4xl font-black text-yellow-200 drop-shadow-md">{resteAPayer.toFixed(2)} <span className="text-2xl opacity-80">€</span></p>
+                                {reste > 0 && (
+                                    <div className="text-center border-l border-white/20 pl-6 pr-3">
+                                        <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Reste dû</p>
+                                        <p className="text-3xl font-black text-yellow-200">{reste.toFixed(2)} <span className="text-xl opacity-70">€</span></p>
                                     </div>
                                 )}
                             </div>
@@ -952,45 +1067,40 @@
 
                         {/* Historique */}
                         <div className="bg-white shadow-sm border border-gray-200 rounded-3xl overflow-hidden animate-fade">
-                            <div className="px-8 py-6 bg-white border-b border-gray-100 flex items-center justify-between">
-                                <h3 className="text-xl font-black text-indigo-950 flex items-center">
-                                    <Calendar className="mr-3 text-indigo-700" size={24} /> Historique de vos capitations
+                            <div className="px-7 py-5 bg-white border-b border-gray-100 flex items-center justify-between">
+                                <h3 className="text-lg font-black text-indigo-950 flex items-center">
+                                    <IcoCal className="mr-3 text-indigo-700" size={22} /> Historique des versements
                                 </h3>
-                                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-lg uppercase tracking-wider">Lecture seule</span>
+                                <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-lg uppercase">Lecture seule</span>
                             </div>
                             <ul className="divide-y divide-gray-100">
-                                {sortedPayments.map(payment => {
-                                    const methodInfo = getMethodDisplay(payment.method);
-                                    const MethodIcon = methodInfo.icon;
+                                {sorted.map(p => {
+                                    const met = methodOf(p.method);
+                                    const MI  = met.icon;
                                     return (
-                                        <li key={payment.id} className="px-8 py-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-indigo-50/30 transition-colors">
+                                        <li key={p.id} className="px-7 py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-indigo-50/30 transition-colors">
                                             <div className="flex items-center mb-4 sm:mb-0">
-                                                <div className="flex-shrink-0 h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-800 border border-indigo-100 relative">
-                                                    <span className="absolute -top-2 -right-2 bg-indigo-800 text-white font-black text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 border-white">
-                                                        {payment.chronologicalNumber}
-                                                    </span>
-                                                    <MethodIcon size={24} />
+                                                <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-800 border border-indigo-100 relative">
+                                                    <span className="absolute -top-2 -right-2 bg-indigo-800 text-white font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">{p.num}</span>
+                                                    <MI size={20} />
                                                 </div>
-                                                <div className="ml-5">
-                                                    <p className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-1">Versement n°{payment.chronologicalNumber}</p>
-                                                    <p className="text-lg font-black text-gray-900">{payment.note || 'Versement régulier'}</p>
-                                                    <p className="text-sm font-medium text-gray-500 mt-1">Consigné le {new Date(payment.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                                                    <span className="text-xs text-indigo-700 mt-1.5 font-bold uppercase tracking-wider inline-flex items-center bg-indigo-100 px-2 py-0.5 rounded-md">Via {methodInfo.label}</span>
+                                                <div className="ml-4">
+                                                    <p className="text-sm font-black text-gray-900">{p.note || 'Versement de cotisation'}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">{new Date(p.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                                    <span className="text-xs text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded mt-1 inline-block">Via {met.label}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-2xl font-black text-gray-900 text-right bg-gray-50 px-5 py-3 rounded-xl border border-gray-200">+ {parseFloat(payment.amount || 0).toFixed(2)} €</div>
+                                            <div className="text-xl font-black text-gray-900 bg-gray-50 px-5 py-2.5 rounded-xl border border-gray-200">+ {parseFloat(p.amount || 0).toFixed(2)} €</div>
                                         </li>
                                     );
                                 })}
-
                                 {payments.length === 0 && (
-                                    <li className="px-8 py-16 text-center">
-                                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-50 mb-6 border border-gray-200 shadow-inner">
-                                            <Banknote size={40} className="text-gray-300" />
+                                    <li className="py-14 text-center">
+                                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4 border border-gray-200">
+                                            <IcoBill size={32} className="text-gray-300" />
                                         </div>
-                                        <p className="text-gray-900 text-xl font-black mb-2">Aucun règlement consigné</p>
-                                        <p className="text-gray-600 font-medium">Votre retard de capitation envers la Loge s'élève à {capitationCible.toFixed(2)} €.</p>
-                                        <p className="text-gray-500 text-sm mt-4 italic">En cas d'erreur ou d'omission, veuillez vous rapprocher du Frère Trésorier.</p>
+                                        <p className="text-gray-900 text-lg font-black mb-2">Aucun versement enregistré</p>
+                                        <p className="text-gray-500 text-sm">Cotisation due : {cotisation.toFixed(2)} €</p>
                                     </li>
                                 )}
                             </ul>
@@ -1001,8 +1111,7 @@
         }
 
         // ── Montage ──────────────────────────────────────────────────────
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
