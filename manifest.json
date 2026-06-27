@@ -1,0 +1,14 @@
+{
+  "name": "Gestion des Cotisations",
+  "short_name": "Cotisations",
+  "description": "Application de gestion des cotisations pour associations",
+  "start_url": "/comte-guifr-/tresor.html",
+  "display": "standalone",
+  "background_color": "#1e1b4b",
+  "theme_color": "#1e1b4b",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

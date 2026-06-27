@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gestion des Cotisations</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cotisations">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1e1b4b">
+    <link rel="apple-touch-icon" href="icon-192.svg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -17,25 +22,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 0; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+        .fade { animation: fadeIn 0.35s ease-out forwards; }
+        @keyframes pop { 0%,100%{transform:scale(1)}50%{transform:scale(1.08)} }
+        .pop { animation: pop 0.3s ease; }
     </style>
 </head>
 <body>
     <div id="root">
-        <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#1e1b4b;color:#a5b4fc;font-weight:700;font-size:1.2rem;letter-spacing:0.12em;font-family:'Inter',sans-serif;">
+        <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#1e1b4b;color:#a5b4fc;font-weight:700;font-size:1.1rem;letter-spacing:.1em;font-family:'Inter',sans-serif;">
             Chargement…
         </div>
     </div>
 
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+
     <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc }
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
+        const cfg = {
             apiKey: "AIzaSyD25hln1etKinAPcxQw5nxAk7nppvO0lmc",
             authDomain: "reglement-membre.firebaseapp.com",
             projectId: "reglement-membre",
@@ -43,255 +57,251 @@
             messagingSenderId: "988586859186",
             appId: "1:988586859186:web:dc28672c92c9365ab907ab"
         };
-
-        const fbApp = initializeApp(firebaseConfig);
-        window.APP_DB = {
-            db: getFirestore(fbApp),
-            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc
-        };
+        const app = initializeApp(cfg);
+        window.DB = { db: getFirestore(app), collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect, useRef } = React;
 
-        const mkIcon = (cls) => ({ size = 20, className = '' }) => (
-            <i className={`${cls} ${className}`} style={{ fontSize: typeof size === 'number' ? `${size}px` : size, lineHeight: 1 }} aria-hidden="true" />
+        // ── Icônes ────────────────────────────────────────────────
+        const I = (cls) => ({ size=20, className='' }) => (
+            <i className={`${cls} ${className}`} style={{fontSize:typeof size==='number'?`${size}px`:size,lineHeight:1}} aria-hidden="true"/>
         );
-        const IcoShield   = mkIcon('fas fa-shield-halved');
-        const IcoUsers    = mkIcon('fas fa-users');
-        const IcoLogout   = mkIcon('fas fa-right-from-bracket');
-        const IcoPlus     = mkIcon('fas fa-plus');
-        const IcoTrash    = mkIcon('fas fa-trash');
-        const IcoEdit     = mkIcon('fas fa-pen');
-        const IcoCal      = mkIcon('fas fa-calendar');
-        const IcoEuro     = mkIcon('fas fa-euro-sign');
-        const IcoLock     = mkIcon('fas fa-lock');
-        const IcoSave     = mkIcon('fas fa-floppy-disk');
-        const IcoX        = mkIcon('fas fa-xmark');
-        const IcoSearch   = mkIcon('fas fa-magnifying-glass');
-        const IcoCard     = mkIcon('fas fa-credit-card');
-        const IcoBill     = mkIcon('fas fa-money-bill');
-        const IcoFile     = mkIcon('fas fa-file-signature');
-        const IcoKey      = mkIcon('fas fa-key');
-        const IcoDown     = mkIcon('fas fa-chevron-down');
-        const IcoUp       = mkIcon('fas fa-chevron-up');
-        const IcoGear     = mkIcon('fas fa-gear');
-        const IcoWand     = mkIcon('fas fa-wand-magic-sparkles');
-        const IcoUserPlus = mkIcon('fas fa-user-plus');
-        const IcoCopy     = mkIcon('fas fa-copy');
+        const IShield=I('fas fa-shield-halved'), IUsers=I('fas fa-users'), IOut=I('fas fa-right-from-bracket'),
+              IPlus=I('fas fa-plus'), ITrash=I('fas fa-trash'), IPen=I('fas fa-pen'),
+              ICal=I('fas fa-calendar'), IEuro=I('fas fa-euro-sign'), ILock=I('fas fa-lock'),
+              ISave=I('fas fa-floppy-disk'), IX=I('fas fa-xmark'), ISearch=I('fas fa-magnifying-glass'),
+              ICard=I('fas fa-credit-card'), IBill=I('fas fa-money-bill'), IFile=I('fas fa-file-signature'),
+              IKey=I('fas fa-key'), IDown=I('fas fa-chevron-down'), IUp=I('fas fa-chevron-up'),
+              IGear=I('fas fa-gear'), IWand=I('fas fa-wand-magic-sparkles'), IUserPlus=I('fas fa-user-plus'),
+              ICopy=I('fas fa-copy'), IEmail=I('fas fa-envelope'), ILifeRing=I('fas fa-life-ring'),
+              ICheck=I('fas fa-circle-check'), IDownload=I('fas fa-download'), IRefresh=I('fas fa-rotate');
 
-        const PAYMENT_METHODS = [
-            { id: 'virement',  label: 'Virement',       icon: IcoCard },
-            { id: 'cheque',    label: 'Chèque',         icon: IcoFile },
-            { id: 'especes',   label: 'Espèces',        icon: IcoBill },
-            { id: 'cb',        label: 'Carte bancaire', icon: IcoCard },
-            { id: 'autre',     label: 'Autre',          icon: IcoEuro },
+        const PAY_METHODS = [
+            {id:'virement', label:'Virement',        icon:ICard},
+            {id:'cheque',   label:'Chèque',          icon:IFile},
+            {id:'especes',  label:'Espèces',         icon:IBill},
+            {id:'cb',       label:'Carte bancaire',  icon:ICard},
+            {id:'autre',    label:'Autre',           icon:IEuro},
         ];
 
-        const PIN_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
-        const generateUniquePin = (existingPins = new Set(), length = 8) => {
-            let pin, attempts = 0;
-            do {
-                pin = Array.from({ length }, () => PIN_CHARS[Math.floor(Math.random() * PIN_CHARS.length)]).join('');
-                attempts++;
-            } while (existingPins.has(pin) && attempts < 1000);
-            return pin;
+        // Alphabet sans ambiguïtés visuelles
+        const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        const genPin = (existing=new Set(), len=8) => {
+            let p, n=0;
+            do { p=Array.from({length:len},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join(''); n++; }
+            while (existing.has(p) && n<2000);
+            return p;
         };
+        const genRescue = () => Array.from({length:12},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
 
+        // ── App ──────────────────────────────────────────────────
         function App() {
-            const [appState,     setAppState]     = useState('loading');
-            const [users,        setUsers]        = useState([]);
-            const [payments,     setPayments]     = useState([]);
-            const [settings,     setSettings]     = useState(null);
-            const [loggedInUser, setLoggedInUser] = useState(null);
+            const [state,        setState]   = useState('loading');
+            const [users,        setUsers]   = useState([]);
+            const [payments,     setPayments]= useState([]);
+            const [settings,     setSettings]= useState(null);
+            const [session,      setSession] = useState(null);
+            const [installEvt,   setInstall] = useState(null);
 
+            // Capture PWA install prompt
             useEffect(() => {
-                let unsubUsers, unsubPayments, unsubSettings;
-                const setup = async () => {
-                    if (!window.APP_DB) {
-                        await new Promise(r => document.addEventListener('firebase-ready', r, { once: true }));
-                    }
-                    const { db, collection, onSnapshot, doc } = window.APP_DB;
-
-                    unsubSettings = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
-                        if (snap.exists() && snap.data().configured) {
-                            setSettings(snap.data());
-                            setAppState(prev => prev === 'loading' || prev === 'setup' ? 'login' : prev);
-                        } else {
-                            setSettings(null);
-                            setAppState('setup');
-                        }
-                    }, () => { setAppState('setup'); });
-
-                    unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-                        setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    });
-
-                    unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
-                        setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    });
-                };
-                setup();
-                return () => { unsubUsers?.(); unsubPayments?.(); unsubSettings?.(); };
+                const h = e => { e.preventDefault(); setInstall(e); };
+                window.addEventListener('beforeinstallprompt', h);
+                return () => window.removeEventListener('beforeinstallprompt', h);
             }, []);
 
-            const handleLogin = (user) => { setLoggedInUser(user); setAppState(user.role === 'admin' ? 'admin' : 'member'); };
-            const handleLogout = () => { setLoggedInUser(null); setAppState('login'); };
+            useEffect(() => {
+                let u1,u2,u3;
+                const init = async () => {
+                    if (!window.DB) await new Promise(r=>document.addEventListener('firebase-ready',r,{once:true}));
+                    const {db,collection,onSnapshot,doc} = window.DB;
+                    u3 = onSnapshot(doc(db,'settings','config'), snap => {
+                        if (snap.exists() && snap.data().configured) {
+                            setSettings(snap.data());
+                            setState(p => p==='loading'||p==='setup' ? 'login' : p);
+                        } else { setSettings(null); setState('setup'); }
+                    }, () => setState('setup'));
+                    u1 = onSnapshot(collection(db,'users'), s=>setUsers(s.docs.map(d=>({id:d.id,...d.data()}))));
+                    u2 = onSnapshot(collection(db,'payments'), s=>setPayments(s.docs.map(d=>({id:d.id,...d.data()}))));
+                };
+                init();
+                return () => { u1?.(); u2?.(); u3?.(); };
+            }, []);
 
-            if (appState === 'loading') return (
-                <div className="min-h-screen flex items-center justify-center bg-indigo-950 text-indigo-300 font-bold text-xl animate-pulse">Chargement…</div>
-            );
-            if (appState === 'setup') return <SetupWizard onDone={() => setAppState('login')} />;
-            if (appState === 'login') return <LoginScreen users={users} settings={settings} onLogin={handleLogin} />;
-            if (appState === 'admin') return (
-                <AdminDashboard users={users} setUsers={setUsers} payments={payments} setPayments={setPayments}
-                    settings={settings} setSettings={setSettings} currentUser={loggedInUser}
-                    setLoggedInUser={setLoggedInUser} onLogout={handleLogout} />
-            );
-            if (appState === 'member') return (
-                <MemberDashboard user={loggedInUser}
-                    payments={payments.filter(p => String(p.memberId) === String(loggedInUser.id))}
-                    settings={settings} onLogout={handleLogout} />
-            );
+            const login  = u => { setSession(u); setState(u.role==='admin'?'admin':'member'); };
+            const logout = () => { setSession(null); setState('login'); };
+
+            if (state==='loading') return <Splash/>;
+            if (state==='setup')   return <Setup onDone={()=>setState('login')}/>;
+            if (state==='login')   return <Login users={users} settings={settings} onLogin={login} installEvt={installEvt} setInstall={setInstall}/>;
+            if (state==='admin')   return <Admin users={users} setUsers={setUsers} payments={payments} setPayments={setPayments} settings={settings} setSettings={setSettings} me={session} setMe={setSession} onLogout={logout}/>;
+            if (state==='member')  return <Member user={session} payments={payments.filter(p=>String(p.memberId)===String(session.id))} settings={settings} onLogout={logout}/>;
             return null;
         }
 
-        function SetupWizard({ onDone }) {
-            const [step, setStep] = useState(1);
-            const [nomAsso, setNomAsso] = useState('');
-            const [labelMembre, setLabelMembre] = useState('Membre');
-            const [labelRespons, setLabelRespons] = useState('Responsable');
-            const [nomRespons, setNomRespons] = useState('');
-            const [pinRespons, setPinRespons] = useState('');
-            const [pinConfirm, setPinConfirm] = useState('');
-            const [cotisation, setCotisation] = useState('');
-            const [error, setError] = useState('');
-            const [saving, setSaving] = useState(false);
+        function Splash() {
+            return <div className="min-h-screen flex items-center justify-center bg-indigo-950 text-indigo-300 font-bold text-xl animate-pulse">Chargement…</div>;
+        }
 
-            const validateStep = () => {
-                setError('');
-                if (step === 1) {
-                    if (!nomAsso.trim()) { setError("Veuillez saisir le nom de l'association."); return; }
-                    setStep(2);
-                } else if (step === 2) {
-                    if (!labelMembre.trim() || !labelRespons.trim()) { setError('Veuillez remplir les deux champs.'); return; }
-                    setStep(3);
-                } else if (step === 3) {
-                    if (!nomRespons.trim()) { setError('Veuillez saisir le nom du responsable.'); return; }
-                    if (pinRespons.length < 4) { setError('Le code doit faire au moins 4 caractères.'); return; }
-                    if (pinRespons !== pinConfirm) { setError('Les deux codes ne correspondent pas.'); return; }
+        // ── Assistant de configuration ───────────────────────────────────────
+        function Setup({ onDone }) {
+            const [step,    setStep]   = useState(1);
+            const [nomAsso, setNomAsso]= useState('');
+            const [lMembre, setLMembre]= useState('Membre');
+            const [lResp,   setLResp]  = useState('Responsable');
+            const [nomResp, setNomResp]= useState('');
+            const [email,   setEmail]  = useState('');
+            const [pin,     setPin]    = useState('');
+            const [pin2,    setPin2]   = useState('');
+            const [cotis,   setCotis]  = useState('');
+            const [rescue,  setRescue] = useState('');
+            const [noted,   setNoted]  = useState(false);
+            const [err,     setErr]    = useState('');
+            const [saving,  setSaving] = useState(false);
+
+            const next = () => {
+                setErr('');
+                if (step===1){ if(!nomAsso.trim()){setErr("Saisissez le nom de l'association.");return;} setStep(2); }
+                else if(step===2){ if(!lMembre.trim()||!lResp.trim()){setErr('Remplissez les deux champs.');return;} setStep(3); }
+                else if(step===3){
+                    if(!nomResp.trim()){setErr('Saisissez le nom du responsable.');return;}
+                    if(pin.length<4){setErr('Le code doit faire au moins 4 caractères.');return;}
+                    if(pin!==pin2){setErr('Les deux codes ne correspondent pas.');return;}
+                    const r = genRescue();
+                    setRescue(r);
                     setStep(4);
-                } else if (step === 4) {
-                    if (!cotisation || isNaN(parseFloat(cotisation)) || parseFloat(cotisation) <= 0) { setError('Veuillez saisir un montant valide.'); return; }
-                    handleFinish();
+                } else if(step===4){ if(!cotis||parseFloat(cotis)<=0){setErr('Saisissez un montant valide.');return;} setStep(5); }
+                else if(step===5){
+                    if(!noted){setErr('Confirmez que vous avez noté le code de secours.');return;}
+                    finish();
                 }
             };
 
-            const handleFinish = async () => {
+            const finish = async () => {
                 setSaving(true);
-                const { db, doc, setDoc, collection, addDoc } = window.APP_DB;
+                const {db,doc,setDoc,collection,addDoc} = window.DB;
                 try {
-                    await setDoc(doc(db, 'settings', 'config'), {
-                        configured: true,
-                        nomAssociation: nomAsso.trim(),
-                        labelMembre: labelMembre.trim(),
-                        labelResponsable: labelRespons.trim(),
-                        cotisationCible: parseFloat(cotisation),
+                    await setDoc(doc(db,'settings','config'),{
+                        configured:true, nomAssociation:nomAsso.trim(),
+                        labelMembre:lMembre.trim(), labelResponsable:lResp.trim(),
+                        cotisationCible:parseFloat(cotis),
+                        emailResponsable:email.trim(),
+                        codeSecours:rescue,
                     });
-                    await addDoc(collection(db, 'users'), { name: nomRespons.trim(), role: 'admin', pin: pinRespons.toUpperCase() });
-                } catch { setError('Erreur. Veuillez réessayer.'); setSaving(false); return; }
-                setSaving(false);
+                    await addDoc(collection(db,'users'),{name:nomResp.trim(),role:'admin',pin:pin.toUpperCase()});
+                } catch{ setErr('Erreur Firebase. Réessayez.'); setSaving(false); return; }
                 onDone();
             };
 
-            const steps = [{ n:1, label:'Association' },{ n:2, label:'Terminologie' },{ n:3, label:'Responsable' },{ n:4, label:'Cotisation' }];
+            const steps=[{n:1,l:'Association'},{n:2,l:'Terminologie'},{n:3,l:'Responsable'},{n:4,l:'Cotisation'},{n:5,l:'Sécurité'}];
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-indigo-800 flex flex-col items-center justify-center px-4 py-12">
+                <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-indigo-800 flex flex-col items-center justify-center px-4 py-10">
                     <div className="w-full max-w-lg">
-                        <div className="text-center mb-10">
-                            <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-700 rounded-2xl mb-4 shadow-lg"><IcoWand size={32} className="text-white" /></div>
-                            <h1 className="text-3xl font-black text-white">Configuration initiale</h1>
-                            <p className="text-indigo-300 mt-2 font-medium">Paramétrez votre application en quelques étapes</p>
+                        <div className="text-center mb-8">
+                            <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-700 rounded-2xl mb-3 shadow-lg"><IWand size={28} className="text-white"/></div>
+                            <h1 className="text-2xl font-black text-white">Configuration initiale</h1>
+                            <p className="text-indigo-300 mt-1 text-sm font-medium">Paramétrez votre application en quelques étapes</p>
                         </div>
-                        <div className="flex items-center justify-center mb-8 space-x-2">
-                            {steps.map((s, i) => (
+
+                        {/* Barre de progression */}
+                        <div className="flex items-center justify-center mb-6 space-x-1">
+                            {steps.map((s,i)=>(
                                 <React.Fragment key={s.n}>
                                     <div className="flex flex-col items-center">
-                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm border-2 transition-all ${step > s.n ? 'bg-green-500 border-green-500 text-white' : step === s.n ? 'bg-white border-white text-indigo-900' : 'bg-transparent border-indigo-500 text-indigo-400'}`}>
-                                            {step > s.n ? '✓' : s.n}
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 transition-all ${step>s.n?'bg-green-500 border-green-500 text-white':step===s.n?'bg-white border-white text-indigo-900':'bg-transparent border-indigo-500 text-indigo-500'}`}>
+                                            {step>s.n?'✓':s.n}
                                         </div>
-                                        <span className={`text-xs mt-1 font-bold ${step >= s.n ? 'text-white' : 'text-indigo-500'}`}>{s.label}</span>
+                                        <span className={`text-xs mt-1 font-bold ${step>=s.n?'text-white':'text-indigo-500'}`}>{s.l}</span>
                                     </div>
-                                    {i < steps.length - 1 && <div className={`flex-1 h-0.5 mb-5 ${step > s.n ? 'bg-green-500' : 'bg-indigo-600'}`} />}
+                                    {i<steps.length-1&&<div className={`flex-1 h-0.5 mb-5 ${step>s.n?'bg-green-500':'bg-indigo-600'}`}/>}
                                 </React.Fragment>
                             ))}
                         </div>
-                        <div className="bg-white rounded-3xl shadow-2xl p-8 animate-fade">
-                            {step === 1 && (
-                                <div>
-                                    <h2 className="text-xl font-black text-gray-900 mb-2">Nom de votre association</h2>
-                                    <p className="text-gray-500 text-sm mb-6">Ce nom apparaîtra sur l'écran de connexion.</p>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Nom de l'association *</label>
-                                    <input type="text" value={nomAsso} onChange={e => setNomAsso(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : Club Sportif, Amicale des…" autoFocus />
-                                </div>
-                            )}
-                            {step === 2 && (
-                                <div>
-                                    <h2 className="text-xl font-black text-gray-900 mb-2">Terminologie</h2>
-                                    <p className="text-gray-500 text-sm mb-6">Choisissez les mots utilisés dans l'application.</p>
-                                    <div className="space-y-5">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Comment appeler les membres ? *</label>
-                                            <input type="text" value={labelMembre} onChange={e => setLabelMembre(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Membre, Adhérent, Bénévole…" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Comment appeler le responsable ? *</label>
-                                            <input type="text" value={labelRespons} onChange={e => setLabelRespons(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Trésorier, Responsable, Président…" />
-                                        </div>
+
+                        <div className="bg-white rounded-3xl shadow-2xl p-7 fade">
+                            {step===1&&(<div>
+                                <h2 className="text-lg font-black text-gray-900 mb-1">Nom de l'association</h2>
+                                <p className="text-gray-500 text-sm mb-5">Affiché sur l'écran de connexion.</p>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Nom *</label>
+                                <input autoFocus type="text" value={nomAsso} onChange={e=>setNomAsso(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : Club Sportif, Amicale…"/>
+                            </div>)}
+                            {step===2&&(<div>
+                                <h2 className="text-lg font-black text-gray-900 mb-1">Terminologie</h2>
+                                <p className="text-gray-500 text-sm mb-5">Personnalisez les mots utilisés.</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour les membres *</label>
+                                        <input autoFocus type="text" value={lMembre} onChange={e=>setLMembre(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Membre, Adhérent, Joueur, Bénévole…"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour le responsable *</label>
+                                        <input type="text" value={lResp} onChange={e=>setLResp(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Trésorier, Responsable, Président…"/>
                                     </div>
                                 </div>
-                            )}
-                            {step === 3 && (
-                                <div>
-                                    <h2 className="text-xl font-black text-gray-900 mb-2">Compte {labelRespons}</h2>
-                                    <p className="text-gray-500 text-sm mb-6">Créez le compte administrateur principal.</p>
-                                    <div className="space-y-5">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom du {labelRespons} *</label>
-                                            <input type="text" value={nomRespons} onChange={e => setNomRespons(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Votre nom complet" autoFocus />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Choisissez votre code d'accès *</label>
-                                            <input type="text" value={pinRespons} onChange={e => setPinRespons(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Minimum 4 caractères" maxLength={12} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Confirmez le code *</label>
-                                            <input type="text" value={pinConfirm} onChange={e => setPinConfirm(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Répétez le code" maxLength={12} />
-                                        </div>
+                            </div>)}
+                            {step===3&&(<div>
+                                <h2 className="text-lg font-black text-gray-900 mb-1">Compte {lResp}</h2>
+                                <p className="text-gray-500 text-sm mb-5">Créez votre compte administrateur.</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Votre nom *</label>
+                                        <input autoFocus type="text" value={nomResp} onChange={e=>setNomResp(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Nom complet"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Email (pour récupération de code)</label>
+                                        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="votre@email.com"/>
+                                        <p className="text-xs text-gray-400 mt-1">Facultatif — affiché aux membres qui ont oublié leur code</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Choisissez votre code d'accès *</label>
+                                        <input type="text" value={pin} onChange={e=>setPin(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Minimum 4 caractères" maxLength={12}/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Confirmez le code *</label>
+                                        <input type="text" value={pin2} onChange={e=>setPin2(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Répétez" maxLength={12}/>
                                     </div>
                                 </div>
-                            )}
-                            {step === 4 && (
-                                <div>
-                                    <h2 className="text-xl font-black text-gray-900 mb-2">Montant de la cotisation</h2>
-                                    <p className="text-gray-500 text-sm mb-6">Montant annuel par membre. Modifiable dans les Paramètres.</p>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Montant annuel (€) *</label>
-                                    <input type="number" step="0.01" min="1" value={cotisation} onChange={e => setCotisation(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-2xl focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00" autoFocus />
-                                    <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800 font-medium">
-                                        <strong>Récapitulatif</strong><br />
-                                        Association : <strong>{nomAsso}</strong><br />
-                                        {labelMembre}s / {labelRespons} : <strong>{nomRespons}</strong>
-                                    </div>
+                            </div>)}
+                            {step===4&&(<div>
+                                <h2 className="text-lg font-black text-gray-900 mb-1">Cotisation annuelle</h2>
+                                <p className="text-gray-500 text-sm mb-5">Montant par {lMembre.toLowerCase()}. Modifiable dans Paramètres.</p>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Montant (€) *</label>
+                                <input autoFocus type="number" step="0.01" min="1" value={cotis} onChange={e=>setCotis(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-2xl focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00"/>
+                                <div className="mt-5 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800 space-y-1">
+                                    <div><strong>Association :</strong> {nomAsso}</div>
+                                    <div><strong>{lResp} :</strong> {nomResp}</div>
+                                    <div><strong>Membres :</strong> {lMembre}s (jusqu'à 200)</div>
                                 </div>
-                            )}
-                            {error && <div className="mt-4 text-red-600 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-100">{error}</div>}
-                            <div className="flex justify-between mt-8">
-                                {step > 1 ? <button onClick={() => { setError(''); setStep(step - 1); }} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">← Retour</button> : <div />}
-                                <button onClick={validateStep} disabled={saving} className="px-8 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 transition-all shadow-lg flex items-center">
-                                    {saving ? 'Enregistrement…' : step === 4 ? <><IcoWand size={18} className="mr-2" /> Lancer l'application</> : 'Suivant →'}
+                            </div>)}
+                            {step===5&&(<div>
+                                <h2 className="text-lg font-black text-gray-900 mb-1">Code de secours</h2>
+                                <p className="text-gray-500 text-sm mb-5">Ce code vous permet de récupérer l'accès si vous oubliez votre code principal. <strong>Notez-le précieusement.</strong></p>
+                                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 text-center mb-5">
+                                    <div className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Votre code de secours</div>
+                                    <div className="text-3xl font-black font-mono tracking-widest text-amber-900 letter-spacing-wide">{rescue}</div>
+                                    <button onClick={()=>navigator.clipboard?.writeText(rescue)} className="mt-3 text-xs font-bold text-amber-700 hover:text-amber-900 flex items-center mx-auto bg-amber-100 px-3 py-1.5 rounded-lg transition-colors">
+                                        <ICopy size={14} className="mr-1"/> Copier
+                                    </button>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 font-medium mb-5">
+                                    ⚠️ Ce code ne sera <strong>jamais affiché à nouveau</strong>. Notez-le dans un endroit sûr (papier, gestionnaire de mots de passe…).
+                                </div>
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" checked={noted} onChange={e=>setNoted(e.target.checked)} className="mt-1 w-5 h-5 rounded accent-indigo-900"/>
+                                    <span className="text-sm font-bold text-gray-800">J'ai noté mon code de secours et je comprends qu'il ne sera plus affiché.</span>
+                                </label>
+                            </div>)}
+
+                            {err&&<div className="mt-4 text-red-600 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-100">{err}</div>}
+
+                            <div className="flex justify-between mt-7">
+                                {step>1?<button onClick={()=>{setErr('');setStep(step-1);}} className="px-5 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">← Retour</button>:<div/>}
+                                <button onClick={next} disabled={saving} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg transition-all">
+                                    {saving?'Enregistrement…':step===5?<><IWand size={17} className="mr-2"/>Lancer l'application</>:'Suivant →'}
                                 </button>
                             </div>
                         </div>
@@ -300,473 +310,614 @@
             );
         }
 
-        function LoginScreen({ users, settings, onLogin }) {
-            const [mode, setMode] = useState('admin');
-            const [memberId, setMemberId] = useState('');
-            const [pin, setPin] = useState('');
-            const [error, setError] = useState('');
-            const adminUser = users.find(u => u.role === 'admin');
-            const memberUsers = users.filter(u => u.role === 'member');
-            const lbl = settings?.labelMembre || 'Membre';
-            const lblR = settings?.labelResponsable || 'Responsable';
-            const handleSubmit = (e) => {
-                e.preventDefault(); setError('');
+        // ── Connexion ────────────────────────────────────────────────
+        function Login({ users, settings, onLogin, installEvt, setInstall }) {
+            const [mode,      setMode]    = useState('admin');
+            const [memberId,  setMember]  = useState('');
+            const [pin,       setPin]     = useState('');
+            const [err,       setErr]     = useState('');
+            const [forgotten, setForgot]  = useState(false);
+
+            const lbl  = settings?.labelMembre||'Membre';
+            const lblR = settings?.labelResponsable||'Responsable';
+            const admin = users.find(u=>u.role==='admin');
+            const members = users.filter(u=>u.role==='member');
+
+            const submit = e => {
+                e.preventDefault(); setErr('');
                 const up = pin.toUpperCase();
-                if (mode === 'admin') {
-                    if (up === adminUser?.pin) onLogin(adminUser);
-                    else setError(`Code ${lblR} incorrect.`);
+                if (mode==='admin') {
+                    if(up===admin?.pin) onLogin(admin);
+                    else setErr(`Code ${lblR} incorrect.`);
                 } else {
-                    if (!memberId) { setError('Veuillez sélectionner votre nom.'); return; }
-                    const user = users.find(u => String(u.id) === memberId);
-                    if (user && user.pin === up) onLogin(user);
-                    else setError("Code d'accès incorrect.");
+                    if(!memberId){setErr('Sélectionnez votre nom.');return;}
+                    const u=users.find(u=>String(u.id)===memberId);
+                    if(u&&u.pin===up) onLogin(u);
+                    else setErr("Code d'accès incorrect.");
                 }
             };
+
+            const installApp = async () => {
+                if(!installEvt) return;
+                installEvt.prompt();
+                const {outcome} = await installEvt.userChoice;
+                if(outcome==='accepted') setInstall(null);
+            };
+
+            if (forgotten) return <Forgot settings={settings} users={users} onBack={()=>setForgot(false)}/>;
+
             return (
-                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-10 px-4">
+                    {/* Bouton installer l'app */}
+                    {installEvt&&(
+                        <div className="max-w-md mx-auto w-full mb-4">
+                            <button onClick={installApp} className="w-full flex items-center justify-center gap-2 bg-indigo-900 text-white py-3 px-5 rounded-xl font-bold text-sm shadow-lg hover:bg-indigo-800 transition-colors">
+                                <IDownload size={18}/> Installer l'application sur cet appareil
+                            </button>
+                        </div>
+                    )}
+
                     <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-                        <div className="flex justify-center text-indigo-900 mb-4"><IcoShield size={48} /></div>
-                        <h2 className="text-3xl font-extrabold text-gray-900">{settings?.nomAssociation || 'Gestion des Cotisations'}</h2>
-                        <p className="mt-2 text-sm text-gray-600 font-bold uppercase tracking-widest">Gestion des Cotisations</p>
+                        <div className="flex justify-center text-indigo-900 mb-3"><IShield size={44}/></div>
+                        <h2 className="text-2xl font-extrabold text-gray-900">{settings?.nomAssociation||'Gestion des Cotisations'}</h2>
+                        <p className="mt-1 text-xs text-gray-500 font-bold uppercase tracking-widest">Gestion des Cotisations</p>
                     </div>
-                    <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-xl sm:px-10 border border-gray-100">
-                            <div className="flex justify-center space-x-3 mb-8">
-                                <button onClick={() => { setMode('admin'); setError(''); setPin(''); }} className={`px-4 py-2 flex items-center rounded-lg font-bold text-sm transition-all ${mode === 'admin' ? 'bg-indigo-900 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}><IcoShield size={16} className="mr-2" />{lblR}</button>
-                                <button onClick={() => { setMode('member'); setError(''); setPin(''); }} className={`px-4 py-2 flex items-center rounded-lg font-bold text-sm transition-all ${mode === 'member' ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}><IcoUsers size={16} className="mr-2" />{lbl}</button>
+
+                    <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+                        <div className="bg-white py-7 px-5 shadow-xl rounded-2xl border border-gray-100">
+                            <div className="flex justify-center space-x-3 mb-6">
+                                <button onClick={()=>{setMode('admin');setErr('');setPin('');}} className={`px-4 py-2 flex items-center rounded-lg font-bold text-sm transition-all ${mode==='admin'?'bg-indigo-900 text-white shadow':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                    <IShield size={15} className="mr-2"/>{lblR}
+                                </button>
+                                <button onClick={()=>{setMode('member');setErr('');setPin('');}} className={`px-4 py-2 flex items-center rounded-lg font-bold text-sm transition-all ${mode==='member'?'bg-blue-800 text-white shadow':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                    <IUsers size={15} className="mr-2"/>{lbl}
+                                </button>
                             </div>
-                            <form className="space-y-5" onSubmit={handleSubmit}>
-                                {mode === 'member' && (
+
+                            <form onSubmit={submit} className="space-y-4">
+                                {mode==='member'&&(
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Identité</label>
-                                        <select value={memberId} onChange={e => setMemberId(e.target.value)} className="block w-full pl-3 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-800">
+                                        <select value={memberId} onChange={e=>setMember(e.target.value)} className="block w-full pl-3 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-800">
                                             <option value="">-- Sélectionnez votre nom --</option>
-                                            {memberUsers.sort((a,b)=>a.name.localeCompare(b.name)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+                                            {members.sort((a,b)=>a.name.localeCompare(b.name)).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
                                         </select>
                                     </div>
                                 )}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1">Code d'accès</label>
                                     <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><IcoLock size={18} className="text-gray-400" /></div>
-                                        <input type="text" value={pin} onChange={e=>setPin(e.target.value.toUpperCase())} className="block w-full pl-10 py-3 border border-gray-300 rounded-lg bg-gray-50 font-mono tracking-widest uppercase text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Votre code" maxLength={12} />
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><ILock size={17} className="text-gray-400"/></div>
+                                        <input type="text" value={pin} onChange={e=>setPin(e.target.value.toUpperCase())} className="block w-full pl-10 py-3 border border-gray-300 rounded-lg bg-gray-50 font-mono tracking-widest uppercase text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Votre code" maxLength={12}/>
                                     </div>
                                 </div>
-                                {error && <div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100 text-center">{error}</div>}
-                                <button type="submit" className={`w-full py-3 rounded-lg font-black text-white text-base transition-colors ${mode==='admin'?'bg-indigo-900 hover:bg-indigo-800':'bg-blue-800 hover:bg-blue-700'}`}>Accéder</button>
+                                {err&&<div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100 text-center">{err}</div>}
+                                <button type="submit" className={`w-full py-3 rounded-lg font-black text-white transition-colors ${mode==='admin'?'bg-indigo-900 hover:bg-indigo-800':'bg-blue-800 hover:bg-blue-700'}`}>
+                                    Accéder
+                                </button>
                             </form>
+
+                            <button onClick={()=>setForgot(true)} className="mt-4 w-full text-center text-sm text-gray-400 hover:text-indigo-700 font-bold transition-colors flex items-center justify-center gap-1">
+                                <ILifeRing size={15}/> Code oublié ?
+                            </button>
                         </div>
                     </div>
                 </div>
             );
         }
 
-        function AdminDashboard({ users, setUsers, payments, setPayments, settings, setSettings, currentUser, setLoggedInUser, onLogout }) {
-            const [tab, setTab] = useState('membres');
-            const [expandedId, setExpandedId] = useState(null);
-            const [modal, setModal] = useState({ open: false });
-            const [processing, setProcessing] = useState(false);
-            const [editPayId, setEditPayId] = useState(null);
-            const [payMember, setPayMember] = useState('');
-            const [payAmount, setPayAmount] = useState('');
-            const [payDate, setPayDate] = useState('');
-            const [payMethod, setPayMethod] = useState('virement');
-            const [payNote, setPayNote] = useState('');
-            const [newName, setNewName] = useState('');
-            const [search, setSearch] = useState('');
-            const [editMemberId, setEditMemberId] = useState(null);
-            const [editName, setEditName] = useState('');
-            const [editingAdmin, setEditingAdmin] = useState(false);
-            const [adminName, setAdminName] = useState(currentUser.name);
-            const [pNomAsso, setPNomAsso] = useState(settings?.nomAssociation || '');
-            const [pLblMembre, setPLblMembre] = useState(settings?.labelMembre || 'Membre');
-            const [pLblResp, setPLblResp] = useState(settings?.labelResponsable || 'Responsable');
-            const [pCotisation, setPCotisation] = useState(settings?.cotisationCible || '');
-            const [pPinActuel, setPPinActuel] = useState('');
-            const [pPinNew, setPPinNew] = useState('');
-            const [pPinConfirm, setPPinConfirm] = useState('');
-            const [settingsMsg, setSettingsMsg] = useState(null);
+        // ── Code oublié ────────────────────────────────────────────────
+        function Forgot({ settings, users, onBack }) {
+            const [mode,    setMode]  = useState('choose'); // choose|admin|member|done
+            const [rescue,  setRescue]= useState('');
+            const [newPin,  setNewPin]= useState('');
+            const [newPin2, setNewPin2]= useState('');
+            const [err,     setErr]   = useState('');
+            const [saving,  setSaving]= useState(false);
+            const [memberId,setMember]= useState('');
 
-            const lbl = settings?.labelMembre || 'Membre';
-            const lblR = settings?.labelResponsable || 'Responsable';
-            const cotisation = settings?.cotisationCible || 0;
-            const MAX_MEMBERS = 200;
-            const members = users.filter(u => u.role === 'member');
-            const existingPins = new Set(users.map(u => u.pin));
+            const lbl  = settings?.labelMembre||'Membre';
+            const lblR = settings?.labelResponsable||'Responsable';
+            const adminEmail = settings?.emailResponsable||'';
+            const members = users.filter(u=>u.role==='member');
+            const admin = users.find(u=>u.role==='admin');
 
-            const statusOf = (total) => {
-                if (total >= cotisation) return { color: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', label: 'À jour' };
-                if (total > 0) return { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500', label: 'En cours' };
-                return { color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', label: 'Aucun versement' };
-            };
-            const methodOf = (id) => PAYMENT_METHODS.find(m => m.id === id) || { label: 'Autre', icon: IcoEuro };
-            const showModal = (cfg) => setModal({ open: true, ...cfg });
-            const closeModal = () => setModal({ open: false });
-
-            const saveAdminName = async () => {
-                if (!adminName.trim() || processing) return;
-                setProcessing(true);
-                const { db, doc, updateDoc } = window.APP_DB;
-                await updateDoc(doc(db, 'users', currentUser.id), { name: adminName });
-                setUsers(users.map(u => u.id === currentUser.id ? { ...u, name: adminName } : u));
-                setLoggedInUser({ ...currentUser, name: adminName });
-                setEditingAdmin(false); setProcessing(false);
-            };
-
-            const savePayment = async (e) => {
-                e.preventDefault();
-                if (!payMember || !payAmount || !payDate || processing) return;
-                setProcessing(true);
-                const { db, doc, updateDoc, addDoc, collection } = window.APP_DB;
-                const data = { memberId: payMember, amount: parseFloat(payAmount), date: payDate, method: payMethod, note: payNote };
+            const submitRescue = async e => {
+                e.preventDefault(); setErr('');
+                if(rescue.toUpperCase()!==settings?.codeSecours){setErr('Code de secours incorrect.');return;}
+                if(newPin.length<4){setErr('Le nouveau code doit faire au moins 4 caractères.');return;}
+                if(newPin!==newPin2){setErr('Les deux codes ne correspondent pas.');return;}
+                setSaving(true);
+                const {db,doc,updateDoc} = window.DB;
                 try {
-                    if (editPayId) {
-                        await updateDoc(doc(db, 'payments', editPayId), data);
-                        setPayments(payments.map(p => p.id === editPayId ? { id: editPayId, ...data } : p));
+                    await updateDoc(doc(db,'users',admin.id),{pin:newPin.toUpperCase()});
+                    setMode('done');
+                } catch{ setErr('Erreur. Réessayez.'); }
+                setSaving(false);
+            };
+
+            if(mode==='choose') return (
+                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-10 px-4">
+                    <div className="max-w-md mx-auto w-full">
+                        <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-800 font-bold flex items-center mb-6"><span className="mr-1">←</span> Retour à la connexion</button>
+                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-7">
+                            <div className="flex justify-center text-indigo-900 mb-4"><ILifeRing size={40}/></div>
+                            <h2 className="text-xl font-black text-gray-900 text-center mb-2">Code oublié ?</h2>
+                            <p className="text-gray-500 text-sm text-center mb-7">Qui a besoin d'aide ?</p>
+                            <div className="space-y-3">
+                                <button onClick={()=>setMode('admin')} className="w-full p-4 rounded-xl border-2 border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-left transition-all">
+                                    <div className="font-black text-gray-900 flex items-center"><IShield size={18} className="mr-2 text-indigo-700"/>{lblR}</div>
+                                    <div className="text-sm text-gray-500 mt-1">Récupération via code de secours</div>
+                                </button>
+                                <button onClick={()=>setMode('member')} className="w-full p-4 rounded-xl border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-left transition-all">
+                                    <div className="font-black text-gray-900 flex items-center"><IUsers size={18} className="mr-2 text-blue-700"/>{lbl}</div>
+                                    <div className="text-sm text-gray-500 mt-1">Contact du responsable</div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(mode==='admin') return (
+                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-10 px-4">
+                    <div className="max-w-md mx-auto w-full">
+                        <button onClick={()=>setMode('choose')} className="text-sm text-gray-500 hover:text-gray-800 font-bold flex items-center mb-6"><span className="mr-1">←</span> Retour</button>
+                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-7">
+                            <div className="flex justify-center text-amber-500 mb-4"><IKey size={40}/></div>
+                            <h2 className="text-xl font-black text-gray-900 text-center mb-1">Récupération — {lblR}</h2>
+                            <p className="text-gray-500 text-sm text-center mb-6">Saisissez votre code de secours (12 caractères) noté lors de la configuration.</p>
+                            <form onSubmit={submitRescue} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Code de secours (12 car.) *</label>
+                                    <input type="text" value={rescue} onChange={e=>setRescue(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-base font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="XXXXXXXXXXXX" maxLength={12} autoFocus/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Nouveau code d'accès *</label>
+                                    <input type="text" value={newPin} onChange={e=>setNewPin(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Minimum 4 caractères" maxLength={12}/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Confirmer *</label>
+                                    <input type="text" value={newPin2} onChange={e=>setNewPin2(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Répétez" maxLength={12}/>
+                                </div>
+                                {err&&<div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-100">{err}</div>}
+                                <button type="submit" disabled={saving} className="w-full py-3 rounded-xl font-black text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 transition-colors shadow-lg">
+                                    {saving?'Mise à jour…':'Réinitialiser le code'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(mode==='member') return (
+                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-10 px-4">
+                    <div className="max-w-md mx-auto w-full">
+                        <button onClick={()=>setMode('choose')} className="text-sm text-gray-500 hover:text-gray-800 font-bold flex items-center mb-6"><span className="mr-1">←</span> Retour</button>
+                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-7 text-center">
+                            <div className="flex justify-center text-blue-700 mb-4"><IEmail size={40}/></div>
+                            <h2 className="text-xl font-black text-gray-900 mb-2">Contacter le {lblR}</h2>
+                            <p className="text-gray-500 text-sm mb-6">Le {lblR} peut vous communiquer votre code d'accès ou en générer un nouveau.</p>
+                            {adminEmail?(
+                                <a href={`mailto:${adminEmail}?subject=Code d'accès oublié&body=Bonjour,%0A%0AJe souhaite récupérer mon code d'accès pour l'application de cotisations de ${settings?.nomAssociation||"l'association"}.%0A%0AMerci.`}
+                                    className="inline-flex items-center gap-2 bg-blue-800 text-white px-6 py-3 rounded-xl font-black hover:bg-blue-700 transition-colors shadow-lg">
+                                    <IEmail size={18}/> Envoyer un email au {lblR}
+                                </a>
+                            ):(
+                                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 font-medium">
+                                    Rapprochez-vous directement de votre {lblR} pour récupérer votre code d'accès.
+                                </div>
+                            )}
+                            <button onClick={onBack} className="mt-5 text-sm text-gray-400 hover:text-gray-700 font-bold transition-colors">← Retour à la connexion</button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(mode==='done') return (
+                <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-10 px-4">
+                    <div className="max-w-md mx-auto w-full text-center">
+                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10">
+                            <div className="flex justify-center text-green-600 mb-4"><ICheck size={56}/></div>
+                            <h2 className="text-xl font-black text-gray-900 mb-2">Code réinitialisé !</h2>
+                            <p className="text-gray-500 text-sm mb-6">Votre nouveau code d'accès est actif. Vous pouvez maintenant vous connecter.</p>
+                            <button onClick={onBack} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 transition-colors shadow-lg">Aller à la connexion</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Tableau de bord Responsable ──────────────────────────────────────────
+        function Admin({ users, setUsers, payments, setPayments, settings, setSettings, me, setMe, onLogout }) {
+            const [tab,         setTab]      = useState('membres');
+            const [expanded,    setExpanded] = useState(null);
+            const [modal,       setModal]    = useState({open:false});
+            const [busy,        setBusy]     = useState(false);
+
+            const [editPayId, setEditPayId]  = useState(null);
+            const [payMember, setPayMember]  = useState('');
+            const [payAmt,    setPayAmt]     = useState('');
+            const [payDate,   setPayDate]    = useState('');
+            const [payMethod, setPayMethod]  = useState('virement');
+            const [payNote,   setPayNote]    = useState('');
+
+            const [newName,    setNewName]   = useState('');
+            const [search,     setSearch]    = useState('');
+            const [editMId,    setEditMId]   = useState(null);
+            const [editMName,  setEditMName] = useState('');
+
+            const [editAdmin,  setEditAdmin] = useState(false);
+            const [adminName,  setAdminName] = useState(me.name);
+
+            const [pNom,    setPNom]    = useState(settings?.nomAssociation||'');
+            const [pLM,     setPLM]     = useState(settings?.labelMembre||'Membre');
+            const [pLR,     setPLR]     = useState(settings?.labelResponsable||'Responsable');
+            const [pCotis,  setPCotis]  = useState(settings?.cotisationCible||'');
+            const [pEmail,  setPEmail]  = useState(settings?.emailResponsable||'');
+            const [pPin0,   setPPin0]   = useState('');
+            const [pPin1,   setPPin1]   = useState('');
+            const [pPin2,   setPPin2]   = useState('');
+            const [sMsg,    setSMsg]    = useState(null);
+            const [showRescue,setShowRescue]=useState(false);
+
+            const lbl   = settings?.labelMembre||'Membre';
+            const lblR  = settings?.labelResponsable||'Responsable';
+            const cotis = settings?.cotisationCible||0;
+            const MAX   = 200;
+            const members = users.filter(u=>u.role==='member');
+            const pins    = new Set(users.map(u=>u.pin));
+
+            const statusOf = t => {
+                if(t>=cotis) return {color:'bg-green-50 text-green-700 border-green-200',dot:'bg-green-500',label:'À jour'};
+                if(t>0)      return {color:'bg-yellow-50 text-yellow-700 border-yellow-200',dot:'bg-yellow-500',label:'En cours'};
+                return           {color:'bg-red-50 text-red-700 border-red-200',dot:'bg-red-500',label:'Aucun versement'};
+            };
+            const methodOf = id => PAY_METHODS.find(m=>m.id===id)||{label:'Autre',icon:IEuro};
+            const showModal = cfg => setModal({open:true,...cfg});
+            const closeModal = () => setModal({open:false});
+
+            // Admin name
+            const saveAdminName = async () => {
+                if(!adminName.trim()||busy) return;
+                setBusy(true);
+                const {db,doc,updateDoc}=window.DB;
+                await updateDoc(doc(db,'users',me.id),{name:adminName.trim()});
+                setUsers(users.map(u=>u.id===me.id?{...u,name:adminName.trim()}:u));
+                setMe({...me,name:adminName.trim()});
+                setEditAdmin(false); setBusy(false);
+            };
+
+            // Payment
+            const savePay = async e => {
+                e.preventDefault();
+                if(!payMember||!payAmt||!payDate||busy) return;
+                setBusy(true);
+                const {db,doc,updateDoc,addDoc,collection}=window.DB;
+                const data={memberId:payMember,amount:parseFloat(payAmt),date:payDate,method:payMethod,note:payNote};
+                try {
+                    if(editPayId){
+                        await updateDoc(doc(db,'payments',editPayId),data);
+                        setPayments(payments.map(p=>p.id===editPayId?{id:editPayId,...data}:p));
                         setEditPayId(null);
                     } else {
-                        const ref = await addDoc(collection(db, 'payments'), data);
-                        setPayments([...payments, { id: ref.id, ...data }]);
+                        const r=await addDoc(collection(db,'payments'),data);
+                        setPayments([...payments,{id:r.id,...data}]);
                     }
-                    setPayMember(''); setPayAmount(''); setPayDate(''); setPayNote(''); setPayMethod('virement');
-                } catch { showModal({ type: 'alert', title: 'Erreur', message: 'Erreur lors de la sauvegarde.' }); }
-                setProcessing(false);
+                    setPayMember('');setPayAmt('');setPayDate('');setPayNote('');setPayMethod('virement');
+                } catch{showModal({type:'alert',title:'Erreur',message:'Erreur lors de la sauvegarde.'});}
+                setBusy(false);
             };
-
-            const startEditPay = (p) => {
-                setEditPayId(p.id); setPayMember(p.memberId); setPayAmount(p.amount);
-                setPayDate(p.date); setPayMethod(p.method||'virement'); setPayNote(p.note||'');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+            const startEditPay = p => {
+                setEditPayId(p.id);setPayMember(p.memberId);setPayAmt(p.amount);
+                setPayDate(p.date);setPayMethod(p.method||'virement');setPayNote(p.note||'');
+                setTab('payments'); window.scrollTo({top:0,behavior:'smooth'});
             };
-
-            const deletePay = (id) => showModal({
-                type: 'confirm', title: 'Supprimer ce versement ?', message: 'Cette action est irréversible.',
-                onConfirm: async () => {
-                    closeModal();
-                    const { db, doc, deleteDoc } = window.APP_DB;
-                    await deleteDoc(doc(db, 'payments', id));
-                    setPayments(payments.filter(p => p.id !== id));
-                }
+            const deletePay = id => showModal({type:'confirm',title:'Supprimer ce versement ?',message:'Action irréversible.',
+                onConfirm:async()=>{closeModal();const{db,doc,deleteDoc}=window.DB;await deleteDoc(doc(db,'payments',id));setPayments(payments.filter(p=>p.id!==id));}
             });
 
-            const addMember = async (e) => {
+            // Member
+            const addMember = async e => {
                 e.preventDefault();
-                if (!newName.trim() || processing) return;
-                if (members.length >= MAX_MEMBERS) { showModal({ type: 'alert', title: 'Limite atteinte', message: `Vous avez atteint la limite de ${MAX_MEMBERS} ${lbl.toLowerCase()}s.` }); return; }
-                setProcessing(true);
-                const { db, collection, addDoc } = window.APP_DB;
-                const pin = generateUniquePin(existingPins);
-                try {
-                    const ref = await addDoc(collection(db, 'users'), { name: newName.trim(), role: 'member', pin });
-                    setUsers([...users, { id: ref.id, name: newName.trim(), role: 'member', pin }]);
-                    existingPins.add(pin); setNewName('');
-                } catch { showModal({ type: 'alert', title: 'Erreur', message: "Erreur lors de l'ajout." }); }
-                setProcessing(false);
+                if(!newName.trim()||busy) return;
+                if(members.length>=MAX){showModal({type:'alert',title:'Limite atteinte',message:`Maximum ${MAX} ${lbl.toLowerCase()}s.`});return;}
+                setBusy(true);
+                const {db,collection,addDoc}=window.DB;
+                const p=genPin(pins);
+                try{
+                    const r=await addDoc(collection(db,'users'),{name:newName.trim(),role:'member',pin:p});
+                    setUsers([...users,{id:r.id,name:newName.trim(),role:'member',pin:p}]);
+                    pins.add(p); setNewName('');
+                }catch{showModal({type:'alert',title:'Erreur',message:"Erreur lors de l'ajout."});}
+                setBusy(false);
             };
-
-            const saveMemberName = async (id) => {
-                if (!editName.trim() || processing) return;
-                setProcessing(true);
-                const { db, doc, updateDoc } = window.APP_DB;
-                await updateDoc(doc(db, 'users', id), { name: editName.trim() });
-                setUsers(users.map(u => u.id === id ? { ...u, name: editName.trim() } : u));
-                setEditMemberId(null); setEditName(''); setProcessing(false);
+            const saveMName = async id => {
+                if(!editMName.trim()||busy) return;
+                setBusy(true);
+                const {db,doc,updateDoc}=window.DB;
+                await updateDoc(doc(db,'users',id),{name:editMName.trim()});
+                setUsers(users.map(u=>u.id===id?{...u,name:editMName.trim()}:u));
+                setEditMId(null);setEditMName('');setBusy(false);
             };
-
-            const regeneratePin = (member) => showModal({
-                type: 'confirm', title: 'Régénérer le code ?',
-                message: `Un nouveau code unique sera créé pour ${member.name}. L'ancien ne fonctionnera plus.`,
-                onConfirm: async () => {
+            const regenPin = member => showModal({type:'confirm',title:'Régénérer le code ?',
+                message:`Un nouveau code unique sera créé pour ${member.name}. L'ancien sera désactivé.`,
+                onConfirm:async()=>{
                     closeModal();
-                    const { db, doc, updateDoc } = window.APP_DB;
-                    const newPin = generateUniquePin(existingPins);
-                    await updateDoc(doc(db, 'users', member.id), { pin: newPin });
-                    setUsers(users.map(u => u.id === member.id ? { ...u, pin: newPin } : u));
-                    existingPins.add(newPin);
+                    const {db,doc,updateDoc}=window.DB;
+                    const np=genPin(pins);
+                    await updateDoc(doc(db,'users',member.id),{pin:np});
+                    setUsers(users.map(u=>u.id===member.id?{...u,pin:np}:u));
+                    pins.add(np);
                 }
             });
-
-            const deleteMember = (id) => {
-                if (payments.some(p => String(p.memberId) === String(id))) {
-                    showModal({ type: 'alert', title: 'Impossible', message: `Ce ${lbl.toLowerCase()} a des versements. Supprimez-les d'abord.` }); return;
-                }
-                showModal({
-                    type: 'confirm', title: `Retirer ce ${lbl.toLowerCase()} ?`, message: 'Son accès sera supprimé définitivement.',
-                    onConfirm: async () => {
-                        closeModal();
-                        const { db, doc, deleteDoc } = window.APP_DB;
-                        await deleteDoc(doc(db, 'users', id));
-                        setUsers(users.filter(u => u.id !== id));
-                    }
+            const delMember = id => {
+                if(payments.some(p=>String(p.memberId)===String(id))){showModal({type:'alert',title:'Impossible',message:`Ce ${lbl.toLowerCase()} a des versements. Supprimez-les d'abord.`});return;}
+                showModal({type:'confirm',title:`Retirer ce ${lbl.toLowerCase()} ?`,message:'Son accès sera supprimé.',
+                    onConfirm:async()=>{closeModal();const{db,doc,deleteDoc}=window.DB;await deleteDoc(doc(db,'users',id));setUsers(users.filter(u=>u.id!==id));}
                 });
             };
 
-            const saveSettings = async (e) => {
-                e.preventDefault();
-                if (processing) return;
-                setProcessing(true); setSettingsMsg(null);
-                const { db, doc, setDoc } = window.APP_DB;
-                try {
-                    const data = { configured: true, nomAssociation: pNomAsso.trim()||settings.nomAssociation, labelMembre: pLblMembre.trim()||'Membre', labelResponsable: pLblResp.trim()||'Responsable', cotisationCible: parseFloat(pCotisation)||cotisation };
-                    await setDoc(doc(db, 'settings', 'config'), data);
-                    setSettings(data);
-                    setSettingsMsg({ ok: true, text: 'Paramètres enregistrés.' });
-                } catch { setSettingsMsg({ ok: false, text: 'Erreur lors de la sauvegarde.' }); }
-                setProcessing(false);
+            // Settings
+            const saveSettings = async e => {
+                e.preventDefault(); if(busy)return;
+                setBusy(true); setSMsg(null);
+                const {db,doc,setDoc}=window.DB;
+                try{
+                    const data={configured:true,nomAssociation:pNom.trim()||settings.nomAssociation,labelMembre:pLM.trim()||'Membre',labelResponsable:pLR.trim()||'Responsable',cotisationCible:parseFloat(pCotis)||cotis,emailResponsable:pEmail.trim(),codeSecours:settings.codeSecours};
+                    await setDoc(doc(db,'settings','config'),data);
+                    setSettings(data); setSMsg({ok:true,text:'Paramètres enregistrés.'});
+                }catch{setSMsg({ok:false,text:'Erreur.'});}
+                setBusy(false);
+            };
+            const changePin = async e => {
+                e.preventDefault(); if(busy)return; setSMsg(null);
+                if(pPin0.toUpperCase()!==me.pin){setSMsg({ok:false,text:'Code actuel incorrect.'});return;}
+                if(pPin1.length<4){setSMsg({ok:false,text:'Le nouveau code doit faire au moins 4 caractères.'});return;}
+                if(pPin1.toUpperCase()!==pPin2.toUpperCase()){setSMsg({ok:false,text:'Les deux codes ne correspondent pas.'});return;}
+                setBusy(true);
+                const {db,doc,updateDoc}=window.DB;
+                const np=pPin1.toUpperCase();
+                await updateDoc(doc(db,'users',me.id),{pin:np});
+                setUsers(users.map(u=>u.id===me.id?{...u,pin:np}:u));
+                setMe({...me,pin:np}); setPPin0('');setPPin1('');setPPin2('');
+                setSMsg({ok:true,text:'Code modifié avec succès.'});
+                setBusy(false);
             };
 
-            const changePin = async (e) => {
-                e.preventDefault();
-                if (processing) return;
-                setSettingsMsg(null);
-                if (pPinActuel.toUpperCase() !== currentUser.pin) { setSettingsMsg({ ok: false, text: 'Code actuel incorrect.' }); return; }
-                if (pPinNew.length < 4) { setSettingsMsg({ ok: false, text: 'Le nouveau code doit faire au moins 4 caractères.' }); return; }
-                if (pPinNew.toUpperCase() !== pPinConfirm.toUpperCase()) { setSettingsMsg({ ok: false, text: 'Les deux codes ne correspondent pas.' }); return; }
-                setProcessing(true);
-                const { db, doc, updateDoc } = window.APP_DB;
-                const newPin = pPinNew.toUpperCase();
-                await updateDoc(doc(db, 'users', currentUser.id), { pin: newPin });
-                setUsers(users.map(u => u.id === currentUser.id ? { ...u, pin: newPin } : u));
-                setLoggedInUser({ ...currentUser, pin: newPin });
-                setPPinActuel(''); setPPinNew(''); setPPinConfirm('');
-                setSettingsMsg({ ok: true, text: 'Code modifié avec succès.' });
-                setProcessing(false);
-            };
-
-            const totalAsso = payments.reduce((s,p)=>s+parseFloat(p.amount||0),0);
-            const objectif = members.length * cotisation;
-            const resteGlobal = Math.max(0, objectif - totalAsso);
-            const filtered = members.filter(m => m.name.toLowerCase().includes(search.toLowerCase()) || m.pin.toLowerCase().includes(search.toLowerCase()));
+            const totalAsso   = payments.reduce((s,p)=>s+parseFloat(p.amount||0),0);
+            const objectif    = members.length*cotis;
+            const resteGlobal = Math.max(0,objectif-totalAsso);
+            const filtered    = members.filter(m=>m.name.toLowerCase().includes(search.toLowerCase())||m.pin.toLowerCase().includes(search.toLowerCase()));
 
             return (
                 <div className="min-h-screen bg-gray-100 pb-12">
+                    {/* Nav */}
                     <nav className="bg-indigo-950 border-b-4 border-indigo-900 shadow-lg">
                         <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-                            <div className="flex items-center text-white font-extrabold text-lg tracking-tight">
-                                <IcoShield className="mr-3 text-indigo-400" size={22} />{settings?.nomAssociation||'Gestion des Cotisations'}
+                            <div className="text-white font-extrabold text-base tracking-tight flex items-center">
+                                <IShield className="mr-2 text-indigo-400" size={20}/>{settings?.nomAssociation||'Gestion des Cotisations'}
                             </div>
-                            <div className="flex items-center">
-                                {editingAdmin ? (
-                                    <div className="flex items-center mr-4 bg-indigo-900 border border-indigo-700 p-1 rounded-lg">
-                                        <input value={adminName} onChange={e=>setAdminName(e.target.value)} className="w-36 sm:w-48 px-2 py-1 text-sm font-bold text-gray-900 rounded focus:outline-none" autoFocus />
-                                        <button onClick={saveAdminName} className="p-1 ml-1 text-green-400 hover:bg-indigo-800 rounded"><IcoSave size={15} /></button>
-                                        <button onClick={()=>setEditingAdmin(false)} className="p-1 ml-1 text-red-400 hover:bg-indigo-800 rounded"><IcoX size={15} /></button>
+                            <div className="flex items-center gap-2">
+                                {editAdmin?(
+                                    <div className="flex items-center bg-indigo-900 border border-indigo-700 p-1 rounded-lg">
+                                        <input value={adminName} onChange={e=>setAdminName(e.target.value)} className="w-32 sm:w-44 px-2 py-1 text-sm font-bold text-gray-900 rounded focus:outline-none" autoFocus/>
+                                        <button onClick={saveAdminName} className="p-1 ml-1 text-green-400 hover:bg-indigo-800 rounded"><ISave size={14}/></button>
+                                        <button onClick={()=>setEditAdmin(false)} className="p-1 ml-1 text-red-400 hover:bg-indigo-800 rounded"><IX size={14}/></button>
                                     </div>
-                                ) : (
-                                    <span className="text-indigo-200 mr-4 text-sm font-medium flex items-center">
-                                        <strong className="text-white mr-2">{currentUser.name}</strong>
-                                        <button onClick={()=>{setAdminName(currentUser.name);setEditingAdmin(true);}} className="text-indigo-400 hover:text-white p-1 rounded hover:bg-indigo-800 transition-colors"><IcoEdit size={13} /></button>
+                                ):(
+                                    <span className="text-indigo-200 text-sm font-medium flex items-center">
+                                        <strong className="text-white mr-1 hidden sm:inline">{me.name}</strong>
+                                        <button onClick={()=>{setAdminName(me.name);setEditAdmin(true);}} className="text-indigo-400 hover:text-white p-1 rounded hover:bg-indigo-800"><IPen size={12}/></button>
                                     </span>
                                 )}
                                 <button onClick={onLogout} className="bg-indigo-900 hover:bg-red-700 text-white px-3 py-2 rounded-lg flex items-center text-sm font-bold transition-colors">
-                                    <IcoLogout size={15} className="sm:mr-2" /><span className="hidden sm:inline">Déconnexion</span>
+                                    <IOut size={14} className="sm:mr-2"/><span className="hidden sm:inline">Déconnexion</span>
                                 </button>
                             </div>
                         </div>
                     </nav>
 
-                    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-                        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="max-w-7xl mx-auto py-7 px-4 sm:px-6 lg:px-8">
+                        {/* KPI */}
+                        <div className="mb-7 grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { icon: IcoEuro, bg:'bg-indigo-100', color:'text-indigo-900', label:'Caisse totale', value:`${totalAsso.toFixed(2)} €`, sub:`Objectif : ${objectif.toFixed(2)} €`, subColor:'text-indigo-700' },
-                                { icon: IcoCal,  bg:'bg-yellow-100', color:'text-yellow-700', label:'Reste à encaisser', value:`${resteGlobal.toFixed(2)} €`, sub:'Pour atteindre l\'objectif', subColor:'text-yellow-700' },
-                                { icon: IcoUsers,bg:'bg-blue-100',   color:'text-blue-800',   label:`${lbl}s inscrits`, value:`${members.length} / ${MAX_MEMBERS}`, sub:`Cotisation : ${cotisation} € / pers.`, subColor:'text-blue-700' },
+                                {icon:IEuro,bg:'bg-indigo-100',color:'text-indigo-900',label:'Caisse totale',val:`${totalAsso.toFixed(2)} €`,sub:`Objectif : ${objectif.toFixed(2)} €`,sc:'text-indigo-700'},
+                                {icon:ICal, bg:'bg-yellow-100',color:'text-yellow-700',label:'Reste à encaisser',val:`${resteGlobal.toFixed(2)} €`,sub:"Pour atteindre l'objectif",sc:'text-yellow-700'},
+                                {icon:IUsers,bg:'bg-blue-100',color:'text-blue-800',label:`${lbl}s inscrits`,val:`${members.length} / ${MAX}`,sub:`Cotisation : ${cotis} € / pers.`,sc:'text-blue-700'},
                             ].map((c,i)=>(
-                                <div key={i} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 flex items-center">
-                                    <div className={`${c.bg} p-4 rounded-xl ${c.color} mr-4 flex-shrink-0`}><c.icon size={26} /></div>
+                                <div key={i} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-200 flex items-center">
+                                    <div className={`${c.bg} p-3 rounded-xl ${c.color} mr-4 flex-shrink-0`}><c.icon size={24}/></div>
                                     <div>
-                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{c.label}</div>
-                                        <div className="text-2xl font-black text-gray-900">{c.value}</div>
-                                        <div className={`text-xs font-medium ${c.subColor} mt-1`}>{c.sub}</div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">{c.label}</div>
+                                        <div className="text-xl font-black text-gray-900">{c.val}</div>
+                                        <div className={`text-xs font-medium ${c.sc} mt-0.5`}>{c.sub}</div>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="mb-8 flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                        {/* Onglets */}
+                        <div className="mb-7 flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
                             {[
-                                { id:'membres',    label:`${lbl}s & Codes`,     icon:IcoUserPlus },
-                                { id:'payments',   label:'Saisir un versement', icon:IcoCard },
-                                { id:'parametres', label:'Paramètres',          icon:IcoGear },
+                                {id:'membres',   label:`${lbl}s & Codes`,    icon:IUserPlus},
+                                {id:'payments',  label:'Versements',          icon:ICard},
+                                {id:'parametres',label:'Paramètres',          icon:IGear},
                             ].map(t=>(
-                                <button key={t.id}
-                                    onClick={()=>{ setTab(t.id); setSettingsMsg(null); if(t.id==='parametres'){setPNomAsso(settings?.nomAssociation||'');setPLblMembre(settings?.labelMembre||'');setPLblResp(settings?.labelResponsable||'');setPCotisation(settings?.cotisationCible||'');}}}
-                                    className={`flex-1 px-5 py-3 rounded-lg font-bold transition-all flex items-center justify-center text-sm ${tab===t.id?'bg-indigo-900 text-white shadow-md':'text-gray-600 hover:bg-gray-100'}`}>
-                                    <t.icon size={17} className="mr-2" />{t.label}
+                                <button key={t.id} onClick={()=>{setTab(t.id);setSMsg(null);if(t.id==='parametres'){setPNom(settings?.nomAssociation||'');setPLM(settings?.labelMembre||'');setPLR(settings?.labelResponsable||'');setPCotis(settings?.cotisationCible||'');setPEmail(settings?.emailResponsable||'');}}}
+                                    className={`flex-1 px-5 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center transition-all ${tab===t.id?'bg-indigo-900 text-white shadow':'text-gray-600 hover:bg-gray-100'}`}>
+                                    <t.icon size={16} className="mr-2"/>{t.label}
                                 </button>
                             ))}
                         </div>
 
-                        {tab === 'membres' && (
-                            <div className="space-y-8 animate-fade">
-                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-900">
-                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center"><IcoUserPlus className="mr-3 text-gray-800" size={24} /> Ajouter un {lbl}</h3>
-                                    <form onSubmit={addMember} className="flex flex-col md:flex-row gap-4 items-end">
+                        {/* ── Membres ── */}
+                        {tab==='membres'&&(
+                            <div className="space-y-7 fade">
+                                <div className="bg-white shadow-md rounded-2xl p-6 border-t-8 border-gray-900">
+                                    <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center"><IUserPlus className="mr-3 text-gray-800" size={22}/>Ajouter un {lbl}</h3>
+                                    <form onSubmit={addMember} className="flex flex-col md:flex-row gap-3 items-end">
                                         <div className="flex-grow w-full">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom complet</label>
-                                            <input type="text" required value={newName} onChange={e=>setNewName(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-gray-900 focus:outline-none" placeholder={`Nom du ${lbl.toLowerCase()}`} />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Nom complet</label>
+                                            <input type="text" required value={newName} onChange={e=>setNewName(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-gray-900 focus:outline-none" placeholder={`Nom du ${lbl.toLowerCase()}`}/>
                                         </div>
-                                        <button type="submit" disabled={members.length>=MAX_MEMBERS||processing} className="w-full md:w-auto px-6 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center justify-center shadow-lg">
-                                            <IcoKey size={17} className="mr-2" /> Générer le code & Ajouter
+                                        <button type="submit" disabled={members.length>=MAX||busy} className="w-full md:w-auto px-5 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center justify-center shadow-lg">
+                                            <IKey size={16} className="mr-2"/>Générer code & Ajouter
                                         </button>
                                     </form>
                                 </div>
+
                                 <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
-                                    <div className="px-6 py-5 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="px-5 py-4 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
                                         <div>
-                                            <h3 className="text-lg font-black text-gray-900">Registre des {lbl}s</h3>
-                                            <p className="text-sm text-gray-500 mt-1">Codes uniques à 8 caractères · {members.length}/{MAX_MEMBERS} inscrits</p>
+                                            <h3 className="text-base font-black text-gray-900">Registre des {lbl}s</h3>
+                                            <p className="text-xs text-gray-500 mt-0.5">Codes uniques 8 car. · {members.length}/{MAX}</p>
                                         </div>
-                                        <div className="relative w-full md:w-72">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><IcoSearch size={18} className="text-gray-400" /></div>
-                                            <input type="text" className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-900 font-medium text-sm focus:outline-none" placeholder={`Rechercher un ${lbl.toLowerCase()} ou code…`} value={search} onChange={e=>setSearch(e.target.value)} />
+                                        <div className="relative w-full md:w-64">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><ISearch size={16} className="text-gray-400"/></div>
+                                            <input type="text" className="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-900 text-sm font-medium focus:outline-none" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)}/>
                                         </div>
                                     </div>
                                     <ul className="divide-y divide-gray-100">
-                                        {filtered.sort((a,b)=>a.name.localeCompare(b.name)).map(member=>{
-                                            const mp=payments.filter(p=>String(p.memberId)===String(member.id));
-                                            const total=mp.reduce((s,p)=>s+parseFloat(p.amount||0),0);
-                                            const st=statusOf(total);
-                                            const expanded=expandedId===member.id;
-                                            const editing=editMemberId===member.id;
+                                        {filtered.sort((a,b)=>a.name.localeCompare(b.name)).map(m=>{
+                                            const mp=payments.filter(p=>String(p.memberId)===String(m.id));
+                                            const tot=mp.reduce((s,p)=>s+parseFloat(p.amount||0),0);
+                                            const st=statusOf(tot);
+                                            const exp=expanded===m.id, edt=editMId===m.id;
                                             return (
-                                                <li key={member.id} className="flex flex-col hover:bg-gray-50 transition-colors group">
-                                                    <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <li key={m.id} className="flex flex-col hover:bg-gray-50 transition-colors group">
+                                                    <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                                                         <div className="flex flex-col w-full md:w-1/3">
-                                                            {editing ? (
-                                                                <input value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-white border border-indigo-400 rounded-lg py-2 px-3 font-black text-gray-900 text-base focus:ring-2 focus:ring-indigo-900 focus:outline-none" autoFocus />
-                                                            ) : (
-                                                                <div className="text-base font-black text-gray-900">{member.name}</div>
-                                                            )}
-                                                            <div className="mt-2 inline-flex items-center w-max px-3 py-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-lg">
-                                                                <IcoLock size={12} className="mr-2 text-indigo-600" />
-                                                                <span className="text-xs font-bold uppercase tracking-wider mr-2 opacity-70">Code</span>
-                                                                <strong className="text-base font-mono tracking-widest">{member.pin}</strong>
-                                                                <button onClick={()=>navigator.clipboard?.writeText(member.pin)} className="ml-2 text-indigo-400 hover:text-indigo-700 transition-colors" title="Copier"><IcoCopy size={13} /></button>
+                                                            {edt?<input value={editMName} onChange={e=>setEditMName(e.target.value)} className="w-full bg-white border border-indigo-400 rounded-lg py-2 px-3 font-black text-gray-900 focus:ring-2 focus:ring-indigo-900 focus:outline-none" autoFocus/>
+                                                                :<div className="text-sm font-black text-gray-900">{m.name}</div>}
+                                                            <div className="mt-1.5 inline-flex items-center w-max px-2.5 py-1 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-lg">
+                                                                <ILock size={11} className="mr-1.5 text-indigo-600"/>
+                                                                <span className="text-xs font-bold uppercase tracking-wider mr-1.5 opacity-70">Code</span>
+                                                                <strong className="text-sm font-mono tracking-widest">{m.pin}</strong>
+                                                                <button onClick={()=>navigator.clipboard?.writeText(m.pin)} className="ml-1.5 text-indigo-400 hover:text-indigo-700" title="Copier"><ICopy size={12}/></button>
                                                             </div>
                                                         </div>
                                                         <div className="flex-1 flex flex-col items-start md:items-center">
-                                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold border ${st.color}`}>
-                                                                <span className={`h-2 w-2 mr-2 rounded-full ${st.dot}`}></span>{st.label}
+                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${st.color}`}>
+                                                                <span className={`h-1.5 w-1.5 mr-1.5 rounded-full ${st.dot}`}></span>{st.label}
                                                             </span>
-                                                            <button onClick={()=>setExpandedId(expanded?null:member.id)} className="mt-2 text-xs font-bold text-indigo-800 flex items-center bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors">
-                                                                {mp.length} versement(s) {expanded?<IcoUp size={13} className="ml-1" />:<IcoDown size={13} className="ml-1" />}
+                                                            <button onClick={()=>setExpanded(exp?null:m.id)} className="mt-1.5 text-xs font-bold text-indigo-800 flex items-center bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-100">
+                                                                {mp.length} versement(s) {exp?<IUp size={12} className="ml-1"/>:<IDown size={12} className="ml-1"/>}
                                                             </button>
                                                         </div>
                                                         <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3">
                                                             <div className="text-right">
-                                                                <div className="text-xs text-gray-500 font-medium">Versé</div>
-                                                                <div className="text-lg font-black text-gray-900">{total.toFixed(2)} €</div>
-                                                                <div className="text-xs font-bold text-gray-400">Reste : {Math.max(0,cotisation-total).toFixed(2)} €</div>
+                                                                <div className="text-xs text-gray-500">Versé</div>
+                                                                <div className="text-base font-black text-gray-900">{tot.toFixed(2)} €</div>
+                                                                <div className="text-xs font-bold text-gray-400">Reste : {Math.max(0,cotis-tot).toFixed(2)} €</div>
                                                             </div>
-                                                            {editing ? (
+                                                            {edt?(
                                                                 <div className="flex space-x-1">
-                                                                    <button onClick={()=>saveMemberName(member.id)} className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-xl"><IcoSave size={18} /></button>
-                                                                    <button onClick={()=>setEditMemberId(null)} className="p-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl"><IcoX size={18} /></button>
+                                                                    <button onClick={()=>saveMName(m.id)} className="p-2 text-white bg-green-600 hover:bg-green-700 rounded-xl"><ISave size={16}/></button>
+                                                                    <button onClick={()=>setEditMId(null)} className="p-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl"><IX size={16}/></button>
                                                                 </div>
-                                                            ) : (
+                                                            ):(
                                                                 <div className="flex space-x-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button onClick={()=>{setEditMemberId(member.id);setEditName(member.name);}} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Modifier le nom"><IcoEdit size={17} /></button>
-                                                                    <button onClick={()=>regeneratePin(member)} className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl transition-colors" title="Nouveau code"><IcoKey size={17} /></button>
-                                                                    <button onClick={()=>deleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Supprimer"><IcoTrash size={17} /></button>
+                                                                    <button onClick={()=>{setEditMId(m.id);setEditMName(m.name);}} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl" title="Modifier"><IPen size={15}/></button>
+                                                                    <button onClick={()=>regenPin(m)} className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl" title="Nouveau code"><IRefresh size={15}/></button>
+                                                                    <button onClick={()=>delMember(m.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl" title="Supprimer"><ITrash size={15}/></button>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {expanded && (
-                                                        <div className="bg-indigo-50 border-t border-indigo-100 p-5 animate-fade">
-                                                            <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-3"><IcoCal size={14} className="mr-2 inline" />Historique — {member.name}</h4>
-                                                            {mp.length>0 ? (
+                                                    {exp&&(
+                                                        <div className="bg-indigo-50 border-t border-indigo-100 p-4 fade">
+                                                            <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-3">Historique — {m.name}</h4>
+                                                            {mp.length>0?(
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                                     {[...mp].sort((a,b)=>new Date(a.date)-new Date(b.date)).map((pay,idx)=>(
                                                                         <div key={pay.id} className="bg-white border border-indigo-100 p-3 rounded-xl flex justify-between items-center">
                                                                             <div>
-                                                                                <div className="text-xs font-bold text-indigo-600 uppercase mb-0.5">Versement n°{idx+1}</div>
+                                                                                <div className="text-xs font-bold text-indigo-600 uppercase mb-0.5">n°{idx+1}</div>
                                                                                 <div className="text-sm font-bold text-gray-900">{new Date(pay.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div>
                                                                                 <div className="text-xs text-gray-500">{methodOf(pay.method).label}{pay.note?` — ${pay.note}`:''}</div>
                                                                             </div>
-                                                                            <div className="text-base font-black text-indigo-900">{parseFloat(pay.amount||0).toFixed(2)} €</div>
+                                                                            <div className="text-sm font-black text-indigo-900">{parseFloat(pay.amount||0).toFixed(2)} €</div>
                                                                         </div>
                                                                     ))}
                                                                 </div>
-                                                            ) : <p className="text-sm text-gray-500 italic">Aucun versement enregistré.</p>}
+                                                            ):<p className="text-xs text-gray-500 italic">Aucun versement.</p>}
                                                         </div>
                                                     )}
                                                 </li>
                                             );
                                         })}
-                                        {filtered.length===0 && <li className="py-12 text-center text-gray-400 font-medium">Aucun résultat.</li>}
+                                        {filtered.length===0&&<li className="py-10 text-center text-gray-400 text-sm font-medium">Aucun résultat.</li>}
                                     </ul>
                                 </div>
                             </div>
                         )}
 
-                        {tab === 'payments' && (
-                            <div className="space-y-8 animate-fade">
-                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-indigo-900">
-                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center">
-                                        {editPayId?<><IcoEdit className="mr-3 text-indigo-900" size={24}/>Modifier</>:<><IcoPlus className="mr-3 text-indigo-900" size={24}/>Enregistrer un versement</>}
+                        {/* ── Versements ── */}
+                        {tab==='payments'&&(
+                            <div className="space-y-7 fade">
+                                <div className="bg-white shadow-md rounded-2xl p-6 border-t-8 border-indigo-900">
+                                    <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center">
+                                        {editPayId?<><IPen className="mr-3 text-indigo-900" size={22}/>Modifier</>:<><IPlus className="mr-3 text-indigo-900" size={22}/>Enregistrer un versement</>}
                                     </h3>
-                                    <form onSubmit={savePayment} className="grid grid-cols-1 gap-5 sm:grid-cols-6">
+                                    <form onSubmit={savePay} className="grid grid-cols-1 gap-4 sm:grid-cols-6">
                                         <div className="sm:col-span-3">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">{lbl} *</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">{lbl} *</label>
                                             <select required value={payMember} onChange={e=>setPayMember(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none">
                                                 <option value="">Sélectionnez…</option>
                                                 {members.sort((a,b)=>a.name.localeCompare(b.name)).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="sm:col-span-3">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Date *</label>
-                                            <input type="date" required value={payDate} onChange={e=>setPayDate(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Date *</label>
+                                            <input type="date" required value={payDate} onChange={e=>setPayDate(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none"/>
                                         </div>
                                         <div className="sm:col-span-3">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant (€) *</label>
-                                            <input type="number" step="0.01" min="0" required value={payAmount} onChange={e=>setPayAmount(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Montant (€) *</label>
+                                            <input type="number" step="0.01" min="0" required value={payAmt} onChange={e=>setPayAmt(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="0.00"/>
                                         </div>
                                         <div className="sm:col-span-3">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Mode de règlement *</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Mode *</label>
                                             <select required value={payMethod} onChange={e=>setPayMethod(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none">
-                                                {PAYMENT_METHODS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}
+                                                {PAY_METHODS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}
                                             </select>
                                         </div>
                                         <div className="sm:col-span-6">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Remarque (optionnel)</label>
-                                            <input type="text" value={payNote} onChange={e=>setPayNote(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : solde, acompte…" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Remarque (optionnel)</label>
+                                            <input type="text" value={payNote} onChange={e=>setPayNote(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Ex : acompte, solde…"/>
                                         </div>
-                                        <div className="sm:col-span-6 flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                                            {editPayId && <button type="button" onClick={()=>{setEditPayId(null);setPayMember('');setPayAmount('');setPayDate('');setPayNote('');setPayMethod('virement');}} className="px-5 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Annuler</button>}
-                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg">
-                                                {editPayId?<><IcoSave className="mr-2" size={17}/>Mettre à jour</>:<><IcoPlus className="mr-2" size={17}/>Valider le versement</>}
+                                        <div className="sm:col-span-6 flex justify-end space-x-3 pt-3 border-t border-gray-200">
+                                            {editPayId&&<button type="button" onClick={()=>{setEditPayId(null);setPayMember('');setPayAmt('');setPayDate('');setPayNote('');setPayMethod('virement');}} className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Annuler</button>}
+                                            <button type="submit" disabled={busy} className="px-6 py-2.5 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg">
+                                                {editPayId?<><ISave className="mr-2" size={16}/>Mettre à jour</>:<><IPlus className="mr-2" size={16}/>Valider</>}
                                             </button>
                                         </div>
                                     </form>
                                 </div>
+
                                 <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
-                                    <div className="px-6 py-5 bg-gray-50 border-b border-gray-200"><h3 className="text-lg font-black text-gray-800">Tous les versements</h3></div>
+                                    <div className="px-5 py-4 bg-gray-50 border-b border-gray-200"><h3 className="font-black text-gray-800">Tous les versements</h3></div>
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-white">
-                                                <tr>{['Date',lbl,'Mode','Montant','Actions'].map((h,i)=><th key={h} className={`px-5 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider ${i>=3?'text-right':'text-left'}`}>{h}</th>)}</tr>
-                                            </thead>
+                                            <thead><tr>{['Date',lbl,'Mode','Montant',''].map((h,i)=><th key={i} className={`px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider ${i>=3?'text-right':'text-left'}`}>{h}</th>)}</tr></thead>
                                             <tbody className="bg-white divide-y divide-gray-100">
                                                 {[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(p=>{
-                                                    const m=users.find(u=>String(u.id)===String(p.memberId));
-                                                    const met=methodOf(p.method);
-                                                    const MI=met.icon;
-                                                    return (
+                                                    const mu=users.find(u=>String(u.id)===String(p.memberId));
+                                                    const mt=methodOf(p.method); const MI=mt.icon;
+                                                    return(
                                                         <tr key={p.id} className={`transition-colors ${editPayId===p.id?'bg-indigo-50':'hover:bg-gray-50'}`}>
-                                                            <td className="px-5 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">{new Date(p.date).toLocaleDateString('fr-FR')}</td>
-                                                            <td className="px-5 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{m?m.name:<span className="text-red-400 italic font-normal">Supprimé</span>}</td>
-                                                            <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap"><span className="flex items-center"><MI size={16} className="mr-2 text-indigo-700" />{met.label}</span></td>
-                                                            <td className="px-5 py-4 text-right text-base font-black text-gray-900 whitespace-nowrap">{parseFloat(p.amount||0).toFixed(2)} €</td>
-                                                            <td className="px-5 py-4 text-right whitespace-nowrap">
-                                                                <button onClick={()=>startEditPay(p)} className="p-2 text-gray-400 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg mr-1"><IcoEdit size={16} /></button>
-                                                                <button onClick={()=>deletePay(p.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><IcoTrash size={16} /></button>
+                                                            <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">{new Date(p.date).toLocaleDateString('fr-FR')}</td>
+                                                            <td className="px-4 py-3 text-sm font-bold text-gray-900 whitespace-nowrap">{mu?mu.name:<span className="text-red-400 italic font-normal">Supprimé</span>}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap"><span className="flex items-center"><MI size={15} className="mr-1.5 text-indigo-700"/>{mt.label}</span></td>
+                                                            <td className="px-4 py-3 text-right text-sm font-black text-gray-900 whitespace-nowrap">{parseFloat(p.amount||0).toFixed(2)} €</td>
+                                                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                                <button onClick={()=>startEditPay(p)} className="p-1.5 text-gray-400 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg mr-1"><IPen size={14}/></button>
+                                                                <button onClick={()=>deletePay(p.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><ITrash size={14}/></button>
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
-                                                {payments.length===0 && <tr><td colSpan={5} className="py-10 text-center text-gray-400 font-medium">Aucun versement enregistré.</td></tr>}
+                                                {payments.length===0&&<tr><td colSpan={5} className="py-8 text-center text-gray-400 text-sm">Aucun versement.</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -774,59 +925,90 @@
                             </div>
                         )}
 
-                        {tab === 'parametres' && (
-                            <div className="space-y-8 animate-fade">
-                                {settingsMsg && <div className={`p-4 rounded-xl font-bold text-center border ${settingsMsg.ok?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-100'}`}>{settingsMsg.text}</div>}
-                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-indigo-900">
-                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center"><IcoGear className="mr-3 text-indigo-900" size={24} /> Paramètres de l'association</h3>
-                                    <form onSubmit={saveSettings} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        {/* ── Paramètres ── */}
+                        {tab==='parametres'&&(
+                            <div className="space-y-7 fade">
+                                {sMsg&&<div className={`p-4 rounded-xl font-bold text-center border ${sMsg.ok?'bg-green-50 text-green-700 border-green-200':'bg-red-50 text-red-700 border-red-100'}`}>{sMsg.text}</div>}
+
+                                {/* Paramètres généraux */}
+                                <div className="bg-white shadow-md rounded-2xl p-6 border-t-8 border-indigo-900">
+                                    <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center"><IGear className="mr-3 text-indigo-900" size={22}/>Paramètres de l'association</h3>
+                                    <form onSubmit={saveSettings} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="sm:col-span-2">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Nom de l'association</label>
-                                            <input type="text" value={pNomAsso} onChange={e=>setPNomAsso(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Nom de l'association</label>
+                                            <input type="text" value={pNom} onChange={e=>setPNom(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 text-base focus:ring-2 focus:ring-indigo-800 focus:outline-none"/>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour les membres</label>
-                                            <input type="text" value={pLblMembre} onChange={e=>setPLblMembre(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Membre, Adhérent…" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Terme membres</label>
+                                            <input type="text" value={pLM} onChange={e=>setPLM(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Membre, Adhérent…"/>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Terme pour le responsable</label>
-                                            <input type="text" value={pLblResp} onChange={e=>setPLblResp(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Trésorier, Responsable…" />
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Terme responsable</label>
+                                            <input type="text" value={pLR} onChange={e=>setPLR(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="Trésorier, Président…"/>
                                         </div>
-                                        <div className="sm:col-span-2">
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant de la cotisation annuelle (€)</label>
-                                            <input type="number" step="0.01" min="0" value={pCotisation} onChange={e=>setPCotisation(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-xl focus:ring-2 focus:ring-indigo-800 focus:outline-none" />
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Cotisation annuelle (€)</label>
+                                            <input type="number" step="0.01" min="0" value={pCotis} onChange={e=>setPCotis(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-black text-indigo-900 text-lg focus:ring-2 focus:ring-indigo-800 focus:outline-none"/>
                                         </div>
-                                        <div className="sm:col-span-2 flex justify-end pt-4 border-t border-gray-200">
-                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg"><IcoSave size={17} className="mr-2" />Enregistrer</button>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Email du responsable</label>
+                                            <input type="email" value={pEmail} onChange={e=>setPEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-indigo-800 focus:outline-none" placeholder="contact@example.com"/>
+                                            <p className="text-xs text-gray-400 mt-1">Affiché aux membres ayant oublié leur code</p>
+                                        </div>
+                                        <div className="sm:col-span-2 flex justify-end pt-3 border-t border-gray-200">
+                                            <button type="submit" disabled={busy} className="px-6 py-2.5 rounded-xl font-black text-white bg-indigo-900 hover:bg-indigo-800 disabled:opacity-50 flex items-center shadow-lg"><ISave size={16} className="mr-2"/>Enregistrer</button>
                                         </div>
                                     </form>
                                 </div>
-                                <div className="bg-white shadow-md rounded-2xl p-6 md:p-8 border-t-8 border-gray-800">
-                                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center"><IcoLock className="mr-3 text-gray-800" size={24} /> Changer mon code d'accès</h3>
-                                    <form onSubmit={changePin} className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                                        {[{label:'Code actuel',val:pPinActuel,set:setPPinActuel},{label:'Nouveau code',val:pPinNew,set:setPPinNew},{label:'Confirmer',val:pPinConfirm,set:setPPinConfirm}].map(f=>(
-                                            <div key={f.label}>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">{f.label} *</label>
-                                                <input type="text" value={f.val} onChange={e=>f.set(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-gray-800 focus:outline-none" placeholder="••••" maxLength={12} />
+
+                                {/* Changer le code */}
+                                <div className="bg-white shadow-md rounded-2xl p-6 border-t-8 border-gray-800">
+                                    <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center"><ILock className="mr-3 text-gray-800" size={22}/>Changer mon code d'accès</h3>
+                                    <form onSubmit={changePin} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                        {[{l:'Code actuel',v:pPin0,s:setPPin0},{l:'Nouveau code',v:pPin1,s:setPPin1},{l:'Confirmer',v:pPin2,s:setPPin2}].map(f=>(
+                                            <div key={f.l}>
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">{f.l} *</label>
+                                                <input type="text" value={f.v} onChange={e=>f.s(e.target.value.toUpperCase())} className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 font-mono tracking-widest uppercase text-lg font-bold focus:ring-2 focus:ring-gray-800 focus:outline-none" placeholder="••••" maxLength={12}/>
                                             </div>
                                         ))}
-                                        <div className="sm:col-span-3 flex justify-end pt-4 border-t border-gray-200">
-                                            <button type="submit" disabled={processing} className="px-7 py-3 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center shadow-lg"><IcoKey size={17} className="mr-2" />Changer le code</button>
+                                        <div className="sm:col-span-3 flex justify-end pt-3 border-t border-gray-200">
+                                            <button type="submit" disabled={busy} className="px-6 py-2.5 rounded-xl font-black text-white bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center shadow-lg"><IKey size={16} className="mr-2"/>Changer le code</button>
                                         </div>
                                     </form>
+                                </div>
+
+                                {/* Code de secours */}
+                                <div className="bg-white shadow-md rounded-2xl p-6 border-t-8 border-amber-500">
+                                    <h3 className="text-lg font-black text-gray-900 mb-2 flex items-center"><ILifeRing className="mr-3 text-amber-600" size={22}/>Code de secours</h3>
+                                    <p className="text-sm text-gray-500 mb-5">Utilisé pour récupérer l'accès en cas d'oubli du code principal. Gardez-le précieusement.</p>
+                                    {showRescue?(
+                                        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 text-center">
+                                            <div className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Votre code de secours</div>
+                                            <div className="text-2xl font-black font-mono tracking-widest text-amber-900">{settings?.codeSecours}</div>
+                                            <button onClick={()=>navigator.clipboard?.writeText(settings?.codeSecours)} className="mt-3 text-xs font-bold text-amber-700 flex items-center mx-auto bg-amber-100 px-3 py-1.5 rounded-lg">
+                                                <ICopy size={13} className="mr-1"/>Copier
+                                            </button>
+                                            <button onClick={()=>setShowRescue(false)} className="mt-2 text-xs text-amber-600 font-bold">Masquer</button>
+                                        </div>
+                                    ):(
+                                        <button onClick={()=>setShowRescue(true)} className="px-5 py-2.5 rounded-xl font-bold text-amber-800 bg-amber-50 border border-amber-300 hover:bg-amber-100 flex items-center transition-colors">
+                                            <ILifeRing size={16} className="mr-2"/>Afficher le code de secours
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {modal.open && (
+                    {/* Modal */}
+                    {modal.open&&(
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/70 px-4 backdrop-blur-sm">
-                            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-indigo-100">
-                                <h3 className="text-xl font-black text-indigo-950 mb-3">{modal.title}</h3>
-                                <p className="text-gray-700 mb-8 font-medium">{modal.message}</p>
+                            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-7 border border-indigo-100">
+                                <h3 className="text-lg font-black text-indigo-950 mb-2">{modal.title}</h3>
+                                <p className="text-gray-700 mb-7 font-medium text-sm">{modal.message}</p>
                                 <div className="flex justify-end space-x-3">
-                                    <button onClick={closeModal} className="px-5 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">{modal.type==='confirm'?'Annuler':'Fermer'}</button>
-                                    {modal.type==='confirm' && <button onClick={modal.onConfirm} className="px-5 py-3 rounded-xl font-bold text-white bg-red-700 hover:bg-red-800 transition-colors">Confirmer</button>}
+                                    <button onClick={closeModal} className="px-4 py-2.5 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200">{modal.type==='confirm'?'Annuler':'Fermer'}</button>
+                                    {modal.type==='confirm'&&<button onClick={modal.onConfirm} className="px-4 py-2.5 rounded-xl font-bold text-white bg-red-700 hover:bg-red-800">Confirmer</button>}
                                 </div>
                             </div>
                         </div>
@@ -835,78 +1017,83 @@
             );
         }
 
-        function MemberDashboard({ user, payments, settings, onLogout }) {
-            const cotisation = settings?.cotisationCible || 0;
-            const lbl = settings?.labelMembre || 'Membre';
-            const totalPaid = payments.reduce((s,p)=>s+parseFloat(p.amount||0),0);
-            const reste = Math.max(0, cotisation - totalPaid);
-            let hColor='from-red-700 to-red-900', hText='Aucun versement enregistré';
-            if (totalPaid>=cotisation){hColor='from-green-600 to-green-800';hText='Cotisation à jour ✓';}
-            else if(totalPaid>0){hColor='from-yellow-600 to-yellow-700';hText='Règlement en cours';}
-            const methodOf=(id)=>PAYMENT_METHODS.find(m=>m.id===id)||{label:'Autre',icon:IcoEuro};
+        // ── Espace Membre ──────────────────────────────────────────────
+        function Member({ user, payments, settings, onLogout }) {
+            const cotis = settings?.cotisationCible||0;
+            const lbl   = settings?.labelMembre||'Membre';
+            const total = payments.reduce((s,p)=>s+parseFloat(p.amount||0),0);
+            const reste = Math.max(0,cotis-total);
+            let hc='from-red-700 to-red-900', ht='Aucun versement enregistré';
+            if(total>=cotis){hc='from-green-600 to-green-800';ht='Cotisation à jour ✓';}
+            else if(total>0){hc='from-yellow-600 to-yellow-700';ht='Règlement en cours';}
+            const methodOf=id=>PAY_METHODS.find(m=>m.id===id)||{label:'Autre',icon:IEuro};
             const sorted=[...payments].sort((a,b)=>new Date(a.date)-new Date(b.date)).map((p,i)=>({...p,num:i+1})).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
             return (
                 <div className="min-h-screen bg-gray-50 pb-12">
                     <nav className="bg-white shadow-sm border-b border-gray-200">
-                        <div className="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center">
-                            <div className="font-black text-indigo-950 text-lg flex items-center"><IcoUsers className="mr-3 text-indigo-800" size={22} />Mon espace {lbl}</div>
-                            <button onClick={onLogout} className="text-gray-600 hover:text-indigo-950 px-3 py-2 rounded-lg flex items-center font-bold bg-gray-100 hover:bg-gray-200 transition-colors text-sm"><IcoLogout size={15} className="mr-2" />Déconnexion</button>
+                        <div className="max-w-3xl mx-auto px-4 h-14 flex justify-between items-center">
+                            <div className="font-black text-indigo-950 text-base flex items-center"><IUsers className="mr-2 text-indigo-800" size={20}/>Mon espace {lbl}</div>
+                            <button onClick={onLogout} className="text-gray-600 hover:text-indigo-950 px-3 py-2 rounded-lg flex items-center font-bold bg-gray-100 hover:bg-gray-200 text-sm"><IOut size={14} className="mr-1.5"/>Déconnexion</button>
                         </div>
                     </nav>
-                    <div className="max-w-4xl mx-auto py-8 px-4">
-                        <div className={`bg-gradient-to-br ${hColor} rounded-3xl p-8 mb-8 text-white flex flex-col md:flex-row items-center justify-between relative overflow-hidden animate-fade border border-white/10`}>
-                            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-36 h-36 bg-white opacity-10 rounded-full blur-2xl"></div>
-                            <div className="flex items-center mb-6 md:mb-0 relative z-10">
-                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl backdrop-blur-sm">{user.name.charAt(0)}</div>
-                                <div className="ml-4">
-                                    <h2 className="text-2xl font-black">{user.name}</h2>
-                                    <div className="inline-flex items-center mt-1 bg-black/20 px-3 py-1 rounded-full text-sm font-bold border border-white/20">{hText}</div>
+                    <div className="max-w-3xl mx-auto py-7 px-4">
+                        {/* Carte */}
+                        <div className={`bg-gradient-to-br ${hc} rounded-3xl p-7 mb-7 text-white flex flex-col md:flex-row items-center justify-between relative overflow-hidden fade border border-white/10`}>
+                            <div className="absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 bg-white opacity-10 rounded-full blur-2xl"></div>
+                            <div className="flex items-center mb-5 md:mb-0 relative z-10">
+                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center font-black text-xl backdrop-blur-sm">{user.name.charAt(0)}</div>
+                                <div className="ml-3">
+                                    <h2 className="text-xl font-black">{user.name}</h2>
+                                    <div className="inline-flex items-center mt-1 bg-black/20 px-3 py-1 rounded-full text-xs font-bold border border-white/20">{ht}</div>
                                 </div>
                             </div>
-                            <div className="flex gap-4 bg-black/20 p-5 rounded-2xl border border-white/20 relative z-10">
+                            <div className="flex gap-4 bg-black/20 p-4 rounded-2xl border border-white/20 relative z-10">
                                 <div className="text-center px-3">
                                     <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Versé</p>
-                                    <p className="text-3xl font-black">{totalPaid.toFixed(2)} <span className="text-xl opacity-70">€</span></p>
+                                    <p className="text-2xl font-black">{total.toFixed(2)} <span className="text-base opacity-70">€</span></p>
                                     <p className="text-xs font-bold mt-1 opacity-80">en {payments.length} versement(s)</p>
                                 </div>
-                                {reste>0 && (
-                                    <div className="text-center border-l border-white/20 pl-6 pr-3">
+                                {reste>0&&(
+                                    <div className="text-center border-l border-white/20 pl-5 pr-2">
                                         <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Reste dû</p>
-                                        <p className="text-3xl font-black text-yellow-200">{reste.toFixed(2)} <span className="text-xl opacity-70">€</span></p>
+                                        <p className="text-2xl font-black text-yellow-200">{reste.toFixed(2)} <span className="text-base opacity-70">€</span></p>
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <div className="bg-white shadow-sm border border-gray-200 rounded-3xl overflow-hidden animate-fade">
-                            <div className="px-7 py-5 bg-white border-b border-gray-100 flex items-center justify-between">
-                                <h3 className="text-lg font-black text-indigo-950 flex items-center"><IcoCal className="mr-3 text-indigo-700" size={22} />Historique des versements</h3>
-                                <span className="bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-lg uppercase">Lecture seule</span>
+
+                        {/* Historique */}
+                        <div className="bg-white shadow-sm border border-gray-200 rounded-3xl overflow-hidden fade">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h3 className="text-base font-black text-indigo-950 flex items-center"><ICal className="mr-2 text-indigo-700" size={20}/>Historique des versements</h3>
+                                <span className="bg-gray-100 text-gray-500 text-xs font-bold px-2.5 py-1 rounded-lg uppercase">Lecture seule</span>
                             </div>
                             <ul className="divide-y divide-gray-100">
                                 {sorted.map(p=>{
-                                    const met=methodOf(p.method); const MI=met.icon;
-                                    return (
-                                        <li key={p.id} className="px-7 py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-indigo-50/30 transition-colors">
-                                            <div className="flex items-center mb-4 sm:mb-0">
-                                                <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-800 border border-indigo-100 relative">
-                                                    <span className="absolute -top-2 -right-2 bg-indigo-800 text-white font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">{p.num}</span>
-                                                    <MI size={20} />
+                                    const mt=methodOf(p.method); const MI=mt.icon;
+                                    return(
+                                        <li key={p.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-indigo-50/30">
+                                            <div className="flex items-center mb-3 sm:mb-0">
+                                                <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-800 border border-indigo-100 relative">
+                                                    <span className="absolute -top-1.5 -right-1.5 bg-indigo-800 text-white font-black text-xs w-4 h-4 rounded-full flex items-center justify-center border border-white">{p.num}</span>
+                                                    <MI size={18}/>
                                                 </div>
-                                                <div className="ml-4">
+                                                <div className="ml-3">
                                                     <p className="text-sm font-black text-gray-900">{p.note||'Versement de cotisation'}</p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">{new Date(p.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
-                                                    <span className="text-xs text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded mt-1 inline-block">Via {met.label}</span>
+                                                    <p className="text-xs text-gray-500">{new Date(p.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
+                                                    <span className="text-xs text-indigo-700 font-bold bg-indigo-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">Via {mt.label}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-xl font-black text-gray-900 bg-gray-50 px-5 py-2.5 rounded-xl border border-gray-200">+ {parseFloat(p.amount||0).toFixed(2)} €</div>
+                                            <div className="text-base font-black text-gray-900 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">+ {parseFloat(p.amount||0).toFixed(2)} €</div>
                                         </li>
                                     );
                                 })}
-                                {payments.length===0 && (
-                                    <li className="py-14 text-center">
-                                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4 border border-gray-200"><IcoBill size={32} className="text-gray-300" /></div>
-                                        <p className="text-gray-900 text-lg font-black mb-2">Aucun versement enregistré</p>
-                                        <p className="text-gray-500 text-sm">Cotisation due : {cotisation.toFixed(2)} €</p>
+                                {payments.length===0&&(
+                                    <li className="py-12 text-center">
+                                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-50 mb-3 border border-gray-200"><IBill size={28} className="text-gray-300"/></div>
+                                        <p className="text-gray-900 text-base font-black mb-1">Aucun versement enregistré</p>
+                                        <p className="text-gray-500 text-sm">Cotisation due : {cotis.toFixed(2)} €</p>
                                     </li>
                                 )}
                             </ul>
@@ -916,7 +1103,7 @@
             );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
     </script>
 </body>
 </html>
