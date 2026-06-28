@@ -78,7 +78,7 @@
 
     <!-- Application React isolée -->
     <script type="text/babel" data-type="module">
-        const { useState, useEffect, useMemo, useCallback } = React;
+        const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
         const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr' };
         const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
@@ -1639,7 +1639,7 @@
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
-                                <NavTab active={configuratorOpen} onClick={()=>setConfiguratorOpen(!configuratorOpen)} icon="pencil-ruler" label="Configurateur" badge={commandes.length > 0 ? commandes.length.toString() : ''} />
+                                <NavTab active={configuratorOpen} onClick={()=>setConfiguratorOpen(true)} icon="pencil-ruler" label="Configurateur" badge={commandes?.length > 0 ? commandes.length.toString() : ''} />
                                 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
