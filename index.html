@@ -156,9 +156,10 @@
             return <i className={`${iconMap[name] || 'fa-solid fa-circle-info'} ${className}`} style={{fontSize: size}}></i>;
         };
 
-        const NavTab = ({ active, onClick, icon, label }) => (
-            <button onClick={onClick} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
+        const NavTab = ({ active, onClick, icon, label, badge }) => (
+            <button onClick={onClick} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif relative ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
                 <i className={`fa-solid fa-${icon}`}></i><span className="hidden sm:inline font-sans">{label}</span>
+                {badge && <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center font-bold">{badge}</span>}
             </button>
         );
 
@@ -1176,6 +1177,307 @@
         }
 
         // ==========================================
+        // CONFIGURATEUR DE LETTRAGES
+        // ==========================================
+
+        // Données de configuration
+        const MATERIAUX_CONFIG = [
+            { id: 'acier', nom: 'Acier Inox', prixBase: 8.75, prixCmHeight: 0.65, prixChar: 0.35, densitePixel: 0.18, polices: ['serif', 'sans-serif'], finitionsAvailable: ['vernis_brillant', 'peinture_noire', 'peinture_blanche'], delaiProduction: 5, description: 'Acier galvanisé haute qualité, très durable' },
+            { id: 'bois_chene', nom: 'Bois de Chêne', prixBase: 12.50, prixCmHeight: 0.85, prixChar: 0.45, densitePixel: 0.15, polices: ['serif', 'sans-serif'], finitionsAvailable: ['natural', 'vernis_brillant', 'peinture_noire'], delaiProduction: 7, description: 'Bois massif premium, aspect naturel' },
+            { id: 'acrylique', nom: 'Acrylique Transparent', prixBase: 15.00, prixCmHeight: 0.55, prixChar: 0.50, densitePixel: 0.20, polices: ['serif', 'sans-serif', 'monospace'], finitionsAvailable: ['peinture_noire', 'peinture_blanche'], delaiProduction: 4, description: 'Acrylique brillant pour effet moderne' },
+            { id: 'pvc', nom: 'PVC Blanc', prixBase: 6.50, prixCmHeight: 0.45, prixChar: 0.30, densitePixel: 0.16, polices: ['sans-serif'], finitionsAvailable: ['peinture_noire', 'peinture_blanche'], delaiProduction: 3, description: 'PVC économique et durable' },
+            { id: 'aluminium', nom: 'Aluminium Anodisé', prixBase: 10.25, prixCmHeight: 0.70, prixChar: 0.40, densitePixel: 0.17, polices: ['serif', 'sans-serif', 'monospace'], finitionsAvailable: ['vernis_brillant', 'peinture_noire'], delaiProduction: 6, description: 'Aluminium anodisé, effet haut de gamme' },
+        ];
+
+        const FINITIONS_CONFIG = [
+            { id: 'vernis_brillant', nom: 'Vernis Brillant', prixSupplementaire: 8.50, materiauxCompatibles: ['acier', 'bois_chene', 'aluminium'], description: 'Finition brillante protectrice' },
+            { id: 'peinture_noire', nom: 'Peinture Noire', prixSupplementaire: 10.00, materiauxCompatibles: ['acier', 'bois_chene', 'acrylique', 'pvc', 'aluminium'], description: 'Peinture noir brillant' },
+            { id: 'peinture_blanche', nom: 'Peinture Blanche', prixSupplementaire: 10.00, materiauxCompatibles: ['acier', 'acrylique', 'pvc', 'aluminium'], description: 'Peinture blanc brillant' },
+            { id: 'natural', nom: 'Finition Naturelle', prixSupplementaire: 0, materiauxCompatibles: ['bois_chene'], description: 'Laisse le bois naturel' },
+        ];
+
+        // Utilitaires de calcul
+        function estimateWidth(texte, hauteurMm, police = 'sans-serif') {
+            const ratios = { 'serif': 0.55, 'sans-serif': 0.50, 'monospace': 0.60 };
+            const ratio = ratios[police] || 0.50;
+            return texte.length * (hauteurMm * ratio);
+        }
+
+        function calculatePrice(config, materiau, finitionsSelec, tauxTVA = 0.20) {
+            const largeur = estimateWidth(config.texte, config.hauteur, config.police);
+            const surface = (config.hauteur * largeur) / 100;
+            const prixMatiere = materiau.prixBase * surface * materiau.densitePixel;
+            const prixChar = materiau.prixCmHeight * config.texte.length;
+            const prixFini = finitionsSelec.reduce((sum, f) => sum + (f.prixSupplementaire || 0), 0);
+            const sousTotal = prixMatiere + prixChar + prixFini;
+            const tva = sousTotal * tauxTVA;
+            const totalTTC = sousTotal + tva;
+            return {
+                prixMatiere: Math.max(0, Math.round(prixMatiere * 100) / 100),
+                prixCaracteres: Math.max(0, Math.round(prixChar * 100) / 100),
+                prixFinitions: Math.max(0, Math.round(prixFini * 100) / 100),
+                totalHT: Math.max(0, Math.round(sousTotal * 100) / 100),
+                totalTTC: Math.max(0, Math.round(totalTTC * 100) / 100)
+            };
+        }
+
+        function validateTexte(texte) {
+            if (!texte || texte.trim().length === 0) return "Le texte est requis";
+            if (texte.length > 32) return "Maximum 32 caractères";
+            return null;
+        }
+
+        // Composants du configurateur
+        function TextInputStep({ value, onChange, step, onNext }) {
+            const [err, setErr] = useState('');
+            const handleNext = () => {
+                const error = validateTexte(value);
+                if (error) { setErr(error); return; }
+                setErr('');
+                onNext();
+            };
+            return (
+                <div className="animate-fade space-y-6 max-w-2xl mx-auto">
+                    <div className="bg-white p-8 rounded-2xl border shadow-sm">
+                        <h2 className="text-2xl font-serif font-bold mb-2">Étape {step}: Votre Texte</h2>
+                        <p className="text-slate-500 mb-6">Saisissez le texte que vous souhaitez graver (accents français acceptés)</p>
+                        <input type="text" maxLength="32" value={value} onChange={(e) => { onChange(e.target.value); setErr(''); }} placeholder="Exemple: COMTE GUIFRÉ" className="w-full border-2 p-4 rounded-lg text-lg font-bold outline-none focus:border-amber-500" />
+                        <div className="mt-2 text-xs text-slate-400 text-right">{value.length}/32 caractères</div>
+                        {err && <div className="mt-3 p-3 bg-red-50 text-red-600 rounded text-sm font-bold">{err}</div>}
+                    </div>
+                    <div className="flex justify-center"><button onClick={handleNext} className="bg-amber-600 text-white px-8 py-3 rounded-lg font-bold">Suivant</button></div>
+                </div>
+            );
+        }
+
+        function MaterialSelector({ materials, selectedId, onChange, step, onNext, onBack }) {
+            const selected = materials.find(m => m.id === selectedId);
+            return (
+                <div className="animate-fade space-y-6 max-w-4xl mx-auto">
+                    <div className="bg-white p-8 rounded-2xl border shadow-sm">
+                        <h2 className="text-2xl font-serif font-bold mb-2">Étape {step}: Choisir la Matière</h2>
+                        <p className="text-slate-500 mb-6">Sélectionnez le matériau qui vous convient</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {materials.map(m => (
+                            <div key={m.id} onClick={() => onChange(m.id)} className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${selectedId === m.id ? 'border-amber-600 bg-amber-50 shadow-lg' : 'border-slate-200 hover:border-amber-400'}`}>
+                                <h3 className="font-bold text-lg mb-1">{m.nom}</h3>
+                                <p className="text-amber-600 font-bold text-lg mb-2">{m.prixBase.toFixed(2)} €/cm²</p>
+                                <p className="text-slate-600 text-sm mb-3">{m.description}</p>
+                                <div className="text-[10px] text-slate-500 font-bold">Délai: {m.delaiProduction} jours</div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-between">
+                        <button onClick={onBack} className="px-6 py-2 rounded-lg font-bold text-slate-600 border">Retour</button>
+                        <button onClick={onNext} className="bg-amber-600 text-white px-8 py-3 rounded-lg font-bold">Suivant</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function SizeAndFontStep({ config, onChange, step, onNext, onBack }) {
+            const polices = ['serif', 'sans-serif', 'monospace'];
+            const couleurs = ['#000000', '#FFFFFF', '#DC2626', '#0369A1', '#7C3AED', '#EA580C'];
+            return (
+                <div className="animate-fade space-y-6 max-w-2xl mx-auto">
+                    <div className="bg-white p-8 rounded-2xl border shadow-sm space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-serif font-bold mb-2">Étape {step}: Taille et Police</h2>
+                            <p className="text-slate-500">Personnalisez l'apparence</p>
+                        </div>
+                        <div>
+                            <label className="block font-bold mb-2">Hauteur: {config.hauteur} mm</label>
+                            <input type="range" min="50" max="500" value={config.hauteur} onChange={(e) => onChange({ ...config, hauteur: parseInt(e.target.value) })} className="w-full" />
+                        </div>
+                        <div>
+                            <label className="block font-bold mb-2">Police</label>
+                            <select value={config.police} onChange={(e) => onChange({ ...config, police: e.target.value })} className="w-full border p-2 rounded-lg">
+                                {polices.map(p => <option key={p} value={p}>{p === 'serif' ? 'Serif (Elegant)' : p === 'sans-serif' ? 'Sans-serif (Moderne)' : 'Monospace (Code)'}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block font-bold mb-3">Couleur</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {couleurs.map(c => (
+                                    <button key={c} onClick={() => onChange({ ...config, couleur: c })} className={`w-10 h-10 rounded-lg border-2 transition-all ${config.couleur === c ? 'border-slate-900 ring-2 ring-offset-2 ring-amber-600' : 'border-slate-300'}`} style={{ backgroundColor: c }} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-between">
+                        <button onClick={onBack} className="px-6 py-2 rounded-lg font-bold text-slate-600 border">Retour</button>
+                        <button onClick={onNext} className="bg-amber-600 text-white px-8 py-3 rounded-lg font-bold">Suivant</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function FinishingStep({ finitions, selectedFinitions, onChange, step, onNext, onBack, materiau }) {
+            const compatible = finitions.filter(f => f.materiauxCompatibles.includes(materiau.id));
+            return (
+                <div className="animate-fade space-y-6 max-w-2xl mx-auto">
+                    <div className="bg-white p-8 rounded-2xl border shadow-sm">
+                        <h2 className="text-2xl font-serif font-bold mb-2">Étape {step}: Finitions</h2>
+                        <p className="text-slate-500 mb-6">Ajouter des finitions optionnelles</p>
+                        <div className="space-y-3">
+                            {compatible.map(f => (
+                                <label key={f.id} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-slate-50">
+                                    <input type="checkbox" checked={selectedFinitions.some(sf => sf.id === f.id)} onChange={(e) => {
+                                        if (e.target.checked) onChange([...selectedFinitions, f]);
+                                        else onChange(selectedFinitions.filter(sf => sf.id !== f.id));
+                                    }} className="mr-4" />
+                                    <div className="flex-grow">
+                                        <div className="font-bold">{f.nom}</div>
+                                        <div className="text-sm text-slate-500">{f.description}</div>
+                                    </div>
+                                    <div className="font-bold text-amber-600 whitespace-nowrap">+{f.prixSupplementaire.toFixed(2)} €</div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex justify-between">
+                        <button onClick={onBack} className="px-6 py-2 rounded-lg font-bold text-slate-600 border">Retour</button>
+                        <button onClick={onNext} className="bg-amber-600 text-white px-8 py-3 rounded-lg font-bold">Récapitulatif</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function PreviewCanvas({ config, materiau }) {
+            const canvasRef = useRef(null);
+            useEffect(() => {
+                if (!canvasRef.current || !config.texte) return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const heightPx = Math.min(config.hauteur / 2.54 * 96, 200);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const bgColor = { 'acier': '#E8E8E8', 'bois_chene': '#8B6F47', 'acrylique': '#F0F0F0', 'pvc': '#F5F5F5', 'aluminium': '#C0C0C0' }[materiau.id] || '#F0F0F0';
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = config.couleur;
+                const fontName = config.police === 'serif' ? 'Cinzel, serif' : config.police === 'monospace' ? 'monospace' : 'Inter, sans-serif';
+                ctx.font = `bold ${Math.round(heightPx)}px ${fontName}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(config.texte || 'Aperçu', canvas.width / 2, canvas.height / 2);
+            }, [config, materiau]);
+            return <canvas ref={canvasRef} width="300" height="200" className="border-2 border-slate-300 rounded-lg w-full" />;
+        }
+
+        function PriceRecap({ config, materiau, finitions, onSubmit, onBack }) {
+            const prix = useMemo(() => calculatePrice(config, materiau, finitions), [config, materiau, finitions]);
+            const largeur = estimateWidth(config.texte, config.hauteur, config.police);
+            const delaiTotal = materiau.delaiProduction + (finitions.length > 0 ? 2 : 0);
+            return (
+                <div className="animate-fade space-y-6 max-w-3xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-8 rounded-2xl border shadow-sm">
+                            <h3 className="text-lg font-serif font-bold mb-4">Aperçu</h3>
+                            <PreviewCanvas config={config} materiau={materiau} />
+                        </div>
+                        <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-lg space-y-4">
+                            <div>
+                                <h3 className="text-lg font-serif font-bold mb-4">Récapitulatif</h3>
+                                <div className="space-y-2 text-sm mb-4 pb-4 border-b border-slate-700">
+                                    <div><span className="text-slate-400">Texte:</span> <strong>{config.texte}</strong></div>
+                                    <div><span className="text-slate-400">Matière:</span> <strong>{materiau.nom}</strong></div>
+                                    <div><span className="text-slate-400">Hauteur:</span> <strong>{config.hauteur} mm</strong></div>
+                                    <div><span className="text-slate-400">Largeur estimée:</span> <strong>{Math.round(largeur)} mm</strong></div>
+                                    <div><span className="text-slate-400">Police:</span> <strong className="capitalize">{config.police}</strong></div>
+                                    {finitions.length > 0 && <div><span className="text-slate-400">Finitions:</span> <strong>{finitions.map(f => f.nom).join(', ')}</strong></div>}
+                                    <div><span className="text-slate-400">Délai:</span> <strong>{delaiTotal} jours</strong></div>
+                                </div>
+                            </div>
+                            <div className="space-y-1 mb-4 pb-4 border-b border-slate-700">
+                                <div className="flex justify-between"><span className="text-slate-400">Matière:</span><span>{prix.prixMatiere.toFixed(2)} €</span></div>
+                                <div className="flex justify-between"><span className="text-slate-400">Caractères:</span><span>{prix.prixCaracteres.toFixed(2)} €</span></div>
+                                {finitions.length > 0 && <div className="flex justify-between"><span className="text-slate-400">Finitions:</span><span>{prix.prixFinitions.toFixed(2)} €</span></div>}
+                                <div className="flex justify-between"><span className="text-slate-400">Total HT:</span><span>{prix.totalHT.toFixed(2)} €</span></div>
+                                <div className="text-xs text-slate-400 mt-1">TVA (20%): {(prix.totalTTC - prix.totalHT).toFixed(2)} €</div>
+                            </div>
+                            <div className="text-2xl font-bold text-amber-400">Total TTC: {prix.totalTTC.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                    <div className="flex justify-between">
+                        <button onClick={onBack} className="px-6 py-3 rounded-lg font-bold text-slate-600 border">Retour</button>
+                        <button onClick={onSubmit} className="bg-green-600 text-white px-12 py-3 rounded-lg font-bold text-lg">Passer la Commande</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ConfiguratorApp({ isOpen, onClose, api, fbUser }) {
+            const [step, setStep] = useState(0);
+            const [config, setConfig] = useState({ texte: '', materiau: 'acier', hauteur: 100, police: 'sans-serif', couleur: '#000000' });
+            const [selectedFinitions, setSelectedFinitions] = useState([]);
+            const [submitted, setSubmitted] = useState(false);
+            const materiau = MATERIAUX_CONFIG.find(m => m.id === config.materiau) || MATERIAUX_CONFIG[0];
+
+            const handleSubmit = async () => {
+                try {
+                    const prix = calculatePrice(config, materiau, selectedFinitions);
+                    const commande = {
+                        userId: fbUser.uid,
+                        userEmail: fbUser.email,
+                        dateCreation: new Date(),
+                        configuration: { ...config, finitions: selectedFinitions.map(f => f.id) },
+                        prixCalcul: prix,
+                        status: 'pending'
+                    };
+                    const comPath = api.collection(api.db, 'configurator', 'commandes', fbUser.uid);
+                    await api.addDoc(comPath, commande);
+                    setSubmitted(true);
+                    setTimeout(() => {
+                        setStep(0);
+                        setConfig({ texte: '', materiau: 'acier', hauteur: 100, police: 'sans-serif', couleur: '#000000' });
+                        setSelectedFinitions([]);
+                        setSubmitted(false);
+                        onClose();
+                    }, 3000);
+                } catch (e) {
+                    console.error('Erreur commande:', e);
+                    alert('Erreur lors de la création de la commande');
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-[150] overflow-auto">
+                    <div className="min-h-screen flex flex-col">
+                        <div className="flex justify-between items-center p-6 bg-slate-800 text-white sticky top-0 z-50">
+                            <h1 className="text-2xl font-serif font-bold">Configurateur de Lettrages</h1>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white"><SmartIcon name="X" size={24} /></button>
+                        </div>
+                        <div className="flex-grow px-4 py-8">
+                            {submitted ? (
+                                <div className="max-w-2xl mx-auto text-center animate-fade">
+                                    <div className="bg-green-50 border-2 border-green-500 rounded-2xl p-12 text-center">
+                                        <SmartIcon name="CheckCircle" size={48} className="text-green-600 mx-auto mb-4" />
+                                        <h2 className="text-2xl font-serif font-bold text-green-800 mb-2">Commande Créée!</h2>
+                                        <p className="text-green-700 mb-4">Votre commande a été enregistrée avec succès. Vous recevrez une confirmation par email.</p>
+                                        <p className="text-sm text-slate-500">Redirection en cours...</p>
+                                    </div>
+                                </div>
+                            ) : step === 0 ? (
+                                <TextInputStep value={config.texte} onChange={(t) => setConfig({ ...config, texte: t })} step={1} onNext={() => setStep(1)} />
+                            ) : step === 1 ? (
+                                <MaterialSelector materials={MATERIAUX_CONFIG} selectedId={config.materiau} onChange={(id) => setConfig({ ...config, materiau: id })} step={2} onNext={() => setStep(2)} onBack={() => setStep(0)} />
+                            ) : step === 2 ? (
+                                <SizeAndFontStep config={config} onChange={setConfig} step={3} onNext={() => setStep(3)} onBack={() => setStep(1)} />
+                            ) : step === 3 ? (
+                                <FinishingStep finitions={FINITIONS_CONFIG} selectedFinitions={selectedFinitions} onChange={setSelectedFinitions} step={4} onNext={() => setStep(4)} onBack={() => setStep(2)} materiau={materiau} />
+                            ) : (
+                                <PriceRecap config={config} materiau={materiau} finitions={selectedFinitions} onSubmit={handleSubmit} onBack={() => setStep(3)} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
         // COMPOSANT MAÎTRE (APP)
         // ==========================================
 
@@ -1204,6 +1506,8 @@
             const [selectedPlanche, setSelectedPlanche] = useState(null);
             const [isArchitect, setIsArchitect] = useState(false);
             const [pendingNameMatch, setPendingNameMatch] = useState('');
+            const [configuratorOpen, setConfiguratorOpen] = useState(false);
+            const [commandes, setCommandes] = useState([]);
 
             // canEdit définit les droits administrateur : ouvert aux Maîtres OU à l'Architecte
             const canEdit = unlockedGrades.maitre || isArchitect;
@@ -1247,8 +1551,14 @@
                         await batch.commit();
                     } else { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
                 });
-                
-                return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
+
+                // Charger les commandes du configurateur
+                const commandesPath = api.collection(api.db, 'configurator', 'commandes', fbUser.uid);
+                const unsubCommandes = api.onSnapshot(commandesPath, (s) => {
+                    setCommandes(s.docs.map(d => ({ id: d.id, ...d.data() })));
+                });
+
+                return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); unsubCommandes(); };
             }, [api, fbUser]);
 
             const handleLogin = async (n, gradeKey, p) => {
@@ -1329,6 +1639,7 @@
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
+                                <NavTab active={configuratorOpen} onClick={()=>setConfiguratorOpen(!configuratorOpen)} icon="pencil-ruler" label="Configurateur" badge={commandes.length > 0 ? commandes.length.toString() : ''} />
                                 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
@@ -1375,6 +1686,7 @@
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView('home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade="apprenti" currentUser={memberName} />}
                     </main>
+                    <ConfiguratorApp isOpen={configuratorOpen} onClose={() => setConfiguratorOpen(false)} api={api} fbUser={fbUser} />
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>
                 </div>
             );

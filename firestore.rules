@@ -61,6 +61,29 @@ service cloud.firestore {
       allow write: if isArchitecte();
     }
 
+    // Configurateur de lettrages
+    match /configurator/materiaux/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isArchitecte();
+    }
+
+    match /configurator/finitions/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isArchitecte();
+    }
+
+    match /configurator/commandes/{userId}/{docId} {
+      allow read: if request.auth.uid == userId || isArchitecte();
+      allow create: if request.auth.uid == userId;
+      allow update: if isArchitecte();
+      allow delete: if isArchitecte();
+    }
+
+    match /configurator/settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isArchitecte();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
