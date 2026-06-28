@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezo Découpe - Lettrages & Gravures Personnalisés | Youcarve France</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts - 30 Polices Courantes -->
+    <link href="https://fonts.googleapis.com/css2?family=
+    Arial:wght@400;700&
+    Roboto:wght@300;400;700&
+    Open+Sans:wght@300;400;700&
+    Lato:wght@300;400;700&
+    Montserrat:wght@300;400;700&
+    Playfair+Display:wght@400;700&
+    Merriweather:wght@400;700&
+    Raleway:wght@300;400;700&
+    Poppins:wght@300;400;700&
+    Oswald:wght@300;400;700&
+    Bebas+Neue:wght@400&
+    Pacifico:wght@400&
+    Quicksand:wght@400;700&
+    Nunito:wght@300;400;700&
+    Work+Sans:wght@400;700&
+    Crimson+Text:wght@400;700&
+    Source+Serif+Pro:wght@400;700&
+    IBM+Plex+Mono:wght@400;700&
+    JetBrains+Mono:wght@400;700&
+    Courier+Prime:wght@400;700&
+    Russo+One:wght@400&
+    Righteous:wght@400&
+    Fredoka+One:wght@400&
+    Indie+Flower:wght@400&
+    Dancing+Script:wght@400;700&
+    Great+Vibes:wght@400&
+    Caveat:wght@400;700&
+    Satisfy:wght@400&
+    Philosopher:wght@400;700&
+    Bitter:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { scroll-behavior: smooth; }
+        body { font-family: 'Roboto', sans-serif; }
+        .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+        .gradient-text { background: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary { background: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%); transition: all 0.3s ease; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0, 100, 255, 0.4); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-8px); box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
+        .font-preview { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; }
+        .product-image { height: 300px; background-size: cover; background-position: center; }
+        .img-acier { background: linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 100%); }
+        .img-bois { background: linear-gradient(135deg, #a67c52 0%, #6b4423 100%); }
+        .img-acrylique { background: linear-gradient(135deg, #87ceeb 0%, #4682b4 100%); }
+        .img-pvc { background: linear-gradient(135deg, #f5f5f5 0%, #d3d3d3 100%); }
+        .img-aluminium { background: linear-gradient(135deg, #d3d3d3 0%, #808080 100%); }
+        .img-cuivre { background: linear-gradient(135deg, #b87333 0%, #8b4513 100%); }
+    </style>
+</head>
+<body class="bg-white">
+
+    <!-- Navigation Premium -->
+    <nav class="sticky top-0 z-50 bg-gray-900 text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl font-bold gradient-text">REZO</span>
+                <span class="text-gray-400">Découpe Premium</span>
+            </div>
+            <div class="hidden md:flex gap-8 text-sm">
+                <a href="#accueil" class="hover:text-cyan-400 transition">Accueil</a>
+                <a href="#produits" class="hover:text-cyan-400 transition">Produits</a>
+                <a href="#portfolio" class="hover:text-cyan-400 transition">Portfolio</a>
+                <a href="#configurateur" class="hover:text-cyan-400 transition">Configurateur</a>
+                <a href="#polices" class="hover:text-cyan-400 transition">Polices</a>
+                <a href="#avis" class="hover:text-cyan-400 transition">Avis</a>
+                <a href="#faq" class="hover:text-cyan-400 transition">FAQ</a>
+            </div>
+            <button onclick="document.getElementById('configurateur').scrollIntoView()" class="btn-primary text-white px-6 py-2 rounded-lg font-bold">
+                Créer Maintenant
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section Premium -->
+    <section id="accueil" class="hero text-white py-32 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h1 class="text-7xl md:text-8xl font-bold mb-6 leading-tight">
+                        Vos<br><span class="gradient-text">Gravures</span><br>Personnalisées
+                    </h1>
+                    <p class="text-xl text-gray-300 mb-8">
+                        Créez des gravures et lettrages uniques. 6 matériaux premium. 30 polices. Aperçu temps réel. Qualité garantie.
+                    </p>
+                    <div class="flex gap-4">
+                        <button onclick="document.getElementById('configurateur').scrollIntoView()" class="bg-cyan-400 text-black font-bold px-8 py-4 rounded-lg hover:scale-105 transition">
+                            <i class="fas fa-paintbrush mr-2"></i>Créer Maintenant
+                        </button>
+                        <a href="#produits" class="border-2 border-cyan-400 text-white font-bold px-8 py-4 rounded-lg hover:bg-cyan-400 hover:text-black transition">
+                            Découvrir
+                        </a>
+                    </div>
+                    <div class="flex gap-12 mt-16 text-sm">
+                        <div><p class="font-bold text-3xl">15K+</p><p class="text-gray-400">Clients</p></div>
+                        <div><p class="font-bold text-3xl">⭐ 4.9</p><p class="text-gray-400">Avis</p></div>
+                        <div><p class="font-bold text-3xl">2-3j</p><p class="text-gray-400">Livraison</p></div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-8xl animate-pulse mb-8">✨</div>
+                    <div class="bg-gray-800 rounded-2xl p-8 border-2 border-cyan-400">
+                        <p class="text-2xl font-bold mb-4">Votre Création</p>
+                        <div class="bg-black rounded-lg p-12 text-center text-3xl font-bold text-cyan-400">
+                            APERÇU LIVE
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Avantages -->
+    <section class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Pourquoi Nous Choisir?</h2>
+            <div class="grid md:grid-cols-5 gap-8">
+                <div class="card-hover bg-white p-8 rounded-2xl border-2 border-gray-200 text-center">
+                    <div class="text-5xl mb-4">🎨</div>
+                    <h3 class="font-bold text-lg mb-2">6 Matériaux</h3>
+                    <p class="text-sm text-gray-600">Acier, bois, acrylique, PVC, aluminium, cuivre</p>
+                </div>
+                <div class="card-hover bg-white p-8 rounded-2xl border-2 border-gray-200 text-center">
+                    <div class="text-5xl mb-4">✍️</div>
+                    <h3 class="font-bold text-lg mb-2">30 Polices</h3>
+                    <p class="text-sm text-gray-600">Classiques à modernes</p>
+                </div>
+                <div class="card-hover bg-white p-8 rounded-2xl border-2 border-gray-200 text-center">
+                    <div class="text-5xl mb-4">⚡</div>
+                    <h3 class="font-bold text-lg mb-2">Rapide</h3>
+                    <p class="text-sm text-gray-600">Production en 2-3 jours</p>
+                </div>
+                <div class="card-hover bg-white p-8 rounded-2xl border-2 border-gray-200 text-center">
+                    <div class="text-5xl mb-4">💯</div>
+                    <h3 class="font-bold text-lg mb-2">Qualité</h3>
+                    <p class="text-sm text-gray-600">Satisfait ou remboursé</p>
+                </div>
+                <div class="card-hover bg-white p-8 rounded-2xl border-2 border-gray-200 text-center">
+                    <div class="text-5xl mb-4">🇫🇷</div>
+                    <h3 class="font-bold text-lg mb-2">Made in France</h3>
+                    <p class="text-sm text-gray-600">Fabrication locale</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Produits avec Images -->
+    <section id="produits" class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Nos Matériaux Premium</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Acier Inox -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-acier product-image flex items-center justify-center">
+                        <div class="text-6xl">🔩</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">Acier Inox</h3>
+                        <p class="text-gray-600 mb-4">Résistant et durable. Idéal pour l'extérieur. Finition brillante.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-cyan-500">8,75€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bois de Chêne -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-bois product-image flex items-center justify-center">
+                        <div class="text-6xl">🌳</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">Bois de Chêne</h3>
+                        <p class="text-gray-600 mb-4">Élégant et naturel. Aspect premium. Vieillissement noble.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-amber-600">12,50€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acrylique -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-acrylique product-image flex items-center justify-center">
+                        <div class="text-6xl">💎</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">Acrylique</h3>
+                        <p class="text-gray-600 mb-4">Transparent et moderne. Effet brillant. Coloris variés.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-blue-600">15,00€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PVC -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-pvc product-image flex items-center justify-center">
+                        <div class="text-6xl">🎯</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">PVC Blanc</h3>
+                        <p class="text-gray-600 mb-4">Économique et durable. Facile à nettoyer. Résistant.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-gray-600">6,50€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aluminium -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-aluminium product-image flex items-center justify-center">
+                        <div class="text-6xl">⚙️</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">Aluminium</h3>
+                        <p class="text-gray-600 mb-4">Léger et robuste. Anodisé. Aspect professionnel.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-gray-500">10,25€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cuivre -->
+                <div class="card-hover rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                    <div class="img-cuivre product-image flex items-center justify-center">
+                        <div class="text-6xl">👑</div>
+                    </div>
+                    <div class="p-8 bg-white">
+                        <h3 class="text-2xl font-bold mb-3">Cuivre Premium</h3>
+                        <p class="text-gray-600 mb-4">Luxe et prestige. Patine authentique. Collectors.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-3xl font-bold text-orange-700">18,75€</span>
+                            <button class="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600">Choisir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio/Exemples -->
+    <section id="portfolio" class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Notre Portfolio</h2>
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-gray-200 to-gray-400 h-48 flex items-center justify-center text-4xl">✨</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Entreprise Tech</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-amber-200 to-yellow-400 h-48 flex items-center justify-center text-4xl">🎨</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Logo Boutique</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-blue-200 to-purple-400 h-48 flex items-center justify-center text-4xl">🏆</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Plaque Événement</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-green-200 to-emerald-400 h-48 flex items-center justify-center text-4xl">🎯</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Signalétique</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-pink-200 to-red-400 h-48 flex items-center justify-center text-4xl">💖</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Cadeau Personnalisé</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-indigo-200 to-blue-400 h-48 flex items-center justify-center text-4xl">📍</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Adresse Maison</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-orange-200 to-red-400 h-48 flex items-center justify-center text-4xl">🍽️</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Restaurant Nom</p></div>
+                </div>
+                <div class="rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-gradient-to-br from-teal-200 to-cyan-400 h-48 flex items-center justify-center text-4xl">⚡</div>
+                    <div class="p-4 bg-white"><p class="font-bold text-sm">Studio Créatif</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Configurateur Complet -->
+    <section id="configurateur" class="py-20 px-4 bg-gradient-to-b from-white via-gray-50 to-white">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-4 gradient-text">Créez Votre Gravure</h2>
+            <p class="text-center text-gray-600 mb-12">Configurateur professionnel avec 30 polices et aperçu temps réel</p>
+
+            <div class="grid lg:grid-cols-2 gap-12">
+                <!-- Panneau de Configuration -->
+                <div class="bg-white rounded-2xl shadow-2xl p-10 h-fit">
+                    <!-- Texte -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-2">Votre Texte</label>
+                        <input
+                            type="text"
+                            id="cfgTexte"
+                            placeholder="Tapez votre texte..."
+                            maxlength="50"
+                            class="w-full px-4 py-3 border-2 border-cyan-400 rounded-lg focus:outline-none focus:border-cyan-600 text-lg"
+                            oninput="updateCfgPreview()"
+                        >
+                        <p class="text-xs text-gray-500 mt-1"><span id="cfg-count">0</span>/50</p>
+                    </div>
+
+                    <!-- Matériau -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-3">Matériau</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="selectCfgMaterial('acier')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="acier">Acier<br>8,75€</button>
+                            <button onclick="selectCfgMaterial('bois')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="bois">Bois<br>12,50€</button>
+                            <button onclick="selectCfgMaterial('acrylique')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="acrylique">Acrylique<br>15€</button>
+                            <button onclick="selectCfgMaterial('pvc')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="pvc">PVC<br>6,50€</button>
+                            <button onclick="selectCfgMaterial('aluminium')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="aluminium">Alu<br>10,25€</button>
+                            <button onclick="selectCfgMaterial('cuivre')" class="cfg-mat p-3 rounded-lg border-2 border-gray-300 text-xs font-bold hover:border-cyan-500 transition" data-mat="cuivre">Cuivre<br>18,75€</button>
+                        </div>
+                    </div>
+
+                    <!-- Police -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-3">Police d'Écriture</label>
+                        <select id="cfgFont" class="w-full px-4 py-2 border-2 border-cyan-400 rounded-lg focus:outline-none focus:border-cyan-600" onchange="updateCfgPreview()">
+                            <option value="Arial">Arial - Classique</option>
+                            <option value="Roboto">Roboto - Moderne</option>
+                            <option value="Open Sans">Open Sans - Lisible</option>
+                            <option value="Montserrat">Montserrat - Géométrique</option>
+                            <option value="Playfair Display">Playfair Display - Élégant</option>
+                            <option value="Merriweather">Merriweather - Littéraire</option>
+                            <option value="Raleway">Raleway - Raffiné</option>
+                            <option value="Poppins">Poppins - Amusant</option>
+                            <option value="Oswald">Oswald - Condensé</option>
+                            <option value="Bebas Neue">Bebas Neue - Impact</option>
+                            <option value="Pacifico">Pacifico - Manuscrit</option>
+                            <option value="Quicksand">Quicksand - Doux</option>
+                            <option value="Nunito">Nunito - Arrondi</option>
+                            <option value="Work Sans">Work Sans - Professionnel</option>
+                            <option value="Crimson Text">Crimson Text - Éditorial</option>
+                            <option value="Source Serif Pro">Source Serif Pro - Classique</option>
+                            <option value="IBM Plex Mono">IBM Plex Mono - Code</option>
+                            <option value="JetBrains Mono">JetBrains Mono - Tech</option>
+                            <option value="Courier Prime">Courier Prime - Machine à Écrire</option>
+                            <option value="Russo One">Russo One - Futuriste</option>
+                            <option value="Righteous">Righteous - Audacieux</option>
+                            <option value="Fredoka One">Fredoka One - Enfantin</option>
+                            <option value="Indie Flower">Indie Flower - Enfantin</option>
+                            <option value="Dancing Script">Dancing Script - Cursive</option>
+                            <option value="Great Vibes">Great Vibes - Calligraphie</option>
+                            <option value="Caveat">Caveat - Naturel</option>
+                            <option value="Satisfy">Satisfy - Élégant Cursif</option>
+                            <option value="Philosopher">Philosopher - Philosophique</option>
+                            <option value="Bitter">Bitter - Sérif</option>
+                            <option value="Lato">Lato - Humaniste</option>
+                        </select>
+                    </div>
+
+                    <!-- Taille -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-3">Taille: <span id="cfg-size" class="text-cyan-500">100</span>cm</label>
+                        <input type="range" min="10" max="200" value="100" id="cfgSize" class="w-full" oninput="updateCfgPreview()">
+                    </div>
+
+                    <!-- Couleur -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-2">Couleur du Texte</label>
+                        <div class="flex gap-3">
+                            <input type="color" id="cfgColor" value="#000000" class="h-12 w-16 rounded-lg cursor-pointer" oninput="updateCfgPreview()">
+                            <input type="text" id="cfgColorHex" value="#000000" class="flex-1 px-3 py-2 border-2 border-cyan-400 rounded-lg text-sm font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Prix -->
+                    <div class="bg-gradient-to-r from-cyan-100 to-blue-100 p-6 rounded-xl mb-6 border-2 border-cyan-400">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg">Prix Total:</span>
+                            <span id="cfg-price" class="text-4xl font-bold text-cyan-600">8,75€</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-2">TVA 20% incluse • Livraison 2-3 jours</p>
+                    </div>
+
+                    <button onclick="submitCfgOrder()" class="w-full btn-primary text-white font-bold py-4 rounded-lg text-lg">
+                        <i class="fas fa-shopping-cart mr-2"></i>Commander Maintenant
+                    </button>
+                </div>
+
+                <!-- Aperçu Premium -->
+                <div class="bg-white rounded-2xl shadow-2xl p-10 flex flex-col items-center justify-center">
+                    <h3 class="text-2xl font-bold mb-6 text-center">Aperçu Temps Réel</h3>
+                    <canvas
+                        id="cfgPreview"
+                        width="400"
+                        height="280"
+                        class="border-4 border-cyan-400 rounded-xl shadow-xl mb-6"
+                    ></canvas>
+                    <div class="text-center space-y-2 text-sm text-gray-600">
+                        <p>✏️ Tapez votre texte et voyez le résultat instantanément</p>
+                        <p>🎨 Essayez les couleurs et les polices en direct</p>
+                        <p>📏 Ajustez la taille avec le curseur</p>
+                        <p class="font-bold text-cyan-600">Aperçu 100% Identique à la Gravure Final</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Polices Showcase -->
+    <section id="polices" class="py-20 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Nos 30 Polices</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Arial">Arial</div>
+                    <p class="text-sm text-gray-600 text-center">Classique et lisible</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Roboto">Roboto</div>
+                    <p class="text-sm text-gray-600 text-center">Moderne et friendly</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Open Sans">OpenSans</div>
+                    <p class="text-sm text-gray-600 text-center">Très lisible</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Montserrat">Montserrat</div>
+                    <p class="text-sm text-gray-600 text-center">Géométrique</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Playfair Display">PlayfairDis</div>
+                    <p class="text-sm text-gray-600 text-center">Élégant et chic</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Merriweather">Merriweather</div>
+                    <p class="text-sm text-gray-600 text-center">Littéraire</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Raleway">Raleway</div>
+                    <p class="text-sm text-gray-600 text-center">Raffiné</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Poppins">Poppins</div>
+                    <p class="text-sm text-gray-600 text-center">Amusant</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Oswald">Oswald</div>
+                    <p class="text-sm text-gray-600 text-center">Condensé</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Bebas Neue">BebasNEUE</div>
+                    <p class="text-sm text-gray-600 text-center">Impact</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Pacifico">Pacifico</div>
+                    <p class="text-sm text-gray-600 text-center">Manuscrit</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Quicksand">Quicksand</div>
+                    <p class="text-sm text-gray-600 text-center">Doux</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Nunito">Nunito</div>
+                    <p class="text-sm text-gray-600 text-center">Arrondi</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Work Sans">WorkSans</div>
+                    <p class="text-sm text-gray-600 text-center">Professionnel</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Crimson Text">CrimsonTxt</div>
+                    <p class="text-sm text-gray-600 text-center">Éditorial</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Source Serif Pro">SourceSerif</div>
+                    <p class="text-sm text-gray-600 text-center">Classique</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: IBM Plex Mono">IBMPlexMono</div>
+                    <p class="text-sm text-gray-600 text-center">Code</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: JetBrains Mono">JetBrains</div>
+                    <p class="text-sm text-gray-600 text-center">Tech</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Courier Prime">CourrierPrm</div>
+                    <p class="text-sm text-gray-600 text-center">Machine à Écrire</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Russo One">RussoOne</div>
+                    <p class="text-sm text-gray-600 text-center">Futuriste</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Righteous">Righteous</div>
+                    <p class="text-sm text-gray-600 text-center">Audacieux</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Fredoka One">FredokaOne</div>
+                    <p class="text-sm text-gray-600 text-center">Enfantin</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Indie Flower">IndieFlower</div>
+                    <p class="text-sm text-gray-600 text-center">Enfantin</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Dancing Script">DancingScript</div>
+                    <p class="text-sm text-gray-600 text-center">Cursive</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Great Vibes">GreatVibes</div>
+                    <p class="text-sm text-gray-600 text-center">Calligraphie</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Caveat">Caveat</div>
+                    <p class="text-sm text-gray-600 text-center">Naturel</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Satisfy">Satisfy</div>
+                    <p class="text-sm text-gray-600 text-center">Cursif Élégant</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Philosopher">Philosopher</div>
+                    <p class="text-sm text-gray-600 text-center">Philosophique</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Bitter">Bitter</div>
+                    <p class="text-sm text-gray-600 text-center">Sérif Fort</p>
+                </div>
+                <div class="card-hover bg-white rounded-xl p-8 shadow-lg border-2 border-gray-200">
+                    <div class="font-preview" style="font-family: Lato">Lato</div>
+                    <p class="text-sm text-gray-600 text-center">Humaniste</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Avis Clients -->
+    <section id="avis" class="py-20 px-4 bg-white">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Avis de Nos Clients</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card-hover bg-gradient-to-br from-yellow-50 to-orange-50 p-8 rounded-2xl border-2 border-yellow-300 shadow-lg">
+                    <div class="flex gap-1 mb-4 text-2xl">★★★★★</div>
+                    <p class="text-gray-700 mb-4 text-lg">"Qualité exceptionnelle! Mon lettrage en acier est parfait. Livraison très rapide!"</p>
+                    <p class="font-bold">Marie Dubois</p>
+                    <p class="text-sm text-gray-500">Acier Inox - Juin 2024</p>
+                </div>
+
+                <div class="card-hover bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl border-2 border-blue-300 shadow-lg">
+                    <div class="flex gap-1 mb-4 text-2xl">★★★★★</div>
+                    <p class="text-gray-700 mb-4 text-lg">"Le configurateur est super intuitif. J'ai adoré voir l'aperçu en direct avant de commander!"</p>
+                    <p class="font-bold">Jean Pierre Martin</p>
+                    <p class="text-sm text-gray-500">Bois de Chêne - Mai 2024</p>
+                </div>
+
+                <div class="card-hover bg-gradient-to-br from-green-50 to-emerald-50 p-8 rounded-2xl border-2 border-green-300 shadow-lg">
+                    <div class="flex gap-1 mb-4 text-2xl">★★★★★</div>
+                    <p class="text-gray-700 mb-4 text-lg">"Service client impeccable. Personnalisation complète. Recommande vivement!"</p>
+                    <p class="font-bold">Sophie Laurent</p>
+                    <p class="text-sm text-gray-500">Acrylique - Avril 2024</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="py-20 px-4 bg-gray-50">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 gradient-text">Questions Fréquentes</h2>
+            <div class="space-y-4">
+                <details class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition">
+                    <summary class="font-bold text-lg flex justify-between items-center">
+                        <span>Quels sont les délais de livraison?</span>
+                        <span class="text-2xl">+</span>
+                    </summary>
+                    <p class="text-gray-600 mt-4">Nous assurons une livraison en 2-3 jours ouvrables pour toute commande passée avant 14h, en France métropolitaine.</p>
+                </details>
+
+                <details class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition">
+                    <summary class="font-bold text-lg flex justify-between items-center">
+                        <span>Puis-je personnaliser complètement mon lettrage?</span>
+                        <span class="text-2xl">+</span>
+                    </summary>
+                    <p class="text-gray-600 mt-4">Absolument! Vous avez le choix entre 6 matériaux, 30 polices, plusieurs couleurs, et des tailles de 10 à 200cm.</p>
+                </details>
+
+                <details class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition">
+                    <summary class="font-bold text-lg flex justify-between items-center">
+                        <span>Y a-t-il une garantie?</span>
+                        <span class="text-2xl">+</span>
+                    </summary>
+                    <p class="text-gray-600 mt-4">Oui! Satisfait ou remboursé sous 30 jours. Garantie 2 ans sur tous nos produits contre les défauts de fabrication.</p>
+                </details>
+
+                <details class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition">
+                    <summary class="font-bold text-lg flex justify-between items-center">
+                        <span>Combien ça coûte exactement?</span>
+                        <span class="text-2xl">+</span>
+                    </summary>
+                    <p class="text-gray-600 mt-4">À partir de 6,50€ (PVC). Le prix dépend du matériau choisi, la taille et les finitions sélectionnées. Le configurateur calcule le prix en temps réel.</p>
+                </details>
+
+                <details class="bg-white p-6 rounded-lg shadow-md cursor-pointer hover:shadow-lg transition">
+                    <summary class="font-bold text-lg flex justify-between items-center">
+                        <span>Comment fonctionne l'aperçu temps réel?</span>
+                        <span class="text-2xl">+</span>
+                    </summary>
+                    <p class="text-gray-600 mt-4">Le configurateur utilise la technologie Canvas pour afficher un aperçu 100% identique à votre gravure finale. Vous voyez exactement ce que vous recevrez.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Final -->
+    <section class="py-20 px-4 bg-gradient-to-r from-gray-900 to-blue-900 text-white">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-6xl font-bold mb-6">Créez Votre Gravure Maintenant</h2>
+            <p class="text-xl text-gray-300 mb-8">Rejoignez 15 000+ clients satisfaits. Qualité garantie. Livraison rapide.</p>
+            <button onclick="document.getElementById('configurateur').scrollIntoView()" class="btn-primary text-white font-bold px-12 py-5 rounded-lg text-xl inline-block hover:scale-110 transition">
+                <i class="fas fa-paintbrush mr-3"></i>Lancer le Configurateur
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 py-16 px-4">
+        <div class="max-w-7xl mx-auto grid md:grid-cols-4 gap-12 mb-8">
+            <div>
+                <p class="font-bold text-white text-lg mb-4">REZO Découpe</p>
+                <p class="text-sm">Lettrages & gravures personnalisés. Made in France. Qualité garantie.</p>
+            </div>
+            <div>
+                <p class="font-bold text-white mb-4">Navigation</p>
+                <ul class="text-sm space-y-2">
+                    <li><a href="#accueil" class="hover:text-cyan-400">Accueil</a></li>
+                    <li><a href="#produits" class="hover:text-cyan-400">Produits</a></li>
+                    <li><a href="#configurateur" class="hover:text-cyan-400">Configurateur</a></li>
+                    <li><a href="#avis" class="hover:text-cyan-400">Avis</a></li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-bold text-white mb-4">Support</p>
+                <ul class="text-sm space-y-2">
+                    <li><a href="#" class="hover:text-cyan-400">Contact</a></li>
+                    <li><a href="#faq" class="hover:text-cyan-400">FAQ</a></li>
+                    <li><a href="#" class="hover:text-cyan-400">Conditions</a></li>
+                    <li><a href="#" class="hover:text-cyan-400">Confidentialité</a></li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-bold text-white mb-4">Suivez-nous</p>
+                <div class="flex gap-4 text-2xl">
+                    <a href="#" class="hover:text-cyan-400"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="hover:text-cyan-400"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="hover:text-cyan-400"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-cyan-400"><i class="fab fa-pinterest"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-800 pt-8 text-center text-sm">
+            <p>&copy; 2024 REZO Découpe. Tous droits réservés. Lettrages et gravures Made in France.</p>
+        </div>
+    </footer>
+
+    <script>
+        const MATERIALS = {
+            'acier': { name: 'Acier Inox', price: 8.75, color: '#E8E8E8' },
+            'bois': { name: 'Bois de Chêne', price: 12.50, color: '#8B6F47' },
+            'acrylique': { name: 'Acrylique', price: 15.00, color: '#87CEEB' },
+            'pvc': { name: 'PVC', price: 6.50, color: '#F5F5F5' },
+            'aluminium': { name: 'Aluminium', price: 10.25, color: '#D3D3D3' },
+            'cuivre': { name: 'Cuivre', price: 18.75, color: '#B87333' }
+        };
+
+        let cfg = {
+            texte: '',
+            materiel: 'acier',
+            taille: 100,
+            couleur: '#000000',
+            font: 'Arial'
+        };
+
+        function selectCfgMaterial(m) {
+            cfg.materiel = m;
+            document.querySelectorAll('.cfg-mat').forEach(b => b.classList.remove('bg-cyan-100', 'border-cyan-500'));
+            event.target.closest('.cfg-mat').classList.add('bg-cyan-100', 'border-cyan-500');
+            updateCfgPreview();
+        }
+
+        function updateCfgPreview() {
+            cfg.texte = document.getElementById('cfgTexte').value;
+            cfg.taille = parseInt(document.getElementById('cfgSize').value);
+            cfg.couleur = document.getElementById('cfgColor').value;
+            cfg.font = document.getElementById('cfgFont').value;
+
+            document.getElementById('cfg-count').textContent = cfg.texte.length;
+            document.getElementById('cfg-size').textContent = cfg.taille;
+            document.getElementById('cfgColorHex').value = cfg.couleur;
+
+            const canvas = document.getElementById('cfgPreview');
+            const ctx = canvas.getContext('2d');
+            const m = MATERIALS[cfg.materiel];
+
+            ctx.fillStyle = m.color;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const fs = Math.min(cfg.taille * 1.8, 80);
+            ctx.font = `bold ${fs}px "${cfg.font}"`;
+            ctx.fillStyle = cfg.couleur;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(cfg.texte || 'Aperçu', canvas.width / 2, canvas.height / 2);
+
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            const prix = m.price + (cfg.taille / 100) * 5;
+            document.getElementById('cfg-price').textContent = prix.toFixed(2) + '€';
+        }
+
+        function submitCfgOrder() {
+            if (!cfg.texte.trim()) {
+                alert('❌ Veuillez entrer un texte!');
+                return;
+            }
+            const m = MATERIALS[cfg.materiel];
+            const prix = m.price + (cfg.taille / 100) * 5;
+            alert(`✅ Commande créée!\n\n"${cfg.texte}"\nMatériau: ${m.name}\nPolice: ${cfg.font}\nTaille: ${cfg.taille}cm\nPrix: ${prix.toFixed(2)}€\n\n👉 Étape suivante: Paiement sécurisé`);
+        }
+
+        updateCfgPreview();
+    </script>
+
+</body>
+</html>
