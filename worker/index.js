@@ -23,6 +23,7 @@ export default {
     const origin = request.headers.get('Origin') || '';
     const url = new URL(request.url);
 
+    // Preflight CORS
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
@@ -31,22 +32,30 @@ export default {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
+    // ── /discord ──────────────────────────────────────────────
     if (url.pathname === '/discord') {
       const body = await request.formData();
-      const res = await fetch(env.DISCORD_WEBHOOK, { method: 'POST', body });
+      const res = await fetch(env.DISCORD_WEBHOOK, {
+        method: 'POST',
+        body,
+      });
       return new Response(res.ok ? 'ok' : 'error', {
         status: res.ok ? 200 : 502,
         headers: corsHeaders(origin),
       });
     }
 
+    // ── /airtable ─────────────────────────────────────────────
     if (url.pathname === '/airtable') {
       const payload = await request.json();
       const res = await fetch(
         `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${env.AIRTABLE_TABLE}`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${env.AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${env.AIRTABLE_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(payload),
         }
       );

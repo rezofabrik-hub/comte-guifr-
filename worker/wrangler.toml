@@ -6,6 +6,6 @@ compatibility_date = "2024-01-01"
 AIRTABLE_BASE_ID = "appP3oMcKSOcpxj4t"
 AIRTABLE_TABLE   = "tblfVEfDgzdLQfuwR"
 
-# Secrets (une seule fois via terminal) :
+# Secrets (à définir UNE SEULE FOIS via terminal) :
 #   wrangler secret put DISCORD_WEBHOOK
 #   wrangler secret put AIRTABLE_TOKEN
