@@ -1301,23 +1301,6 @@
             const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id),d);
             const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id));
 
-            // Initialisation des membres si le Tableau est vide
-            useEffect(()=>{
-                if(!ready || membres.length > 0) return;
-                const officiers = [
-                    { nom:'Bruno Ramon',      grade:'Maître', role:'Vénérable Maître',       telephone:'', dateNaissance:'' },
-                    { nom:'Lydie Hervé',      grade:'Maître', role:'Premier Surveillant',     telephone:'', dateNaissance:'' },
-                    { nom:'Julien Duran',     grade:'Maître', role:'Deuxième Surveillant',    telephone:'', dateNaissance:'' },
-                    { nom:'Nathalie Sendra',  grade:'Maître', role:'Colonne d\'Harmonie',     telephone:'', dateNaissance:'' },
-                    { nom:'Claude Carceller', grade:'Maître', role:'Orateur',                 telephone:'', dateNaissance:'' },
-                    { nom:'Jean Félix Levy',  grade:'Maître', role:'Secrétaire',              telephone:'', dateNaissance:'' },
-                    { nom:'Renée Olender',    grade:'Maître', role:'Maître des Cérémonies',   telephone:'', dateNaissance:'' },
-                    { nom:'Mathilde Caruel',  grade:'Maître', role:'Hospitalier',             telephone:'', dateNaissance:'' },
-                    { nom:'David Loiret',     grade:'Maître', role:'Trésorier',               telephone:'', dateNaissance:'' },
-                    { nom:'Marie Sioné',      grade:'Maître', role:'Expert',                  telephone:'', dateNaissance:'' },
-                ];
-                officiers.forEach(m => api.addDoc(path('tresor_membres'), m));
-            },[ready, membres.length]);
 
             const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
             const deleteAgape = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_agapes',id));
