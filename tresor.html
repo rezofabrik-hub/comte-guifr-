@@ -149,14 +149,15 @@
 
             // ── COTISATIONS état ──────────────────────────────────
             const montantCotis = settings.montantCotis || 0;
-            const cotisYear = yr || String(currentYear);
+            // membresEncaissement utilise le même filtre que cotisFiltered (yr null = toutes années)
             const membresEncaissement = useMemo(()=>sortByGrade(membres).map(m=>{
-                const paiements = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===cotisYear);
+                const paiements = cotisFiltered.filter(c=>c.membreId===m.id);
                 const total = paiements.reduce((s,c)=>s+(c.montant||0),0);
                 return { ...m, totalPaye: total, aJour: montantCotis>0 && total>=montantCotis };
-            }),[membres,cotisations,cotisYear,montantCotis]);
+            }),[membres,cotisFiltered,montantCotis]);
             const membresAJour = membresEncaissement.filter(m=>m.aJour).length;
             const totalAttendu = membres.length * montantCotis;
+            const cotisYear = yr || 'toutes les années';
 
             // ── GRAND LIVRE : toutes opérations chronologiques ────
             const grandLivre = useMemo(()=>{
