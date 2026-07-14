@@ -775,12 +775,32 @@
         // ==============================
         // PARAMÈTRES / TABLEAU
         // ==============================
+        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', dateNaissance:'' };
+
+        function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
+            const [f, setF] = useState(initial || EMPTY_MEMBRE);
+            return (
+                <div className="bg-slate-50 p-6 rounded-2xl border animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                        <button onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
+                        <button onClick={()=>{ if(!f.nom.trim()) return; onSave(f); }} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm font-serif">Enregistrer</button>
+                    </div>
+                </div>
+            );
+        }
+
         function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre }) {
             const [sf, setSf] = useState({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'' });
             const [saving, setSaving] = useState(false);
             const [isAddingM, setIsAddingM] = useState(false);
             const [editingMId, setEditingMId] = useState(null);
-            const [mForm, setMForm] = useState({ nom:'', role:'' });
 
             useEffect(()=>{
                 setSf({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'' });
@@ -792,8 +812,7 @@
                 setSaving(false);
             };
 
-            const startEditM = (m) => { setEditingMId(m.id); setMForm({nom:m.nom,role:m.role||''}); };
-            const cancelEditM = () => { setEditingMId(null); setMForm({nom:'',role:''}); };
+            const fmtDN = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
 
             return (
                 <div className="space-y-8 animate-fade">
@@ -809,56 +828,66 @@
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-2xl border shadow-sm">
-                        <div className="flex justify-between items-center border-b pb-4 mb-6">
-                            <h3 className="text-lg font-bold font-serif flex items-center gap-3"><Icon n="users" cls="text-amber-600"/> Membres ({membres.length})</h3>
-                            <button onClick={()=>{setIsAddingM(!isAddingM);cancelEditM();}} className="bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-sm flex items-center gap-2"><Icon n={isAddingM?'x':'plus'} size={14}/>{isAddingM?'Annuler':'Ajouter'}</button>
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="flex justify-between items-center px-8 py-5 border-b">
+                            <h3 className="text-lg font-bold font-serif flex items-center gap-3"><Icon n="users" cls="text-amber-600"/> Membres de l'Atelier ({membres.length})</h3>
+                            <button onClick={()=>{setIsAddingM(!isAddingM);setEditingMId(null);}} className="bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-sm flex items-center gap-2 font-serif"><Icon n={isAddingM?'x':'plus'} size={14}/>{isAddingM?'Annuler':'Nouveau membre'}</button>
                         </div>
 
                         {isAddingM && (
-                            <div className="bg-slate-50 p-6 rounded-2xl border mb-6 animate-fade">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoFocus value={mForm.nom} onChange={e=>setMForm({...mForm,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
-                                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade / Fonction</label><input type="text" value={mForm.role} onChange={e=>setMForm({...mForm,role:e.target.value})} placeholder="ex: Maître, Trésorier..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                                </div>
-                                <div className="flex gap-3 justify-end">
-                                    <button onClick={()=>{setIsAddingM(false);setMForm({nom:'',role:''}); }} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
-                                    <button onClick={async()=>{if(!mForm.nom.trim())return;await onAddMembre(mForm);setIsAddingM(false);setMForm({nom:'',role:''}); }} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm">Ajouter</button>
-                                </div>
+                            <div className="px-8 py-5 border-b">
+                                <MembreForm autoFocusNom onSave={async f=>{await onAddMembre(f);setIsAddingM(false);}} onCancel={()=>setIsAddingM(false)} />
                             </div>
                         )}
 
                         {membres.length===0 ? (
-                            <p className="text-slate-400 italic text-center py-8 font-sans">Aucun membre. Cliquez sur "Ajouter" pour commencer.</p>
+                            <p className="text-slate-400 italic text-center py-12 font-sans">Aucun membre. Cliquez sur "Nouveau membre" pour commencer.</p>
                         ) : (
-                            <div className="divide-y">
-                                {membres.map(m=>(
-                                    <div key={m.id} className="py-4">
-                                        {editingMId===m.id ? (
-                                            <div className="bg-slate-50 p-4 rounded-xl border animate-fade">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <input type="text" value={mForm.nom} onChange={e=>setMForm({...mForm,nom:e.target.value})} className="border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" />
-                                                    <input type="text" value={mForm.role} onChange={e=>setMForm({...mForm,role:e.target.value})} placeholder="Grade / Fonction" className="border p-3 rounded-xl bg-white outline-none focus:border-amber-500" />
-                                                </div>
-                                                <div className="flex gap-3 justify-end">
-                                                    <button onClick={cancelEditM} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
-                                                    <button onClick={async()=>{await onUpdateMembre(m.id,mForm);cancelEditM();}} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm">Valider</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-between group">
-                                                <div>
-                                                    <p className="font-bold text-slate-800">{m.nom}</p>
-                                                    {m.role && <p className="text-[10px] text-amber-700 uppercase font-bold tracking-widest font-sans">{m.role}</p>}
-                                                </div>
-                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={()=>startEditM(m)} className="p-2 text-slate-300 hover:text-amber-600"><Icon n="edit" size={14}/></button>
-                                                    <button onClick={()=>onDeleteMembre(m.id)} className="p-2 text-slate-300 hover:text-red-500"><Icon n="trash" size={14}/></button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
+                                            <th className="px-4 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {membres.map(m=>(
+                                            <React.Fragment key={m.id}>
+                                                <tr className="hover:bg-amber-50 transition-colors group">
+                                                    <td className="px-6 py-4 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
+                                                    <td className="px-4 py-4">
+                                                        {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
+                                                    <td className="px-4 py-4">
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
+                                                            <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {editingMId===m.id && (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-6 py-4 bg-amber-50 border-b">
+                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',dateNaissance:m.dateNaissance||''}}
+                                                                onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
+                                                                onCancel={()=>setEditingMId(null)} />
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>
