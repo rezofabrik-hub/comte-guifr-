@@ -63,6 +63,9 @@
 
         const CATEGORIES_RECETTE = ['Cotisation annuelle', 'Don / Collecte', 'Agapes', 'Subvention', 'Remboursement', 'Autre recette'];
         const CATEGORIES_DEPENSE = ['Loyer / Local', 'Fournitures', 'Agapes', 'Événement', 'Correspondance', 'Assurance', 'Autre dépense'];
+        const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'];
+        const MOIS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+        const TYPES_CHARGES = ['Obédience','Temple / Local','Assurance','Abonnement','Autre'];
 
         const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
 
@@ -74,11 +77,16 @@
                 clock: 'fa-regular fa-clock', up: 'fa-solid fa-arrow-trend-up', down: 'fa-solid fa-arrow-trend-down',
                 file: 'fa-regular fa-file-lines', chart: 'fa-solid fa-chart-bar', cal: 'fa-regular fa-calendar-days',
                 landmark: 'fa-solid fa-landmark', shield: 'fa-solid fa-shield-halved',
+                utensils: 'fa-solid fa-utensils', invoice: 'fa-solid fa-file-invoice',
+                receipt: 'fa-solid fa-receipt', building: 'fa-solid fa-building-columns',
             };
             return <i className={`${m[n] || 'fa-solid fa-circle'} ${cls}`} style={{fontSize: size}}></i>;
         };
 
-        function DashboardView({ transactions, cotisations, membres, settings, onNav }) {
+        // ==============================
+        // BILAN
+        // ==============================
+        function DashboardView({ transactions, cotisations, membres, agapes, charges, settings, onNav }) {
             const thisYear = new Date().getFullYear();
             const recettes = transactions.filter(t => t.type === 'recette');
             const depenses = transactions.filter(t => t.type === 'depense');
@@ -86,8 +94,14 @@
             const totalD = depenses.reduce((s, t) => s + (t.montant || 0), 0);
             const solde = totalR - totalD;
             const membresAyantVerse = new Set(cotisations.filter(c=>c.annee==thisYear).map(c=>c.membreId)).size;
-            const payees = membresAyantVerse;
             const recentes = [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+
+            const agapesAnnee = agapes.filter(a=>a.date&&a.date.startsWith(String(thisYear)));
+            const totalBeneficeAgapes = agapesAnnee.reduce((s,a)=>s+(a.benefice||0),0);
+            const totalCouverts = agapesAnnee.reduce((s,a)=>s+(a.totalCouverts||0),0);
+
+            const chargesAnnee = charges.filter(c=>c.annee==thisYear);
+            const totalCharges = chargesAnnee.reduce((s,c)=>s+(c.montant||0),0);
 
             return (
                 <div className="space-y-8 animate-fade">
@@ -109,11 +123,27 @@
                         </div>
                         <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('cotisations')}>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="users" size={14} cls="mr-2 text-amber-600"/>Cotisations {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-amber-600">{payees} / {membres.length||'—'}</p>
+                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAyantVerse} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'}</p>
                             <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(payees/membres.length)*100}%`:'0%'}}></div>
+                                <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(membresAyantVerse/membres.length)*100}%`:'0%'}}></div>
                             </div>
-                            <p className="text-xs text-slate-400 mt-2 font-sans">Membres ayant versé</p>
+                            <p className="text-xs text-slate-400 mt-2 font-sans">Membres à jour</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('agapes')}>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="utensils" size={14} cls="mr-2 text-orange-500"/>Agapes {thisYear}</p>
+                            <p className="text-3xl font-bold font-serif text-orange-500">{agapesAnnee.length} tenue{agapesAnnee.length>1?'s':''}</p>
+                            <div className="flex gap-4 mt-3">
+                                <div><p className="text-[10px] text-slate-400 font-sans">Couverts</p><p className="font-bold text-slate-700">{totalCouverts}</p></div>
+                                <div><p className="text-[10px] text-slate-400 font-sans">Bénéfice total</p><p className={`font-bold font-serif ${totalBeneficeAgapes>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBeneficeAgapes)}</p></div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('charges')}>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="invoice" size={14} cls="mr-2 text-purple-600"/>Charges {thisYear}</p>
+                            <p className="text-3xl font-bold font-serif text-purple-600">{fmt(totalCharges)}</p>
+                            <p className="text-xs text-slate-400 mt-auto pt-3 font-sans">{chargesAnnee.length} paiement{chargesAnnee.length>1?'s':''} enregistré{chargesAnnee.length>1?'s':''}</p>
                         </div>
                     </div>
 
@@ -169,6 +199,9 @@
             );
         }
 
+        // ==============================
+        // TRANSACTIONS
+        // ==============================
         function TxForm({ initialData, onSave, onCancel }) {
             const [f, setF] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'recette', libelle:'', categorie:'Cotisation annuelle', montant:'', note:'' });
             const cats = f.type==='recette' ? CATEGORIES_RECETTE : CATEGORIES_DEPENSE;
@@ -264,8 +297,9 @@
             );
         }
 
-        const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'];
-
+        // ==============================
+        // COTISATIONS (versements mensuels)
+        // ==============================
         function PayMoisModal({ membre, annee, mois, onConfirm, onCancel }) {
             const [montant, setMontant] = useState('');
             const [note, setNote] = useState('');
@@ -340,7 +374,7 @@
                                     <div key={m.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
                                         <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors" onClick={()=>setExpanded(isExpanded?null:m.id)}>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 flex-wrap">
+                                                <div className="flex items-center gap-3">
                                                     <p className="font-bold text-slate-800">{m.nom}</p>
                                                     {m.role && <span className="text-[10px] text-amber-700 uppercase font-bold tracking-widest font-sans bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">{m.role}</span>}
                                                 </div>
@@ -369,7 +403,7 @@
                                                         return (
                                                             <button key={i} onClick={()=>v ? onDeleteVersement(v.id) : setPayModal({membreId:m.id,mois:moisNum})}
                                                                 className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${v?'bg-emerald-50 border-emerald-300 hover:bg-red-50 hover:border-red-300':'bg-white border-slate-200 hover:border-amber-400'}`}
-                                                                title={v?`Cliquer pour supprimer: ${fmt(v.montant)}`:`Ajouter versement ${ml}`}>
+                                                                title={v?`Supprimer: ${fmt(v.montant)}`:`Ajouter versement ${ml}`}>
                                                                 <span className={`text-[10px] font-bold font-sans ${v?'text-emerald-700':'text-slate-400'}`}>{ml}</span>
                                                                 {v ? (
                                                                     <span className="text-[9px] text-emerald-600 font-bold font-serif mt-0.5">{fmt(v.montant)}</span>
@@ -384,9 +418,9 @@
                                                     <div className="mt-4 space-y-1">
                                                         {versements.sort((a,b)=>a.mois-b.mois).map(v=>(
                                                             <div key={v.id} className="flex items-center justify-between text-xs text-slate-600 bg-white rounded-lg px-3 py-2 border">
-                                                                <span className="font-bold w-8">{MOIS[v.mois-1]}</span>
+                                                                <span className="font-bold">{MOIS[v.mois-1]}</span>
                                                                 <span className="font-serif font-bold text-emerald-600">{fmt(v.montant)}</span>
-                                                                {v.note && <span className="text-slate-400 italic hidden sm:block flex-1 text-center">{v.note}</span>}
+                                                                {v.note && <span className="text-slate-400 italic hidden sm:block">{v.note}</span>}
                                                                 <span className="text-slate-300">{v.datePaiement ? new Date(v.datePaiement).toLocaleDateString('fr-FR') : ''}</span>
                                                             </div>
                                                         ))}
@@ -403,6 +437,304 @@
             );
         }
 
+        // ==============================
+        // AGAPES
+        // ==============================
+        function AgapesForm({ membres, initialData, onSave, onCancel }) {
+            const today = new Date().toISOString().split('T')[0];
+            const [f, setF] = useState(initialData || {
+                date: today, tenue: '', selectedMembres: [], nbInvites: 0, prixCouvert: 0, coutRepas: 0, note: ''
+            });
+
+            const toggleMembre = (id) => {
+                setF(p => ({
+                    ...p,
+                    selectedMembres: p.selectedMembres.includes(id)
+                        ? p.selectedMembres.filter(x=>x!==id)
+                        : [...p.selectedMembres, id]
+                }));
+            };
+
+            const totalCouverts = (f.selectedMembres.length) + (parseInt(f.nbInvites)||0);
+            const benefice = totalCouverts * (parseFloat(f.prixCouvert)||0) - (parseFloat(f.coutRepas)||0);
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                await onSave({
+                    ...f,
+                    nbInvites: parseInt(f.nbInvites)||0,
+                    prixCouvert: parseFloat(f.prixCouvert)||0,
+                    coutRepas: parseFloat(f.coutRepas)||0,
+                    totalCouverts,
+                    benefice
+                });
+            };
+
+            return (
+                <form onSubmit={handleSave} className="space-y-6 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de la tenue</label><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom de la tenue</label><input type="text" placeholder="ex: 1ère Tenue 2026" value={f.tenue} onChange={e=>setF({...f,tenue:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Membres présents</label>
+                        {membres.length===0 ? (
+                            <p className="text-slate-400 italic text-sm">Aucun membre dans le Tableau.</p>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                                {membres.map(m=>(
+                                    <button key={m.id} type="button" onClick={()=>toggleMembre(m.id)}
+                                        className={`text-left px-3 py-2 rounded-xl border-2 text-xs font-bold transition-all ${f.selectedMembres.includes(m.id)?'bg-orange-50 border-orange-400 text-orange-700':'bg-slate-50 border-slate-200 text-slate-600 hover:border-amber-400'}`}>
+                                        {m.nom}
+                                        {m.role && <span className="block text-[9px] font-normal text-slate-400">{m.role}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Invités externes</label><input type="number" min="0" value={f.nbInvites} onChange={e=>setF({...f,nbInvites:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Prix / couvert (€)</label><input type="number" step="0.01" min="0" value={f.prixCouvert} onChange={e=>setF({...f,prixCouvert:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Coût nourriture (€)</label><input type="number" step="0.01" min="0" value={f.coutRepas} onChange={e=>setF({...f,coutRepas:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl p-4 grid grid-cols-3 gap-4 text-center border">
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Total couverts</p><p className="text-2xl font-bold font-serif text-slate-700">{totalCouverts}</p></div>
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Recette repas</p><p className="text-2xl font-bold font-serif text-emerald-600">{fmt(totalCouverts*(parseFloat(f.prixCouvert)||0))}</p></div>
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Bénéfice</p><p className={`text-2xl font-bold font-serif ${benefice>=0?'text-emerald-600':'text-red-500'}`}>{fmt(benefice)}</p></div>
+                    </div>
+
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Note (optionnel)</label><textarea value={f.note} onChange={e=>setF({...f,note:e.target.value})} placeholder="Menu, remarque..." className="w-full border p-3 rounded-xl bg-slate-50 h-16 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+
+                    <div className="flex justify-end gap-4 pt-2">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-10 py-3 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-lg text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function AgapesView({ membres, agapes, onAdd, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+            const years = useMemo(()=>{
+                const ys=new Set(agapes.map(a=>a.date?.split('-')[0]).filter(Boolean));
+                ys.add(String(new Date().getFullYear()));
+                return [...ys].sort((a,b)=>b-a);
+            },[agapes]);
+
+            const filtered = useMemo(()=>agapes.filter(a=>filterYear==='all'||a.date?.startsWith(filterYear)).sort((a,b)=>new Date(b.date)-new Date(a.date)),[agapes,filterYear]);
+            const totalCouverts = filtered.reduce((s,a)=>s+(a.totalCouverts||0),0);
+            const totalBenefice = filtered.reduce((s,a)=>s+(a.benefice||0),0);
+            const totalCout = filtered.reduce((s,a)=>s+(a.coutRepas||0),0);
+
+            const membresById = useMemo(()=>Object.fromEntries(membres.map(m=>[m.id,m])),[membres]);
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Agapes</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Repas par tenue — participants et bilan financier</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} className="border bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-amber-500">
+                                <option value="all">Toutes années</option>
+                                {years.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                            <button onClick={()=>setIsAdding(!isAdding)} className="bg-orange-500 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2"><Icon n="plus" size={16}/> Tenue</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Tenues</p><p className="text-3xl font-bold font-serif text-orange-500">{filtered.length}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total couverts</p><p className="text-3xl font-bold font-serif text-slate-700">{totalCouverts}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Coût nourriture</p><p className="text-3xl font-bold font-serif text-red-500">{fmt(totalCout)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Bénéfice total</p><p className={`text-3xl font-bold font-serif ${totalBenefice>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBenefice)}</p></div>
+                    </div>
+
+                    {isAdding && (
+                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
+                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="utensils" cls="text-orange-500"/> Nouvelle tenue d'Agapes</h3>
+                            <AgapesForm membres={membres} onSave={async d=>{await onAdd(d);setIsAdding(false);}} onCancel={()=>setIsAdding(false)} />
+                        </div>
+                    )}
+
+                    {filtered.length===0 ? (
+                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucune agapes pour cette période.</div>
+                    ) : (
+                        <div className="space-y-4">
+                            {filtered.map(a=>(
+                                <div key={a.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="flex items-start justify-between px-6 py-5">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <p className="font-bold text-slate-800 font-serif">{a.tenue || 'Tenue sans nom'}</p>
+                                                <span className="text-[10px] text-orange-700 uppercase font-bold tracking-widest font-sans bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{a.date ? new Date(a.date).toLocaleDateString('fr-FR') : ''}</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1 mt-3">
+                                                {(a.selectedMembres||[]).map(id=>membresById[id]&&(
+                                                    <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-sans">{membresById[id].nom}</span>
+                                                ))}
+                                                {(a.nbInvites||0)>0 && <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-sans">+{a.nbInvites} invité{a.nbInvites>1?'s':''}</span>}
+                                            </div>
+                                            {a.note && <p className="text-xs text-slate-400 italic mt-2">{a.note}</p>}
+                                        </div>
+                                        <div className="flex items-center gap-4 ml-4 flex-shrink-0">
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans">{a.totalCouverts} couvert{a.totalCouverts>1?'s':''}</p>
+                                                <p className={`font-bold font-serif text-lg ${(a.benefice||0)>=0?'text-emerald-600':'text-red-500'}`}>{fmt(a.benefice||0)}</p>
+                                                <p className="text-[10px] text-slate-400 font-sans">bénéfice</p>
+                                            </div>
+                                            <button onClick={()=>onDelete(a.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><Icon n="trash" size={14}/></button>
+                                        </div>
+                                    </div>
+                                    <div className="border-t bg-slate-50 px-6 py-3 flex gap-6 text-xs text-slate-500 font-sans">
+                                        <span>Prix/couvert : <strong className="text-slate-700">{fmt(a.prixCouvert)}</strong></span>
+                                        <span>Recette : <strong className="text-emerald-600">{fmt((a.totalCouverts||0)*(a.prixCouvert||0))}</strong></span>
+                                        <span>Nourriture : <strong className="text-red-500">{fmt(a.coutRepas)}</strong></span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==============================
+        // CHARGES
+        // ==============================
+        function ChargesForm({ initialData, onSave, onCancel }) {
+            const today = new Date().toISOString().split('T')[0];
+            const [f, setF] = useState(initialData || {
+                nom: TYPES_CHARGES[0], periodicite: 'mensuel', annee: new Date().getFullYear(), mois: new Date().getMonth()+1, montant: '', datePaiement: today, note: ''
+            });
+            return (
+                <form onSubmit={async e=>{e.preventDefault();await onSave({...f,montant:parseFloat(f.montant)||0,annee:parseInt(f.annee),mois:f.periodicite==='mensuel'?parseInt(f.mois):null});}} className="space-y-5 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Type de charge</label>
+                            <select value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                {TYPES_CHARGES.map(t=><option key={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Périodicité</label>
+                            <div className="flex bg-slate-100 p-1 rounded-xl h-[50px]">
+                                <button type="button" onClick={()=>setF({...f,periodicite:'mensuel'})} className={`flex-1 rounded-lg text-xs font-bold uppercase transition-all ${f.periodicite==='mensuel'?'bg-purple-600 text-white shadow':'text-slate-500'}`}>Mensuel</button>
+                                <button type="button" onClick={()=>setF({...f,periodicite:'annuel'})} className={`flex-1 rounded-lg text-xs font-bold uppercase transition-all ${f.periodicite==='annuel'?'bg-purple-600 text-white shadow':'text-slate-500'}`}>Annuel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Année</label><input type="number" min="2000" max="2100" value={f.annee} onChange={e=>setF({...f,annee:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        {f.periodicite==='mensuel' && <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Mois</label>
+                            <select value={f.mois} onChange={e=>setF({...f,mois:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                {MOIS_FULL.map((ml,i)=><option key={i+1} value={i+1}>{ml}</option>)}
+                            </select>
+                        </div>}
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Montant (€)</label><input type="number" step="0.01" min="0" placeholder="0,00" value={f.montant} onChange={e=>setF({...f,montant:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                    </div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de paiement</label><input type="date" value={f.datePaiement} onChange={e=>setF({...f,datePaiement:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500 max-w-xs" /></div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Note (optionnel)</label><textarea value={f.note} onChange={e=>setF({...f,note:e.target.value})} placeholder="Référence, commentaire..." className="w-full border p-3 rounded-xl bg-slate-50 h-16 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+                    <div className="flex justify-end gap-4 pt-2">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-10 py-3 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-lg text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function ChargesView({ charges, onAdd, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+            const years = useMemo(()=>{
+                const ys=new Set(charges.map(c=>String(c.annee)).filter(Boolean));
+                ys.add(String(new Date().getFullYear()));
+                return [...ys].sort((a,b)=>b-a);
+            },[charges]);
+
+            const filtered = useMemo(()=>charges.filter(c=>filterYear==='all'||String(c.annee)===filterYear).sort((a,b)=>{
+                if(a.annee!==b.annee) return b.annee-a.annee;
+                return (b.mois||0)-(a.mois||0);
+            }),[charges,filterYear]);
+
+            const totalAnnee = filtered.reduce((s,c)=>s+(c.montant||0),0);
+
+            const byType = useMemo(()=>TYPES_CHARGES.map(t=>({
+                nom:t,
+                items:filtered.filter(c=>c.nom===t),
+                total:filtered.filter(c=>c.nom===t).reduce((s,c)=>s+(c.montant||0),0)
+            })).filter(g=>g.items.length>0),[filtered]);
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Charges</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Paiements institutionnels récurrents</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} className="border bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-amber-500">
+                                <option value="all">Toutes années</option>
+                                {years.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                            <button onClick={()=>setIsAdding(!isAdding)} className="bg-purple-600 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2"><Icon n="plus" size={16}/> Paiement</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total charges {filterYear==='all'?'':filterYear}</p><p className="text-3xl font-bold font-serif text-purple-600">{fmt(totalAnnee)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Paiements</p><p className="text-3xl font-bold font-serif text-slate-700">{filtered.length}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Types distincts</p><p className="text-3xl font-bold font-serif text-slate-700">{byType.length}</p></div>
+                    </div>
+
+                    {isAdding && (
+                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
+                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="invoice" cls="text-purple-600"/> Nouveau paiement</h3>
+                            <ChargesForm onSave={async d=>{await onAdd(d);setIsAdding(false);}} onCancel={()=>setIsAdding(false)} />
+                        </div>
+                    )}
+
+                    {filtered.length===0 ? (
+                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucune charge enregistrée pour cette période.</div>
+                    ) : (
+                        <div className="space-y-6">
+                            {byType.map(group=>(
+                                <div key={group.nom} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b">
+                                        <h3 className="font-bold font-serif text-slate-800 flex items-center gap-2"><Icon n="building" size={14} cls="text-purple-500"/>{group.nom}</h3>
+                                        <span className="font-bold font-serif text-purple-600">{fmt(group.total)}</span>
+                                    </div>
+                                    <div className="divide-y">
+                                        {group.items.map(c=>(
+                                            <div key={c.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors group">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full font-sans ${c.periodicite==='mensuel'?'bg-blue-50 text-blue-600 border border-blue-200':'bg-purple-50 text-purple-600 border border-purple-200'}`}>{c.periodicite==='mensuel'?`${MOIS_FULL[(c.mois||1)-1]} ${c.annee}`:`Annuel ${c.annee}`}</span>
+                                                        {c.note && <span className="text-xs text-slate-400 italic">{c.note}</span>}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-sans mt-1">{c.datePaiement ? `Payé le ${new Date(c.datePaiement).toLocaleDateString('fr-FR')}` : ''}</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold font-serif text-slate-800">{fmt(c.montant)}</span>
+                                                    <button onClick={()=>onDelete(c.id)} className="p-1.5 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Icon n="trash" size={14}/></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==============================
+        // PARAMÈTRES / TABLEAU
+        // ==============================
         function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre }) {
             const [sf, setSf] = useState({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'' });
             const [saving, setSaving] = useState(false);
@@ -450,8 +782,8 @@
                                     <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade / Fonction</label><input type="text" value={mForm.role} onChange={e=>setMForm({...mForm,role:e.target.value})} placeholder="ex: Maître, Trésorier..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
                                 </div>
                                 <div className="flex gap-3 justify-end">
-                                    <button onClick={()=>{setIsAddingM(false);setMForm({nom:'',role:''});}} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
-                                    <button onClick={async()=>{if(!mForm.nom.trim())return;await onAddMembre(mForm);setIsAddingM(false);setMForm({nom:'',role:''});}} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm">Ajouter</button>
+                                    <button onClick={()=>{setIsAddingM(false);setMForm({nom:'',role:''}); }} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
+                                    <button onClick={async()=>{if(!mForm.nom.trim())return;await onAddMembre(mForm);setIsAddingM(false);setMForm({nom:'',role:''}); }} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm">Ajouter</button>
                                 </div>
                             </div>
                         )}
@@ -494,6 +826,9 @@
             );
         }
 
+        // ==============================
+        // APP
+        // ==============================
         function App() {
             const api = window.FB_API;
             const [ready, setReady] = useState(false);
@@ -501,6 +836,8 @@
             const [transactions, setTransactions] = useState([]);
             const [cotisations, setCotisations] = useState([]);
             const [membres, setMembres] = useState([]);
+            const [agapes, setAgapes] = useState([]);
+            const [charges, setCharges] = useState([]);
             const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
 
             const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
@@ -515,8 +852,10 @@
                 const unsubTx = api.onSnapshot(path('tresor_transactions'),s=>setTransactions(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubCot = api.onSnapshot(path('tresor_cotisations'),s=>setCotisations(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubM = api.onSnapshot(path('tresor_membres'),s=>setMembres(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubAg = api.onSnapshot(path('tresor_agapes'),s=>setAgapes(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubCh = api.onSnapshot(path('tresor_charges'),s=>setCharges(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubS = api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d=>{if(d.exists()) setSettings(d.data());});
-                return ()=>{unsubTx();unsubCot();unsubM();unsubS();};
+                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubS();};
             },[api,ready]);
 
             const logeName = settings.logeName || 'Trésorerie';
@@ -538,6 +877,12 @@
             const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id),d);
             const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id));
 
+            const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
+            const deleteAgape = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_agapes',id));
+
+            const addCharge = async d => await api.addDoc(path('tresor_charges'),d);
+            const deleteCharge = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_charges',id));
+
             const saveSettings = async d => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d);
 
             if(!ready) return null;
@@ -546,8 +891,10 @@
 
             const navItems = [
                 {id:'dashboard',icon:'home',label:'Bilan'},
-                {id:'transactions',icon:'file',label:'Livre de caisse'},
+                {id:'transactions',icon:'file',label:'Caisse'},
                 {id:'cotisations',icon:'users',label:'Cotisations'},
+                {id:'agapes',icon:'utensils',label:'Agapes'},
+                {id:'charges',icon:'invoice',label:'Charges'},
                 {id:'parametres',icon:'settings',label:'Tableau'},
             ];
 
@@ -562,19 +909,21 @@
                                     {orient && <span className="block text-[9px] text-slate-400 font-sans uppercase tracking-widest">Orient de {orient}</span>}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 {navItems.map(item=>(
-                                    <button key={item.id} onClick={()=>setActiveView(item.id)} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${activeView===item.id?'bg-amber-600 text-white shadow-lg':'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
-                                        <Icon n={item.icon} size={14}/><span className="hidden sm:inline font-sans">{item.label}</span>
+                                    <button key={item.id} onClick={()=>setActiveView(item.id)} className={`flex items-center space-x-1.5 px-2.5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${activeView===item.id?'bg-amber-600 text-white shadow-lg':'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
+                                        <Icon n={item.icon} size={13}/><span className="hidden sm:inline font-sans">{item.label}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
                     </nav>
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
-                        {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} settings={settings} onNav={setActiveView}/>}
+                        {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
                         {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement}/>}
+                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} onAdd={addAgape} onDelete={deleteAgape}/>}
+                        {activeView==='charges' && <ChargesView charges={charges} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre}/>}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
