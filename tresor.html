@@ -68,6 +68,9 @@
         const TYPES_CHARGES = ['Obédience','Temple / Local','Assurance','Abonnement','Autre'];
 
         const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+        // Format date en ISO local (YYYY-MM-DD) sans décalage UTC
+        const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const todayISO = () => toLocalISO(new Date());
 
         const Icon = ({ n, size = 18, cls = "" }) => {
             const m = {
@@ -230,7 +233,7 @@
         // TRANSACTIONS
         // ==============================
         function TxForm({ initialData, onSave, onCancel }) {
-            const [f, setF] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'recette', libelle:'', categorie:'Cotisation annuelle', montant:'', note:'' });
+            const [f, setF] = useState(initialData || { date: todayISO(), type:'recette', libelle:'', categorie:'Cotisation annuelle', montant:'', note:'' });
             const cats = f.type==='recette' ? CATEGORIES_RECETTE : CATEGORIES_DEPENSE;
             useEffect(()=>{ if(!cats.includes(f.categorie)) setF(p=>({...p,categorie:cats[0]})); },[f.type]);
             return (
@@ -495,7 +498,7 @@
         const PRIX_TRIANGLE = 10;
 
         function AgapesForm({ membres, initialData, onSave, onCancel, lockDate }) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const [f, setF] = useState(initialData || {
                 date: today, tenue: '', selectedMembres: [], invitesNommes: [], prixCouvert: 0, coutRepas: 0,
                 intendant: '', menu: { entree: '', plat: '', dessert: '' }, note: ''
@@ -634,7 +637,7 @@
             const membresById = useMemo(()=>Object.fromEntries(membres.map(m=>[m.id,m])),[membres]);
 
             // Stats de la saison
-            const agapesSaison = tenues.map(d=>agapeByDate[d.toISOString().split('T')[0]]).filter(Boolean);
+            const agapesSaison = tenues.map(d=>agapeByDate[toLocalISO(d)]).filter(Boolean);
             const totalCouverts = agapesSaison.reduce((s,a)=>s+(a.totalCouverts||0),0);
             const totalBenefice = agapesSaison.reduce((s,a)=>s+(a.benefice||0),0);
             const totalCout = agapesSaison.reduce((s,a)=>s+(a.coutRepas||0),0);
@@ -692,7 +695,7 @@
                                     </div>
                                     <div className="divide-y">
                                         {items.map(({d, numInMonth})=>{
-                                            const iso = d.toISOString().split('T')[0];
+                                            const iso = toLocalISO(d);
                                             const agape = agapeByDate[iso];
                                             const isPast = d < today && !(d.toDateString()===today.toDateString());
                                             const isToday = d.toDateString()===today.toDateString();
@@ -790,7 +793,7 @@
         // CHARGES
         // ==============================
         function ChargesForm({ initialData, onSave, onCancel }) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const [f, setF] = useState(initialData || {
                 nom: TYPES_CHARGES[0], periodicite: 'mensuel', annee: new Date().getFullYear(), mois: new Date().getMonth()+1, montant: '', datePaiement: today, note: ''
             });
@@ -1161,7 +1164,7 @@
                                     </div>
                                     <div className="divide-y">
                                         {dates.map((d,i)=>{
-                                            const iso = d.toISOString().split('T')[0];
+                                            const iso = toLocalISO(d);
                                             const agape = agapeByDate[iso];
                                             const isPast = d < today && !(d.toDateString()===today.toDateString());
                                             const isToday = d.toDateString()===today.toDateString();
@@ -1282,7 +1285,7 @@
             const addVersement = async (membreId,annee,mois,montant,note) => {
                 await api.addDoc(path('tresor_cotisations'),{
                     membreId, annee:parseInt(annee), mois, montant, note,
-                    datePaiement: new Date().toISOString().split('T')[0]
+                    datePaiement: todayISO()
                 });
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
