@@ -106,131 +106,212 @@
         }
 
         function DashboardView({ transactions, cotisations, membres, agapes, charges, settings, onNav }) {
-            const thisYear = new Date().getFullYear();
-            const recettes = transactions.filter(t => t.type === 'recette');
-            const depenses = transactions.filter(t => t.type === 'depense');
-            const totalR = recettes.reduce((s, t) => s + (t.montant || 0), 0);
-            const totalD = depenses.reduce((s, t) => s + (t.montant || 0), 0);
-            const solde = totalR - totalD;
+            const currentYear = new Date().getFullYear();
+            const [annee, setAnnee] = useState(String(currentYear));
+
+            const allYears = useMemo(()=>{
+                const ys = new Set();
+                transactions.forEach(t=>t.date&&ys.add(t.date.split('-')[0]));
+                cotisations.forEach(c=>c.annee&&ys.add(String(c.annee)));
+                agapes.forEach(a=>a.date&&ys.add(a.date.split('-')[0]));
+                charges.forEach(c=>c.annee&&ys.add(String(c.annee)));
+                ys.add(String(currentYear));
+                return [...ys].sort((a,b)=>b-a);
+            },[transactions,cotisations,agapes,charges]);
+
+            const yr = annee==='tout' ? null : annee;
+
+            // ── RECETTES ──────────────────────────────────────────
+            const txRecettes = transactions.filter(t=>t.type==='recette'&&(!yr||t.date?.startsWith(yr)));
+            const totalTxRecettes = txRecettes.reduce((s,t)=>s+(t.montant||0),0);
+
+            const cotisFiltered = cotisations.filter(c=>!yr||String(c.annee)===yr);
+            const totalCotisations = cotisFiltered.reduce((s,c)=>s+(c.montant||0),0);
+
+            const agapesFil = agapes.filter(a=>!yr||a.date?.startsWith(yr));
+            const totalRecettesAgapes = agapesFil.reduce((s,a)=>s+(a.recetteTotale||0),0);
+
+            const totalRecettes = totalTxRecettes + totalCotisations + totalRecettesAgapes;
+
+            // ── DÉPENSES ──────────────────────────────────────────
+            const txDepenses = transactions.filter(t=>t.type==='depense'&&(!yr||t.date?.startsWith(yr)));
+            const totalTxDepenses = txDepenses.reduce((s,t)=>s+(t.montant||0),0);
+
+            const chargesFil = charges.filter(c=>!yr||String(c.annee)===yr);
+            const totalCharges = chargesFil.reduce((s,c)=>s+(c.montant||0),0);
+
+            const totalDepensesAgapes = agapesFil.reduce((s,a)=>s+(a.coutRepas||0),0);
+
+            const totalDepenses = totalTxDepenses + totalCharges + totalDepensesAgapes;
+
+            // ── SOLDE ─────────────────────────────────────────────
+            const solde = totalRecettes - totalDepenses;
+
+            // ── COTISATIONS état ──────────────────────────────────
             const montantCotis = settings.montantCotis || 0;
-            const membresAJour = membres.filter(m => {
-                const totalVerse = cotisations.filter(c=>c.membreId===m.id&&c.annee==thisYear).reduce((s,c)=>s+(c.montant||0),0);
-                return totalVerse >= montantCotis && montantCotis > 0;
+            const membresAJour = membres.filter(m=>{
+                const v = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===(yr||String(currentYear))).reduce((s,c)=>s+(c.montant||0),0);
+                return v >= montantCotis && montantCotis > 0;
             }).length;
             const totalAttendu = membres.length * montantCotis;
-            const totalEncaisse = cotisations.filter(c=>c.annee==thisYear).reduce((s,c)=>s+(c.montant||0),0);
-            const recentes = [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
 
-            // Agapes année en cours
-            const agapesAnnee = agapes.filter(a=>a.date&&a.date.startsWith(String(thisYear)));
-            const totalBeneficeAgapes = agapesAnnee.reduce((s,a)=>s+(a.benefice||0),0);
-            const totalCouverts = agapesAnnee.reduce((s,a)=>s+(a.totalCouverts||0),0);
+            // ── GRAND LIVRE : toutes opérations chronologiques ────
+            const grandLivre = useMemo(()=>{
+                const ops = [];
+                txRecettes.forEach(t=>ops.push({ date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:t.montant, depense:0, source:'caisse' }));
+                txDepenses.forEach(t=>ops.push({ date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:0, depense:t.montant, source:'caisse' }));
+                cotisFiltered.forEach(c=>{
+                    const m = membres.find(x=>x.id===c.membreId);
+                    ops.push({ date:c.datePaiement||`${c.annee}-${String(c.mois).padStart(2,'0')}-01`, libelle:`Cotisation — ${m?.nom||'Membre'}`, categorie:'Cotisation', recette:c.montant, depense:0, source:'cotisation' });
+                });
+                agapesFil.forEach(a=>{
+                    if(a.recetteTotale) ops.push({ date:a.date, libelle:`Agapes — ${a.tenue||'Tenue'}`, categorie:'Recette agapes', recette:a.recetteTotale, depense:0, source:'agapes' });
+                    if(a.coutRepas) ops.push({ date:a.date, libelle:`Nourriture — ${a.tenue||'Tenue'}`, categorie:'Dépense agapes', recette:0, depense:a.coutRepas, source:'agapes' });
+                });
+                chargesFil.forEach(c=>ops.push({ date:c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`, libelle:c.nom, categorie:`Charge — ${c.periodicite||''}`, recette:0, depense:c.montant, source:'charge' }));
+                return ops.sort((a,b)=>new Date(b.date)-new Date(a.date));
+            },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil,membres]);
 
-            // Charges année en cours
-            const chargesAnnee = charges.filter(c=>c.annee==thisYear);
-            const totalCharges = chargesAnnee.reduce((s,c)=>s+(c.montant||0),0);
+            const SOURCE_COLORS = { caisse:'bg-slate-100 text-slate-600', cotisation:'bg-amber-100 text-amber-700', agapes:'bg-orange-100 text-orange-700', charge:'bg-purple-100 text-purple-700' };
 
             return (
-                <div className="space-y-8 animate-fade">
+                <div className="space-y-6 animate-fade">
                     <LogoBanner settings={settings}/>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className={`p-6 rounded-2xl border-2 shadow-sm flex flex-col ${solde>=0?'bg-emerald-50 border-emerald-200':'bg-red-50 border-red-200'}`}>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans">Solde Actuel</p>
-                            <p className={`text-4xl font-bold font-serif ${solde>=0?'text-emerald-700':'text-red-700'}`}>{fmt(solde)}</p>
-                            <p className="text-xs text-slate-400 mt-auto pt-3 font-sans">Toutes périodes confondues</p>
+
+                    {/* En-tête avec filtre année */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Bilan Comptable</h2>
+                            <p className="text-xs text-slate-400 font-sans mt-1">Toutes sources confondues — cotisations, agapes, charges, transactions</p>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="up" size={14} cls="mr-2 text-emerald-500"/>Recettes Totales</p>
-                            <p className="text-3xl font-bold font-serif text-emerald-600">{fmt(totalR)}</p>
-                            <p className="text-xs text-slate-400 mt-auto pt-3 font-sans">{recettes.length} opération{recettes.length>1?'s':''}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest font-sans">Année</span>
+                            <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-white px-4 py-2 rounded-xl text-sm font-bold outline-none focus:border-amber-500 shadow-sm">
+                                <option value="tout">Toutes</option>
+                                {allYears.map(y=><option key={y}>{y}</option>)}
+                            </select>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="down" size={14} cls="mr-2 text-red-500"/>Dépenses Totales</p>
-                            <p className="text-3xl font-bold font-serif text-red-500">{fmt(totalD)}</p>
-                            <p className="text-xs text-slate-400 mt-auto pt-3 font-sans">{depenses.length} opération{depenses.length>1?'s':''}</p>
+                    </div>
+
+                    {/* Solde général */}
+                    <div className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow ${solde>=0?'bg-emerald-50 border-emerald-300':'bg-red-50 border-red-300'}`}>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 font-sans">Solde {yr||'général'}</p>
+                            <p className={`text-5xl font-bold font-serif ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</p>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('cotisations')}>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="users" size={14} cls="mr-2 text-amber-600"/>Cotisations {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'} <span className="text-sm font-sans font-normal text-slate-400">à jour</span></p>
-                            <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full transition-all" style={{width: totalAttendu>0?`${Math.min(100,(totalEncaisse/totalAttendu)*100)}%`:'0%'}}></div>
-                            </div>
-                            <div className="flex justify-between items-end mt-2">
-                                <div>
-                                    <p className="text-xs font-bold text-emerald-600 font-serif">{fmt(totalEncaisse)}</p>
-                                    <p className="text-[10px] text-slate-400 font-sans">encaissé</p>
+                        <div className="flex gap-8 text-center">
+                            <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans mb-1">Recettes</p><p className="text-2xl font-bold font-serif text-emerald-600">{fmt(totalRecettes)}</p></div>
+                            <div className="w-px bg-slate-200"></div>
+                            <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans mb-1">Dépenses</p><p className="text-2xl font-bold font-serif text-red-500">{fmt(totalDepenses)}</p></div>
+                        </div>
+                    </div>
+
+                    {/* Détail recettes / dépenses */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Recettes */}
+                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="bg-emerald-600 px-6 py-3"><p className="text-white text-xs font-black uppercase tracking-widest font-serif">Recettes</p></div>
+                            <div className="divide-y">
+                                {[
+                                    { label:'Cotisations encaissées', val:totalCotisations, sub:`${cotisFiltered.length} versement${cotisFiltered.length>1?'s':''} · ${membresAJour}/${membres.length} membres à jour`, nav:'cotisations' },
+                                    { label:'Recettes Agapes', val:totalRecettesAgapes, sub:`${agapesFil.length} tenue${agapesFil.length>1?'s':''}`, nav:'agapes' },
+                                    { label:'Autres recettes', val:totalTxRecettes, sub:`${txRecettes.length} opération${txRecettes.length>1?'s':''}`, nav:'transactions' },
+                                ].map(r=>(
+                                    <div key={r.label} onClick={()=>onNav(r.nav)} className="flex items-center justify-between px-6 py-4 hover:bg-emerald-50 cursor-pointer transition-colors">
+                                        <div><p className="font-bold text-sm text-slate-800">{r.label}</p><p className="text-[10px] text-slate-400 font-sans">{r.sub}</p></div>
+                                        <p className="font-bold font-serif text-emerald-600 text-base">{fmt(r.val)}</p>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between px-6 py-3 bg-emerald-50">
+                                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700 font-serif">Total recettes</p>
+                                    <p className="font-bold font-serif text-emerald-700 text-lg">{fmt(totalRecettes)}</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-xs font-bold text-slate-500 font-serif">{fmt(totalAttendu)}</p>
-                                    <p className="text-[10px] text-slate-400 font-sans">attendu</p>
+                            </div>
+                        </div>
+
+                        {/* Dépenses */}
+                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="bg-red-500 px-6 py-3"><p className="text-white text-xs font-black uppercase tracking-widest font-serif">Dépenses</p></div>
+                            <div className="divide-y">
+                                {[
+                                    { label:'Charges (loyer, obédience…)', val:totalCharges, sub:`${chargesFil.length} paiement${chargesFil.length>1?'s':''}`, nav:'charges' },
+                                    { label:'Coût nourriture Agapes', val:totalDepensesAgapes, sub:`${agapesFil.length} tenue${agapesFil.length>1?'s':''}`, nav:'agapes' },
+                                    { label:'Autres dépenses', val:totalTxDepenses, sub:`${txDepenses.length} opération${txDepenses.length>1?'s':''}`, nav:'transactions' },
+                                ].map(d=>(
+                                    <div key={d.label} onClick={()=>onNav(d.nav)} className="flex items-center justify-between px-6 py-4 hover:bg-red-50 cursor-pointer transition-colors">
+                                        <div><p className="font-bold text-sm text-slate-800">{d.label}</p><p className="text-[10px] text-slate-400 font-sans">{d.sub}</p></div>
+                                        <p className="font-bold font-serif text-red-500 text-base">{fmt(d.val)}</p>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between px-6 py-3 bg-red-50">
+                                    <p className="text-xs font-black uppercase tracking-widest text-red-600 font-serif">Total dépenses</p>
+                                    <p className="font-bold font-serif text-red-600 text-lg">{fmt(totalDepenses)}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('agapes')}>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="utensils" size={14} cls="mr-2 text-orange-500"/>Agapes {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-orange-500">{agapesAnnee.length} tenue{agapesAnnee.length>1?'s':''}</p>
-                            <div className="flex gap-4 mt-3">
-                                <div><p className="text-[10px] text-slate-400 font-sans">Couverts</p><p className="font-bold text-slate-700">{totalCouverts}</p></div>
-                                <div><p className="text-[10px] text-slate-400 font-sans">Bénéfice total</p><p className={`font-bold font-serif ${totalBeneficeAgapes>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBeneficeAgapes)}</p></div>
+                    {/* Cotisations barre de progression */}
+                    {montantCotis>0 && (
+                        <div className="bg-white rounded-2xl border shadow-sm p-6 cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('cotisations')}>
+                            <div className="flex justify-between items-center mb-3">
+                                <p className="text-xs font-black uppercase tracking-widest text-amber-700 font-serif">Cotisations {yr||currentYear} — {membresAJour}/{membres.length} membres à jour</p>
+                                <p className="text-sm font-bold font-serif text-slate-600">{fmt(totalCotisations)} <span className="text-slate-300">/</span> {fmt(totalAttendu)}</p>
+                            </div>
+                            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-500 rounded-full transition-all" style={{width:totalAttendu>0?`${Math.min(100,(totalCotisations/totalAttendu)*100)}%`:'0%'}}></div>
+                            </div>
+                            <div className="flex justify-between mt-2">
+                                <p className="text-[10px] text-slate-400 font-sans">{totalAttendu>0?Math.round((totalCotisations/totalAttendu)*100):0}% encaissé</p>
+                                <p className="text-[10px] text-slate-400 font-sans">Reste : {fmt(Math.max(0,totalAttendu-totalCotisations))}</p>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('charges')}>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="invoice" size={14} cls="mr-2 text-purple-600"/>Charges {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-purple-600">{fmt(totalCharges)}</p>
-                            <p className="text-xs text-slate-400 mt-auto pt-3 font-sans">{chargesAnnee.length} paiement{chargesAnnee.length>1?'s':''} enregistré{chargesAnnee.length>1?'s':''}</p>
-                        </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-white p-8 rounded-2xl border shadow-sm">
-                            <h3 className="font-bold text-amber-800 mb-6 flex items-center uppercase tracking-widest text-xs font-serif border-b pb-4">
-                                <Icon n="cal" cls="mr-3" size={18}/> Dernières Opérations
-                            </h3>
-                            {recentes.length===0 ? <p className="text-slate-400 italic text-center py-8 font-sans">Aucune opération enregistrée.</p> : (
-                                <div className="space-y-3">
-                                    {recentes.map(t => (
-                                        <div key={t.id} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-2 h-8 rounded-full flex-shrink-0 ${t.type==='recette'?'bg-emerald-400':'bg-red-400'}`}></div>
-                                                <div>
-                                                    <p className="font-bold text-sm text-slate-800">{t.libelle}</p>
-                                                    <p className="text-[10px] text-slate-400 font-sans uppercase tracking-widest">{t.categorie} · {new Date(t.date).toLocaleDateString('fr-FR')}</p>
-                                                </div>
-                                            </div>
-                                            <span className={`font-bold font-serif text-sm ${t.type==='recette'?'text-emerald-600':'text-red-500'}`}>{t.type==='recette'?'+':'-'}{fmt(t.montant)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <button onClick={()=>onNav('transactions')} className="mt-6 w-full text-center text-amber-600 hover:text-amber-800 text-[10px] font-bold uppercase tracking-widest font-sans">Voir toutes les opérations →</button>
+                    {/* Grand Livre */}
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b bg-slate-50 flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 font-serif flex items-center gap-2"><Icon n="file" size={14}/> Grand Livre — {grandLivre.length} opération{grandLivre.length>1?'s':''}</h3>
                         </div>
-
-                        <div className="bg-white p-8 rounded-2xl border shadow-sm">
-                            <h3 className="font-bold text-amber-800 mb-6 flex items-center uppercase tracking-widest text-xs font-serif border-b pb-4">
-                                <Icon n="chart" cls="mr-3" size={18}/> Répartition par Catégorie
-                            </h3>
-                            {transactions.length===0 ? <p className="text-slate-400 italic text-center py-8 font-sans">Aucune donnée disponible.</p> : (
-                                <div className="space-y-3">
-                                    {Object.entries([...CATEGORIES_RECETTE,...CATEGORIES_DEPENSE].reduce((acc,cat)=>{
-                                        const tx=transactions.filter(t=>t.categorie===cat);
-                                        if(!tx.length) return acc;
-                                        acc[cat]={total:tx.reduce((s,t)=>s+(t.montant||0),0),isR:CATEGORIES_RECETTE.includes(cat)};
-                                        return acc;
-                                    },{})).sort((a,b)=>b[1].total-a[1].total).slice(0,6).map(([cat,d])=>(
-                                        <div key={cat} className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.isR?'bg-emerald-400':'bg-red-400'}`}></span>
-                                                <span className="text-xs font-medium text-slate-700 truncate">{cat}</span>
-                                            </div>
-                                            <span className={`text-xs font-bold font-serif flex-shrink-0 ${d.isR?'text-emerald-600':'text-red-500'}`}>{fmt(d.total)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        {grandLivre.length===0 ? (
+                            <p className="text-center py-12 text-slate-400 italic font-sans text-sm">Aucune opération pour cette période.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Date</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Libellé</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Catégorie</th>
+                                            <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-600">Recette</th>
+                                            <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500">Dépense</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {grandLivre.map((op,i)=>(
+                                            <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-4 py-3 text-xs text-slate-500 font-sans whitespace-nowrap">{op.date?new Date(op.date+'T12:00').toLocaleDateString('fr-FR'):''}</td>
+                                                <td className="px-4 py-3 font-bold text-slate-800 text-xs">{op.libelle}</td>
+                                                <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SOURCE_COLORS[op.source]||'bg-slate-100 text-slate-600'}`}>{op.categorie}</span></td>
+                                                <td className="px-4 py-3 text-right font-serif font-bold text-emerald-600 whitespace-nowrap">{op.recette>0?fmt(op.recette):'—'}</td>
+                                                <td className="px-4 py-3 text-right font-serif font-bold text-red-500 whitespace-nowrap">{op.depense>0?fmt(op.depense):'—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="border-t-2 bg-slate-50">
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 font-serif">Total</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-emerald-700">{fmt(totalRecettes)}</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-red-600">{fmt(totalDepenses)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-3 text-xs font-black uppercase tracking-widest font-serif text-slate-700">Solde net</td>
+                                            <td colSpan={2} className={`px-4 py-3 text-right text-lg font-bold font-serif ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
