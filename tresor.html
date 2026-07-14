@@ -88,7 +88,8 @@
             const totalR = recettes.reduce((s, t) => s + (t.montant || 0), 0);
             const totalD = depenses.reduce((s, t) => s + (t.montant || 0), 0);
             const solde = totalR - totalD;
-            const payees = cotisations.filter(c => c.annee == thisYear && c.payee).length;
+            const membresAyantVerse = new Set(cotisations.filter(c=>c.annee==thisYear).map(c=>c.membreId)).size;
+            const payees = membresAyantVerse;
             const recentes = [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
 
             return (
@@ -115,7 +116,7 @@
                             <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(payees/membres.length)*100}%`:'0%'}}></div>
                             </div>
-                            <p className="text-xs text-slate-400 mt-2 font-sans">Membres à jour</p>
+                            <p className="text-xs text-slate-400 mt-2 font-sans">Membres ayant versé</p>
                         </div>
                     </div>
 
@@ -270,19 +271,22 @@
         }
 
         // ==============================
-        // COTISATIONS
+        // COTISATIONS (versements mensuels)
         // ==============================
-        function PayModal({ membre, annee, onConfirm, onCancel }) {
+        const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+        function PayMoisModal({ membre, annee, mois, onConfirm, onCancel }) {
             const [montant, setMontant] = useState('');
             const [note, setNote] = useState('');
             return (
                 <div className="fixed inset-0 bg-slate-900/80 z-[200] flex items-center justify-center p-4 animate-fade">
                     <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl">
-                        <h2 className="text-xl font-serif font-bold mb-1">Marquer comme payé</h2>
-                        <p className="text-slate-500 text-sm mb-6 font-sans">{membre.nom} — Cotisation {annee}</p>
+                        <h2 className="text-xl font-serif font-bold mb-1">Versement reçu</h2>
+                        <p className="text-slate-500 text-sm mb-1 font-sans">{membre.nom}</p>
+                        <p className="text-amber-700 text-xs font-bold uppercase tracking-widest mb-6 font-sans">{MOIS[mois-1]} {annee}</p>
                         <div className="space-y-4">
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Montant reçu (€)</label><input type="number" step="0.01" min="0" autoFocus placeholder="ex: 100" value={montant} onChange={e=>setMontant(e.target.value)} className="w-full border-2 p-3 rounded-xl text-base font-bold outline-none focus:border-emerald-500" /></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Note (optionnel)</label><input type="text" placeholder="Chèque n°, virement..." value={note} onChange={e=>setNote(e.target.value)} className="w-full border p-3 rounded-xl text-sm outline-none focus:border-emerald-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Montant reçu (€)</label><input type="number" step="0.01" min="0" autoFocus placeholder="ex: 50" value={montant} onChange={e=>setMontant(e.target.value)} className="w-full border-2 p-3 rounded-xl text-base font-bold outline-none focus:border-emerald-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Note (optionnel)</label><input type="text" placeholder="Chèque n°, virement, espèces..." value={note} onChange={e=>setNote(e.target.value)} className="w-full border p-3 rounded-xl text-sm outline-none focus:border-emerald-500" /></div>
                         </div>
                         <div className="flex gap-3 mt-6">
                             <button onClick={onCancel} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl font-sans">Annuler</button>
@@ -293,66 +297,115 @@
             );
         }
 
-        function CotisationsView({ membres, cotisations, onToggle }) {
+        function CotisationsView({ membres, cotisations, onAddVersement, onDeleteVersement }) {
             const [annee, setAnnee] = useState(String(new Date().getFullYear()));
             const [payModal, setPayModal] = useState(null);
+            const [expanded, setExpanded] = useState(null);
             const years = useMemo(()=>{
                 const ys=new Set(cotisations.map(c=>String(c.annee)));
                 ys.add(String(new Date().getFullYear()));
                 return [...ys].sort((a,b)=>b-a);
             },[cotisations]);
 
-            const memberCotis = membres.map(m=>{
-                const cot=cotisations.find(c=>c.membreId===m.id&&String(c.annee)===annee);
-                return {membre:m,cotisation:cot};
-            });
-            const payees=memberCotis.filter(mc=>mc.cotisation?.payee).length;
-            const montantTotal=cotisations.filter(c=>String(c.annee)===annee&&c.payee).reduce((s,c)=>s+(c.montant||0),0);
+            const montantTotalAnnee = cotisations.filter(c=>String(c.annee)===annee).reduce((s,c)=>s+(c.montant||0),0);
+            const membresAvecVersements = membres.filter(m=>cotisations.some(c=>c.membreId===m.id&&String(c.annee)===annee)).length;
+            const payModal_membre = payModal ? membres.find(m=>m.id===payModal.membreId) : null;
 
-            const handleToggle = (membreId,existing) => {
-                if(existing?.payee) { onToggle(membreId,annee,existing,null,null); }
-                else { setPayModal({membreId,existingId:existing?.id}); }
-            };
-            const confirmPay = (montant,note) => {
-                onToggle(payModal.membreId,annee,{id:payModal.existingId},montant,note);
+            const confirmPay = (montant, note) => {
+                onAddVersement(payModal.membreId, annee, payModal.mois, montant, note);
                 setPayModal(null);
             };
-            const payMembre = payModal ? membres.find(m=>m.id===payModal.membreId) : null;
 
             return (
                 <div className="space-y-6 animate-fade">
-                    {payModal && payMembre && <PayModal membre={payMembre} annee={annee} onConfirm={confirmPay} onCancel={()=>setPayModal(null)} />}
+                    {payModal && payModal_membre && <PayMoisModal membre={payModal_membre} annee={annee} mois={payModal.mois} onConfirm={confirmPay} onCancel={()=>setPayModal(null)} />}
+
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-                        <div><h2 className="text-2xl font-bold font-serif text-slate-800">Cotisations</h2><p className="text-slate-500 text-sm font-sans mt-1">Suivi des cotisations annuelles</p></div>
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Cotisations</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Versements mensuels par membre</p>
+                        </div>
                         <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-amber-500">
                             {years.map(y=><option key={y}>{y}</option>)}
                         </select>
                     </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">À jour</p><p className="text-3xl font-bold font-serif text-emerald-600">{payees} <span className="text-slate-300 text-2xl">/</span> {membres.length}</p></div>
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">En attente</p><p className="text-3xl font-bold font-serif text-amber-600">{membres.length-payees}</p></div>
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Montant reçu {annee}</p><p className="text-3xl font-bold font-serif text-emerald-600">{fmt(montantTotal)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Membres ayant versé</p><p className="text-3xl font-bold font-serif text-emerald-600">{membresAvecVersements} <span className="text-slate-300 text-2xl">/</span> {membres.length}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Versements enregistrés</p><p className="text-3xl font-bold font-serif text-amber-600">{cotisations.filter(c=>String(c.annee)===annee).length}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total encaissé {annee}</p><p className="text-3xl font-bold font-serif text-emerald-600">{fmt(montantTotalAnnee)}</p></div>
                     </div>
+
                     {membres.length===0 ? (
                         <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucun membre. Ajoutez-en dans l'onglet Paramètres.</div>
                     ) : (
-                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                            {memberCotis.map(({membre,cotisation})=>(
-                                <div key={membre.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 border-b last:border-0 transition-colors">
-                                    <div>
-                                        <p className="font-bold text-slate-800 text-sm">{membre.nom}</p>
-                                        {membre.role && <p className="text-[10px] text-amber-700 uppercase font-bold tracking-widest font-sans">{membre.role}</p>}
+                        <div className="space-y-3">
+                            {membres.map(m=>{
+                                const versements = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===annee);
+                                const totalMembre = versements.reduce((s,c)=>s+(c.montant||0),0);
+                                const moisPaies = new Set(versements.map(c=>c.mois));
+                                const isExpanded = expanded===m.id;
+                                return (
+                                    <div key={m.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                        <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors" onClick={()=>setExpanded(isExpanded?null:m.id)}>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <p className="font-bold text-slate-800">{m.nom}</p>
+                                                    {m.role && <span className="text-[10px] text-amber-700 uppercase font-bold tracking-widest font-sans bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">{m.role}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-2 flex-wrap">
+                                                    {MOIS.map((ml,i)=>{
+                                                        const v=versements.find(c=>c.mois===i+1);
+                                                        return <span key={i} title={v?`${ml}: ${fmt(v.montant)}${v.note?` — ${v.note}`:''}`:'Non versé'} className={`text-[9px] font-bold px-1.5 py-0.5 rounded font-sans ${v?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-400'}`}>{ml}</span>;
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 ml-4 flex-shrink-0">
+                                                <div className="text-right">
+                                                    <p className="font-bold font-serif text-emerald-600">{fmt(totalMembre)}</p>
+                                                    <p className="text-[10px] text-slate-400 font-sans">{moisPaies.size} mois</p>
+                                                </div>
+                                                <i className={`fa-solid fa-chevron-${isExpanded?'up':'down'} text-slate-300 text-xs`}></i>
+                                            </div>
+                                        </div>
+                                        {isExpanded && (
+                                            <div className="border-t bg-slate-50 p-4 animate-fade">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 font-sans">Cliquez sur un mois pour enregistrer ou supprimer un versement</p>
+                                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
+                                                    {MOIS.map((ml,i)=>{
+                                                        const moisNum = i+1;
+                                                        const v = versements.find(c=>c.mois===moisNum);
+                                                        return (
+                                                            <button key={i} onClick={()=>v ? onDeleteVersement(v.id) : setPayModal({membreId:m.id,mois:moisNum})}
+                                                                className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${v?'bg-emerald-50 border-emerald-300 hover:bg-red-50 hover:border-red-300':'bg-white border-slate-200 hover:border-amber-400'}`}
+                                                                title={v?`Cliquer pour supprimer: ${fmt(v.montant)}`:`Ajouter versement ${ml}`}>
+                                                                <span className={`text-[10px] font-bold font-sans ${v?'text-emerald-700':'text-slate-400'}`}>{ml}</span>
+                                                                {v ? (
+                                                                    <span className="text-[9px] text-emerald-600 font-bold font-serif mt-0.5">{fmt(v.montant)}</span>
+                                                                ) : (
+                                                                    <i className="fa-solid fa-plus text-slate-300 text-[10px] mt-0.5"></i>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {versements.length>0 && (
+                                                    <div className="mt-4 space-y-1">
+                                                        {versements.sort((a,b)=>a.mois-b.mois).map(v=>(
+                                                            <div key={v.id} className="flex items-center justify-between text-xs text-slate-600 bg-white rounded-lg px-3 py-2 border">
+                                                                <span className="font-bold w-8">{MOIS[v.mois-1]}</span>
+                                                                <span className="font-serif font-bold text-emerald-600">{fmt(v.montant)}</span>
+                                                                {v.note && <span className="text-slate-400 italic hidden sm:block flex-1 text-center">{v.note}</span>}
+                                                                <span className="text-slate-300">{v.datePaiement ? new Date(v.datePaiement).toLocaleDateString('fr-FR') : ''}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        {cotisation?.payee && cotisation.montant && <span className="text-xs text-emerald-600 font-bold font-serif">{fmt(cotisation.montant)}</span>}
-                                        {cotisation?.datePaiement && <span className="text-[10px] text-slate-400 font-sans hidden md:block">{new Date(cotisation.datePaiement).toLocaleDateString('fr-FR')}</span>}
-                                        <button onClick={()=>handleToggle(membre.id,cotisation)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm ${cotisation?.payee?'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200':'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'}`}>
-                                            <Icon n={cotisation?.payee?'check':'clock'} size={12}/>
-                                            {cotisation?.payee?'À jour':'En attente'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -488,15 +541,13 @@
             const updateTx = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id),d);
             const deleteTx = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id));
 
-            const toggleCotisation = async (membreId,annee,existing,montant,note) => {
-                if(existing?.payee) {
-                    if(existing.id) await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',existing.id),{payee:false,datePaiement:null,montant:0});
-                } else {
-                    const data={membreId,annee:parseInt(annee),payee:true,datePaiement:new Date().toISOString().split('T')[0],montant,note};
-                    if(existing?.id) await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',existing.id),data);
-                    else await api.addDoc(path('tresor_cotisations'),data);
-                }
+            const addVersement = async (membreId,annee,mois,montant,note) => {
+                await api.addDoc(path('tresor_cotisations'),{
+                    membreId, annee:parseInt(annee), mois, montant, note,
+                    datePaiement: new Date().toISOString().split('T')[0]
+                });
             };
+            const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
             const addMembre = async d => await api.addDoc(path('tresor_membres'),d);
             const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id),d);
@@ -538,7 +589,7 @@
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
                         {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} settings={settings} onNav={setActiveView}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
-                        {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onToggle={toggleCotisation}/>}
+                        {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement}/>}
                         {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre}/>}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
