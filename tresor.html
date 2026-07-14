@@ -68,6 +68,12 @@
         const TYPES_CHARGES = ['Obédience','Temple / Local','Assurance','Abonnement','Autre'];
 
         const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+        const GRADE_ORDER = { 'maître':0, 'maitre':0, 'compagnon':1, 'apprenti':2 };
+        const sortByGrade = arr => [...arr].sort((a,b)=>{
+            const ga = GRADE_ORDER[(a.grade||'').toLowerCase().trim()] ?? 3;
+            const gb = GRADE_ORDER[(b.grade||'').toLowerCase().trim()] ?? 3;
+            return ga !== gb ? ga - gb : (a.nom||'').localeCompare(b.nom||'','fr');
+        });
         // Format date en ISO local (YYYY-MM-DD) sans décalage UTC
         const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         const todayISO = () => toLocalISO(new Date());
@@ -417,7 +423,7 @@
                         <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucun membre. Ajoutez-en dans l'onglet Tableau.</div>
                     ) : (
                         <div className="space-y-3">
-                            {membres.map(m=>{
+                            {sortByGrade(membres).map(m=>{
                                 const versements = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===annee);
                                 const totalMembre = versements.reduce((s,c)=>s+(c.montant||0),0);
                                 const moisPaies = new Set(versements.map(c=>c.mois));
@@ -571,11 +577,11 @@
                             <p className="text-slate-400 italic text-sm">Aucun membre dans le Tableau.</p>
                         ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
-                                {membres.map(m=>(
+                                {sortByGrade(membres).map(m=>(
                                     <button key={m.id} type="button" onClick={()=>toggleMembre(m.id)}
                                         className={`text-left px-3 py-2 rounded-xl border-2 text-xs font-bold transition-all ${f.selectedMembres.includes(m.id)?'bg-orange-50 border-orange-400 text-orange-700':'bg-slate-50 border-slate-200 text-slate-600 hover:border-amber-400'}`}>
                                         {m.nom}
-                                        {m.role && <span className="block text-[9px] font-normal text-slate-400">{m.role}</span>}
+                                        {m.grade && <span className="block text-[9px] font-normal text-slate-400">{m.grade}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -1026,7 +1032,7 @@
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {membres.map(m=>(
+                                        {sortByGrade(membres).map(m=>(
                                             <React.Fragment key={m.id}>
                                                 <tr className="hover:bg-amber-50 transition-colors group">
                                                     <td className="px-6 py-4 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
