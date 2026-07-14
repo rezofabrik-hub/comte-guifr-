@@ -1090,7 +1090,7 @@
             );
         }
 
-        function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre }) {
+        function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre, onResetAll }) {
             const [sf, setSf] = useState({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'', maitreDuBanquet: settings.maitreDuBanquet||'', logo: settings.logo||'' });
             const [saving, setSaving] = useState(false);
             const [isAddingM, setIsAddingM] = useState(false);
@@ -1211,6 +1211,19 @@
                                 </table>
                             </div>
                         )}
+                    </div>
+
+                    {/* Zone danger */}
+                    <div className="border-2 border-red-200 bg-red-50 rounded-2xl p-5">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-widest text-red-700 font-serif">Zone danger — Remise à zéro</p>
+                                <p className="text-[10px] text-slate-400 font-sans mt-1">Supprime cotisations, transactions, agapes, charges et planches. Les membres et paramètres sont conservés.</p>
+                            </div>
+                            <button onClick={onResetAll} className="ml-6 shrink-0 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow font-serif transition-all">
+                                Tout remettre à zéro
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
@@ -1617,6 +1630,24 @@
 
             const saveSettings = async d => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d);
 
+            const resetAllData = async () => {
+                if(!confirm('⚠️ Remettre à zéro TOUTES les données ?\n\nCela supprimera :\n• Toutes les cotisations\n• Toutes les transactions\n• Toutes les agapes\n• Toutes les charges\n• Toutes les planches\n\nLes membres et paramètres seront conservés.\n\nCette action est IRRÉVERSIBLE.')) return;
+                if(!confirm('Confirmez-vous la remise à zéro ?')) return;
+                const deleteAll = async (items, col) => {
+                    for(const item of items) {
+                        await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data',col,item.id));
+                    }
+                };
+                await Promise.all([
+                    deleteAll(cotisations, 'tresor_cotisations'),
+                    deleteAll(transactions, 'tresor_transactions'),
+                    deleteAll(agapes, 'tresor_agapes'),
+                    deleteAll(charges, 'tresor_charges'),
+                    deleteAll(planches, 'tresor_planches'),
+                ]);
+                alert('Remise à zéro effectuée.');
+            };
+
             if(!ready) return null;
             const loader = document.getElementById('loading-screen');
             if(loader) loader.style.display='none';
@@ -1663,7 +1694,7 @@
                         {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
                         {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
-                        {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre}/>}
+                        {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre} onResetAll={resetAllData}/>}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
                 </div>
