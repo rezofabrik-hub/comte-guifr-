@@ -78,9 +78,6 @@
             return <i className={`${m[n] || 'fa-solid fa-circle'} ${cls}`} style={{fontSize: size}}></i>;
         };
 
-        // ==============================
-        // BILAN
-        // ==============================
         function DashboardView({ transactions, cotisations, membres, settings, onNav }) {
             const thisYear = new Date().getFullYear();
             const recettes = transactions.filter(t => t.type === 'recette');
@@ -172,9 +169,6 @@
             );
         }
 
-        // ==============================
-        // TRANSACTIONS
-        // ==============================
         function TxForm({ initialData, onSave, onCancel }) {
             const [f, setF] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'recette', libelle:'', categorie:'Cotisation annuelle', montant:'', note:'' });
             const cats = f.type==='recette' ? CATEGORIES_RECETTE : CATEGORIES_DEPENSE;
@@ -270,9 +264,6 @@
             );
         }
 
-        // ==============================
-        // COTISATIONS (versements mensuels)
-        // ==============================
         const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
         function PayMoisModal({ membre, annee, mois, onConfirm, onCancel }) {
@@ -337,7 +328,7 @@
                     </div>
 
                     {membres.length===0 ? (
-                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucun membre. Ajoutez-en dans l'onglet Paramètres.</div>
+                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucun membre. Ajoutez-en dans l'onglet Tableau.</div>
                     ) : (
                         <div className="space-y-3">
                             {membres.map(m=>{
@@ -412,9 +403,6 @@
             );
         }
 
-        // ==============================
-        // PARAMÈTRES
-        // ==============================
         function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre }) {
             const [sf, setSf] = useState({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'' });
             const [saving, setSaving] = useState(false);
@@ -506,9 +494,6 @@
             );
         }
 
-        // ==============================
-        // APP
-        // ==============================
         function App() {
             const api = window.FB_API;
             const [ready, setReady] = useState(false);
@@ -563,7 +548,7 @@
                 {id:'dashboard',icon:'home',label:'Bilan'},
                 {id:'transactions',icon:'file',label:'Livre de caisse'},
                 {id:'cotisations',icon:'users',label:'Cotisations'},
-                {id:'parametres',icon:'settings',label:'Paramètres'},
+                {id:'parametres',icon:'settings',label:'Tableau'},
             ];
 
             return (
