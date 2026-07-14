@@ -69,6 +69,14 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    match /artifacts/{appId}/public/data/tresor_membres/{docId} {
+      allow read, write: if true;
+    }
+
+    match /artifacts/{appId}/public/data/tresor_settings/{docId} {
+      allow read, write: if true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
