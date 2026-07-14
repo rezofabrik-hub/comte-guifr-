@@ -93,7 +93,12 @@
             const totalR = recettes.reduce((s, t) => s + (t.montant || 0), 0);
             const totalD = depenses.reduce((s, t) => s + (t.montant || 0), 0);
             const solde = totalR - totalD;
-            const membresAyantVerse = new Set(cotisations.filter(c=>c.annee==thisYear).map(c=>c.membreId)).size;
+            const montantCotis = settings.montantCotis || 0;
+            const membresAJour = membres.filter(m => {
+                const totalVerse = cotisations.filter(c=>c.membreId===m.id&&c.annee==thisYear).reduce((s,c)=>s+(c.montant||0),0);
+                return totalVerse >= montantCotis && montantCotis > 0;
+            }).length;
+            const totalAttendu = membres.length * montantCotis;
             const recentes = [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
 
             const agapesAnnee = agapes.filter(a=>a.date&&a.date.startsWith(String(thisYear)));
@@ -123,11 +128,11 @@
                         </div>
                         <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('cotisations')}>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="users" size={14} cls="mr-2 text-amber-600"/>Cotisations {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAyantVerse} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'}</p>
+                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'}</p>
                             <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(membresAyantVerse/membres.length)*100}%`:'0%'}}></div>
+                                <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(membresAJour/membres.length)*100}%`:'0%'}}></div>
                             </div>
-                            <p className="text-xs text-slate-400 mt-2 font-sans">Membres à jour</p>
+                            <p className="text-xs text-slate-400 mt-2 font-sans">À jour · Attendu : {fmt(totalAttendu)}</p>
                         </div>
                     </div>
 
@@ -265,7 +270,7 @@
                     <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
                         <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest font-sans">{filtered.length} opération{filtered.length>1?'s':''}</span>
-                            <span className={`font-bold font-serif text-sm ${totalFiltered>=0?'text-emerald-600':'text-red-500'}`}>Solde filtré : {fmt(totalFiltered)}</span>
+                            <span className={`font-bold font-serif text-sm ${totalFiltered>=0?'text-emerald-600':'text-red-500'}`}>Solde filtré : {fmt(totalFiltered)}</span>
                         </div>
                         {filtered.length===0 ? <p className="text-center py-16 text-slate-400 italic font-sans">Aucune opération pour cette sélection.</p> : (
                             <div className="divide-y divide-slate-50">
@@ -322,7 +327,7 @@
             );
         }
 
-        function CotisationsView({ membres, cotisations, onAddVersement, onDeleteVersement }) {
+        function CotisationsView({ membres, cotisations, onAddVersement, onDeleteVersement, settings }) {
             const [annee, setAnnee] = useState(String(new Date().getFullYear()));
             const [payModal, setPayModal] = useState(null);
             const [expanded, setExpanded] = useState(null);
@@ -332,8 +337,13 @@
                 return [...ys].sort((a,b)=>b-a);
             },[cotisations]);
 
+            const montantCotis = settings.montantCotis || 0;
             const montantTotalAnnee = cotisations.filter(c=>String(c.annee)===annee).reduce((s,c)=>s+(c.montant||0),0);
-            const membresAvecVersements = membres.filter(m=>cotisations.some(c=>c.membreId===m.id&&String(c.annee)===annee)).length;
+            const totalAttendu = membres.length * montantCotis;
+            const membresAJour = membres.filter(m=>{
+                const total = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===annee).reduce((s,c)=>s+(c.montant||0),0);
+                return total >= montantCotis && montantCotis > 0;
+            }).length;
             const payModal_membre = payModal ? membres.find(m=>m.id===payModal.membreId) : null;
 
             const confirmPay = (montant, note) => {
@@ -355,10 +365,25 @@
                         </select>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Membres ayant versé</p><p className="text-3xl font-bold font-serif text-emerald-600">{membresAvecVersements} <span className="text-slate-300 text-2xl">/</span> {membres.length}</p></div>
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Versements enregistrés</p><p className="text-3xl font-bold font-serif text-amber-600">{cotisations.filter(c=>String(c.annee)===annee).length}</p></div>
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total encaissé {annee}</p><p className="text-3xl font-bold font-serif text-emerald-600">{fmt(montantTotalAnnee)}</p></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border-2 border-emerald-200 shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Membres à jour</p>
+                            <p className="text-3xl font-bold font-serif text-emerald-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length}</p>
+                            {montantCotis>0 && <p className="text-[10px] text-slate-400 mt-1 font-sans">Soldé à {fmt(montantCotis)}</p>}
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total attendu {annee}</p>
+                            <p className="text-3xl font-bold font-serif text-slate-700">{fmt(totalAttendu)}</p>
+                            {montantCotis>0 && <p className="text-[10px] text-slate-400 mt-1 font-sans">{membres.length} × {fmt(montantCotis)}</p>}
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Encaissé {annee}</p>
+                            <p className="text-3xl font-bold font-serif text-emerald-600">{fmt(montantTotalAnnee)}</p>
+                        </div>
+                        <div className={`p-5 rounded-2xl border shadow-sm text-center ${totalAttendu>0&&montantTotalAnnee<totalAttendu?'bg-red-50 border-red-200':'bg-emerald-50 border-emerald-200'}`}>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Reste à encaisser</p>
+                            <p className={`text-3xl font-bold font-serif ${totalAttendu>0&&montantTotalAnnee<totalAttendu?'text-red-500':'text-emerald-600'}`}>{fmt(Math.max(0,totalAttendu-montantTotalAnnee))}</p>
+                        </div>
                     </div>
 
                     {membres.length===0 ? (
@@ -387,8 +412,11 @@
                                             </div>
                                             <div className="flex items-center gap-4 ml-4 flex-shrink-0">
                                                 <div className="text-right">
-                                                    <p className="font-bold font-serif text-emerald-600">{fmt(totalMembre)}</p>
-                                                    <p className="text-[10px] text-slate-400 font-sans">{moisPaies.size} mois</p>
+                                                    <p className={`font-bold font-serif ${montantCotis>0&&totalMembre>=montantCotis?'text-emerald-600':'text-amber-600'}`}>{fmt(totalMembre)}{montantCotis>0?` / ${fmt(montantCotis)}`:''}</p>
+                                                    {montantCotis>0&&totalMembre>=montantCotis
+                                                        ? <p className="text-[10px] text-emerald-600 font-bold font-sans">✓ À jour</p>
+                                                        : <p className="text-[10px] text-slate-400 font-sans">{moisPaies.size} versement{moisPaies.size>1?'s':''}</p>
+                                                    }
                                                 </div>
                                                 <i className={`fa-solid fa-chevron-${isExpanded?'up':'down'} text-slate-300 text-xs`}></i>
                                             </div>
@@ -592,9 +620,9 @@
                                         </div>
                                     </div>
                                     <div className="border-t bg-slate-50 px-6 py-3 flex gap-6 text-xs text-slate-500 font-sans">
-                                        <span>Prix/couvert : <strong className="text-slate-700">{fmt(a.prixCouvert)}</strong></span>
-                                        <span>Recette : <strong className="text-emerald-600">{fmt((a.totalCouverts||0)*(a.prixCouvert||0))}</strong></span>
-                                        <span>Nourriture : <strong className="text-red-500">{fmt(a.coutRepas)}</strong></span>
+                                        <span>Prix/couvert : <strong className="text-slate-700">{fmt(a.prixCouvert)}</strong></span>
+                                        <span>Recette : <strong className="text-emerald-600">{fmt((a.totalCouverts||0)*(a.prixCouvert||0))}</strong></span>
+                                        <span>Nourriture : <strong className="text-red-500">{fmt(a.coutRepas)}</strong></span>
                                     </div>
                                 </div>
                             ))}
@@ -921,7 +949,7 @@
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
                         {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
-                        {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement}/>}
+                        {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
                         {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} onAdd={addAgape} onDelete={deleteAgape}/>}
                         {activeView==='charges' && <ChargesView charges={charges} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre}/>}
