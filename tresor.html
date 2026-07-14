@@ -928,7 +928,7 @@
         // ==============================
         // PARAMÈTRES / TABLEAU
         // ==============================
-        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', dateNaissance:'' };
+        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'' };
 
         function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
             const [f, setF] = useState(initial || EMPTY_MEMBRE);
@@ -939,6 +939,7 @@
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
                     </div>
                     <div className="flex gap-3 justify-end">
@@ -1029,6 +1030,7 @@
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
                                             <th className="px-4 py-3"></th>
                                         </tr>
@@ -1045,6 +1047,7 @@
                                                         {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
                                                     </td>
                                                     <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
                                                     <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
                                                     <td className="px-4 py-4">
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1056,7 +1059,7 @@
                                                 {editingMId===m.id && (
                                                     <tr>
                                                         <td colSpan={6} className="px-6 py-4 bg-amber-50 border-b">
-                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',dateNaissance:m.dateNaissance||''}}
+                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
                                                                 onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
                                                                 onCancel={()=>setEditingMId(null)} />
                                                         </td>
