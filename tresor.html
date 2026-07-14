@@ -99,6 +99,7 @@
                 return totalVerse >= montantCotis && montantCotis > 0;
             }).length;
             const totalAttendu = membres.length * montantCotis;
+            const totalEncaisse = cotisations.filter(c=>c.annee==thisYear).reduce((s,c)=>s+(c.montant||0),0);
             const recentes = [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
 
             // Agapes année en cours
@@ -130,11 +131,20 @@
                         </div>
                         <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-amber-400 transition-all" onClick={()=>onNav('cotisations')}>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 font-sans flex items-center"><Icon n="users" size={14} cls="mr-2 text-amber-600"/>Cotisations {thisYear}</p>
-                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'}</p>
-                            <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full" style={{width: membres.length?`${(membresAJour/membres.length)*100}%`:'0%'}}></div>
+                            <p className="text-3xl font-bold font-serif text-amber-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length||'—'} <span className="text-sm font-sans font-normal text-slate-400">à jour</span></p>
+                            <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-500 rounded-full transition-all" style={{width: totalAttendu>0?`${Math.min(100,(totalEncaisse/totalAttendu)*100)}%`:'0%'}}></div>
                             </div>
-                            <p className="text-xs text-slate-400 mt-2 font-sans">À jour · Attendu : {fmt(totalAttendu)}</p>
+                            <div className="flex justify-between items-end mt-2">
+                                <div>
+                                    <p className="text-xs font-bold text-emerald-600 font-serif">{fmt(totalEncaisse)}</p>
+                                    <p className="text-[10px] text-slate-400 font-sans">encaissé</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-slate-500 font-serif">{fmt(totalAttendu)}</p>
+                                    <p className="text-[10px] text-slate-400 font-sans">attendu</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
