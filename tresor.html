@@ -88,6 +88,7 @@
                 landmark: 'fa-solid fa-landmark', shield: 'fa-solid fa-shield-halved',
                 utensils: 'fa-solid fa-utensils', invoice: 'fa-solid fa-file-invoice',
                 receipt: 'fa-solid fa-receipt', building: 'fa-solid fa-building-columns',
+                scroll: 'fa-solid fa-scroll', book: 'fa-solid fa-book-open',
             };
             return <i className={`${m[n] || 'fa-solid fa-circle'} ${cls}`} style={{fontSize: size}}></i>;
         };
@@ -1251,6 +1252,164 @@
             );
         }
 
+        // ==============================
+        // PLANCHES
+        // ==============================
+        const GRADES_PLANCHES = [
+            { grade: 'Maître',     color: 'slate',  icon: '🔨' },
+            { grade: 'Compagnon',  color: 'blue',   icon: '⚙️' },
+            { grade: 'Apprenti',   color: 'emerald', icon: '🌱' },
+        ];
+
+        function PlancheForm({ membres, initialGrade, onSave, onCancel }) {
+            const [f, setF] = useState({ titre:'', auteur:'', grade: initialGrade||'Maître', date: todayISO(), resume:'', fichier:'', fichierNom:'' });
+            const [pdfErr, setPdfErr] = useState('');
+            const auteursMembres = sortByGrade(membres);
+
+            const handlePDF = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 900000) { setPdfErr('Fichier trop grand (max 900 Ko). Compressez le PDF avant de l\'importer.'); return; }
+                setPdfErr('');
+                const reader = new FileReader();
+                reader.onload = ev => setF(p=>({...p, fichier: ev.target.result, fichierNom: file.name}));
+                reader.readAsDataURL(file);
+            };
+
+            return (
+                <form onSubmit={async e=>{e.preventDefault();await onSave(f);}} className="space-y-4 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Titre de la Planche *</label><input type="text" value={f.titre} onChange={e=>setF({...f,titre:e.target.value})} placeholder="ex: De l'usage du compas…" className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Auteur</label>
+                            <select value={f.auteur} onChange={e=>setF({...f,auteur:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                <option value="">— Sélectionner —</option>
+                                {auteursMembres.map(m=><option key={m.id} value={m.nom}>{m.nom}{m.grade?` (${m.grade})`:''}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de présentation</label><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade concerné</label>
+                            <div className="flex gap-2">
+                                {GRADES_PLANCHES.map(g=>(
+                                    <button key={g.grade} type="button" onClick={()=>setF({...f,grade:g.grade})}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase border-2 transition-all ${f.grade===g.grade?'border-amber-500 bg-amber-50 text-amber-700':'border-slate-200 bg-white text-slate-500 hover:border-amber-300'}`}>
+                                        {g.icon} {g.grade}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Résumé / contenu</label><textarea value={f.resume} onChange={e=>setF({...f,resume:e.target.value})} placeholder="Description, thème, extrait…" className="w-full border p-3 rounded-xl bg-slate-50 h-20 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Document PDF (optionnel)</label>
+                            <div className="flex items-center gap-3 bg-slate-50 border rounded-xl p-3">
+                                <label className="cursor-pointer bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors flex-shrink-0">
+                                    {f.fichier ? 'Changer le PDF' : 'Choisir un PDF'}
+                                    <input type="file" accept="application/pdf" onChange={handlePDF} className="hidden"/>
+                                </label>
+                                {f.fichier
+                                    ? <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <i className="fa-solid fa-file-pdf text-red-500"></i>
+                                        <span className="text-xs font-bold text-slate-700 truncate">{f.fichierNom}</span>
+                                        <button type="button" onClick={()=>setF(p=>({...p,fichier:'',fichierNom:''}))} className="text-red-400 hover:text-red-600 ml-auto flex-shrink-0"><Icon n="x" size={13}/></button>
+                                      </div>
+                                    : <span className="text-[10px] text-slate-400 font-sans">PDF max 900 Ko — stocké dans la base</span>
+                                }
+                            </div>
+                            {pdfErr && <p className="text-red-500 text-xs mt-1 font-sans">{pdfErr}</p>}
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-4 pt-1">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-8 py-3 rounded-xl font-bold text-white bg-slate-700 hover:bg-slate-800 shadow text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function PlanchesView({ planches, membres, settings, onAdd, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [addingGrade, setAddingGrade] = useState('Maître');
+
+            const GRADE_COLORS = {
+                'Maître':    { bg:'bg-slate-800', light:'bg-slate-50', border:'border-slate-300', text:'text-slate-700', badge:'bg-slate-100 text-slate-700 border-slate-300' },
+                'Compagnon': { bg:'bg-blue-700',  light:'bg-blue-50',  border:'border-blue-200',  text:'text-blue-700',  badge:'bg-blue-50 text-blue-700 border-blue-200' },
+                'Apprenti':  { bg:'bg-emerald-700',light:'bg-emerald-50',border:'border-emerald-200',text:'text-emerald-700',badge:'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            };
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Planches</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Travaux présentés en Loge — par grade</p>
+                        </div>
+                        <button onClick={()=>setIsAdding(!isAdding)} className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2">
+                            <Icon n={isAdding?'x':'plus'} size={14}/> {isAdding?'Annuler':'Nouvelle Planche'}
+                        </button>
+                    </div>
+
+                    {isAdding && (
+                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
+                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="scroll" cls="text-slate-600"/> Nouvelle Planche</h3>
+                            <PlancheForm membres={membres} initialGrade={addingGrade}
+                                onSave={async d=>{await onAdd(d);setIsAdding(false);}}
+                                onCancel={()=>setIsAdding(false)}/>
+                        </div>
+                    )}
+
+                    <div className="space-y-8">
+                        {GRADES_PLANCHES.map(({grade, icon})=>{
+                            const c = GRADE_COLORS[grade];
+                            const items = planches.filter(p=>p.grade===grade).sort((a,b)=>new Date(b.date)-new Date(a.date));
+                            return (
+                                <div key={grade} className="rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className={`${c.bg} px-6 py-4 flex items-center justify-between`}>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">{icon}</span>
+                                            <div>
+                                                <h3 className="text-white font-bold font-serif uppercase tracking-widest text-sm">{grade}s</h3>
+                                                <p className="text-white/60 text-[10px] font-sans">{items.length} planche{items.length>1?'s':''}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={()=>{setAddingGrade(grade);setIsAdding(true);window.scrollTo({top:0,behavior:'smooth'});}}
+                                            className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                            <Icon n="plus" size={11}/> Ajouter
+                                        </button>
+                                    </div>
+                                    {items.length===0 ? (
+                                        <div className={`${c.light} px-6 py-10 text-center`}>
+                                            <p className={`${c.text} text-xs font-sans italic opacity-60`}>Aucune planche enregistrée pour les {grade}s.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y bg-white">
+                                            {items.map(p=>(
+                                                <div key={p.id} className="px-6 py-5 hover:bg-slate-50 transition-colors group flex items-start gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                            <p className="font-bold text-slate-800 font-serif">{p.titre}</p>
+                                                            {p.auteur && p.auteur!=='__libre__' && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.badge} font-sans`}>{p.auteur}</span>}
+                                                        </div>
+                                                        {p.date && <p className="text-[10px] text-slate-400 font-sans mb-1.5">Présentée le {new Date(p.date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>}
+                                                        {p.resume && <p className="text-xs text-slate-500 leading-relaxed mb-2">{p.resume}</p>}
+                                                        {p.fichier && (
+                                                            <a href={p.fichier} download={p.fichierNom||`${p.titre}.pdf`} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg transition-colors">
+                                                                <i className="fa-solid fa-file-pdf"></i> Télécharger le PDF
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                    <button onClick={()=>onDelete(p.id)} className="p-1.5 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"><Icon n="trash" size={14}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
         // APP
         // ==============================
         function App() {
@@ -1262,6 +1421,7 @@
             const [membres, setMembres] = useState([]);
             const [agapes, setAgapes] = useState([]);
             const [charges, setCharges] = useState([]);
+            const [planches, setPlanches] = useState([]);
             const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
 
             const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
@@ -1278,8 +1438,9 @@
                 const unsubM = api.onSnapshot(path('tresor_membres'),s=>setMembres(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubAg = api.onSnapshot(path('tresor_agapes'),s=>setAgapes(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubCh = api.onSnapshot(path('tresor_charges'),s=>setCharges(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubPl = api.onSnapshot(path('tresor_planches'),s=>setPlanches(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubS = api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d=>{if(d.exists()) setSettings(d.data());});
-                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubS();};
+                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubPl();unsubS();};
             },[api,ready]);
 
             const logeName = settings.logeName || 'Trésorerie';
@@ -1308,6 +1469,9 @@
             const addCharge = async d => await api.addDoc(path('tresor_charges'),d);
             const deleteCharge = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_charges',id));
 
+            const addPlanche = async d => await api.addDoc(path('tresor_planches'),d);
+            const deletePlanche = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_planches',id));
+
             const saveSettings = async d => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d);
 
             if(!ready) return null;
@@ -1321,6 +1485,7 @@
                 {id:'agapes',icon:'utensils',label:'Agapes'},
                 {id:'charges',icon:'invoice',label:'Charges'},
                 {id:'planning',icon:'cal',label:'Planning'},
+                {id:'planches',icon:'scroll',label:'Planches'},
                 {id:'parametres',icon:'settings',label:'Tableau'},
             ];
 
@@ -1353,6 +1518,7 @@
                         {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
                         {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} settings={settings} onAdd={addAgape} onDelete={deleteAgape}/>}
                         {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
+                        {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
                         {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
                         {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre}/>}
                     </main>
