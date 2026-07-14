@@ -105,7 +105,7 @@
             );
         }
 
-        function DashboardView({ transactions, cotisations, membres, agapes, charges, settings, onNav }) {
+        function DashboardView({ transactions, cotisations, membres, agapes, charges, settings, onNav, onDeleteTx, onDeleteVersement, onDeleteAgape, onDeleteCharge }) {
             const currentYear = new Date().getFullYear();
             const [annee, setAnnee] = useState(String(currentYear));
 
@@ -162,17 +162,17 @@
             // ── GRAND LIVRE : toutes opérations chronologiques ────
             const grandLivre = useMemo(()=>{
                 const ops = [];
-                txRecettes.forEach(t=>ops.push({ date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:t.montant, depense:0, source:'caisse' }));
-                txDepenses.forEach(t=>ops.push({ date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:0, depense:t.montant, source:'caisse' }));
+                txRecettes.forEach(t=>ops.push({ id:t.id, date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:t.montant, depense:0, source:'caisse' }));
+                txDepenses.forEach(t=>ops.push({ id:t.id, date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:0, depense:t.montant, source:'caisse' }));
                 cotisFiltered.forEach(c=>{
                     const m = membres.find(x=>x.id===c.membreId);
-                    ops.push({ date:c.datePaiement||`${c.annee}-${String(c.mois).padStart(2,'0')}-01`, libelle:`Cotisation — ${m?.nom||'Membre'}`, categorie:'Cotisation', recette:c.montant, depense:0, source:'cotisation' });
+                    ops.push({ id:c.id, date:c.datePaiement||`${c.annee}-${String(c.mois).padStart(2,'0')}-01`, libelle:`Cotisation — ${m?.nom||'Membre'}`, categorie:'Cotisation', recette:c.montant, depense:0, source:'cotisation' });
                 });
                 agapesFil.forEach(a=>{
-                    if(a.recetteTotale) ops.push({ date:a.date, libelle:`Agapes — ${a.tenue||'Tenue'}`, categorie:'Recette agapes', recette:a.recetteTotale, depense:0, source:'agapes' });
-                    if(a.coutRepas) ops.push({ date:a.date, libelle:`Nourriture — ${a.tenue||'Tenue'}`, categorie:'Dépense agapes', recette:0, depense:a.coutRepas, source:'agapes' });
+                    if(a.recetteTotale) ops.push({ id:a.id, date:a.date, libelle:`Agapes — ${a.tenue||'Tenue'}`, categorie:'Recette agapes', recette:a.recetteTotale, depense:0, source:'agapes' });
+                    if(a.coutRepas) ops.push({ id:a.id, date:a.date, libelle:`Nourriture — ${a.tenue||'Tenue'}`, categorie:'Dépense agapes', recette:0, depense:a.coutRepas, source:'agapes' });
                 });
-                chargesFil.forEach(c=>ops.push({ date:c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`, libelle:c.nom, categorie:`Charge — ${c.periodicite||''}`, recette:0, depense:c.montant, source:'charge' }));
+                chargesFil.forEach(c=>ops.push({ id:c.id, date:c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`, libelle:c.nom, categorie:`Charge — ${c.periodicite||''}`, recette:0, depense:c.montant, source:'charge' }));
                 return ops.sort((a,b)=>new Date(b.date)-new Date(a.date));
             },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil,membres]);
 
@@ -332,16 +332,28 @@
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Catégorie</th>
                                             <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-600">Recette</th>
                                             <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500">Dépense</th>
+                                            <th className="px-2 py-3"></th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                         {grandLivre.map((op,i)=>(
-                                            <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={i} className="hover:bg-slate-50 transition-colors group">
                                                 <td className="px-4 py-3 text-xs text-slate-500 font-sans whitespace-nowrap">{op.date?new Date(op.date+'T12:00').toLocaleDateString('fr-FR'):''}</td>
                                                 <td className="px-4 py-3 font-bold text-slate-800 text-xs">{op.libelle}</td>
                                                 <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SOURCE_COLORS[op.source]||'bg-slate-100 text-slate-600'}`}>{op.categorie}</span></td>
                                                 <td className="px-4 py-3 text-right font-serif font-bold text-emerald-600 whitespace-nowrap">{op.recette>0?fmt(op.recette):'—'}</td>
                                                 <td className="px-4 py-3 text-right font-serif font-bold text-red-500 whitespace-nowrap">{op.depense>0?fmt(op.depense):'—'}</td>
+                                                <td className="px-2 py-3 text-center">
+                                                    <button onClick={()=>{
+                                                        if(!confirm('Supprimer cette entrée ?')) return;
+                                                        if(op.source==='caisse') onDeleteTx?.(op.id);
+                                                        else if(op.source==='cotisation') onDeleteVersement?.(op.id);
+                                                        else if(op.source==='agapes') onDeleteAgape?.(op.id);
+                                                        else if(op.source==='charge') onDeleteCharge?.(op.id);
+                                                    }} className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-1 rounded" title="Supprimer">
+                                                        <Icon n="trash" size={12}/>
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -1644,7 +1656,7 @@
                         </div>
                     </nav>
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
-                        {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView}/>}
+                        {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView} onDeleteTx={deleteTx} onDeleteVersement={deleteVersement} onDeleteAgape={deleteAgape} onDeleteCharge={deleteCharge}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} settings={settings} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
                         {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
                         {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} settings={settings} onAdd={addAgape} onDelete={deleteAgape}/>}
