@@ -494,7 +494,7 @@
         // ==============================
         const PRIX_TRIANGLE = 10;
 
-        function AgapesForm({ membres, initialData, onSave, onCancel }) {
+        function AgapesForm({ membres, initialData, onSave, onCancel, lockDate }) {
             const today = new Date().toISOString().split('T')[0];
             const [f, setF] = useState(initialData || {
                 date: today, tenue: '', selectedMembres: [], invitesNommes: [], prixCouvert: 0, coutRepas: 0,
@@ -542,7 +542,12 @@
             return (
                 <form onSubmit={handleSave} className="space-y-6 font-sans animate-fade">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de la tenue</label><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de la tenue</label>
+                            {lockDate
+                                ? <div className="w-full border p-3 rounded-xl bg-slate-200 font-bold text-slate-600 text-sm">{new Date(f.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+                                : <input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required />
+                            }
+                        </div>
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom de la tenue</label><input type="text" placeholder="ex: 1ère Tenue 2026" value={f.tenue} onChange={e=>setF({...f,tenue:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
                     </div>
 
@@ -614,111 +619,169 @@
         }
 
         function AgapesView({ membres, agapes, settings, onAdd, onDelete }) {
-            const [isAdding, setIsAdding] = useState(false);
-            const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
-            const years = useMemo(()=>{
-                const ys=new Set(agapes.map(a=>a.date?.split('-')[0]).filter(Boolean));
-                ys.add(String(new Date().getFullYear()));
-                return [...ys].sort((a,b)=>b-a);
+            const today = new Date();
+            const [year, setYear] = useState(today.getFullYear());
+            const [addingDate, setAddingDate] = useState(null); // ISO date of tenue being filled
+
+            const tenues = useMemo(()=>getTenues(year),[year]);
+
+            const agapeByDate = useMemo(()=>{
+                const map = {};
+                agapes.forEach(a=>{ if(a.date) map[a.date]=a; });
+                return map;
             },[agapes]);
 
-            const filtered = useMemo(()=>agapes.filter(a=>filterYear==='all'||a.date?.startsWith(filterYear)).sort((a,b)=>new Date(b.date)-new Date(a.date)),[agapes,filterYear]);
-            const totalCouverts = filtered.reduce((s,a)=>s+(a.totalCouverts||0),0);
-            const totalBenefice = filtered.reduce((s,a)=>s+(a.benefice||0),0);
-            const totalCout = filtered.reduce((s,a)=>s+(a.coutRepas||0),0);
-
             const membresById = useMemo(()=>Object.fromEntries(membres.map(m=>[m.id,m])),[membres]);
+
+            // Stats de la saison
+            const agapesSaison = tenues.map(d=>agapeByDate[d.toISOString().split('T')[0]]).filter(Boolean);
+            const totalCouverts = agapesSaison.reduce((s,a)=>s+(a.totalCouverts||0),0);
+            const totalBenefice = agapesSaison.reduce((s,a)=>s+(a.benefice||0),0);
+            const totalCout = agapesSaison.reduce((s,a)=>s+(a.coutRepas||0),0);
+            const totalRecettes = agapesSaison.reduce((s,a)=>s+(a.recetteTotale||0),0);
+
+            // Group tenues by month
+            const monthGroups = {};
+            tenues.forEach((d,i)=>{
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                if(!monthGroups[key]) monthGroups[key]=[];
+                monthGroups[key].push({d, numInMonth: monthGroups[key].length});
+            });
 
             return (
                 <div className="space-y-6 animate-fade">
                     <LogoBanner settings={settings}/>
+
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                         <div>
                             <h2 className="text-2xl font-bold font-serif text-slate-800">Agapes</h2>
-                            <p className="text-slate-500 text-sm font-sans mt-1">Repas par tenue — participants et bilan financier</p>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Repas par tenue — 1er et 3e jeudi, septembre à juin</p>
                         </div>
-                        <div className="flex gap-2">
-                            <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} className="border bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-amber-500">
-                                <option value="all">Toutes années</option>
-                                {years.map(y=><option key={y}>{y}</option>)}
-                            </select>
-                            <button onClick={()=>setIsAdding(!isAdding)} className="bg-orange-500 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2"><Icon n="plus" size={16}/> Tenue</button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={()=>setYear(y=>y-1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">‹</button>
+                            <span className="text-sm font-bold text-slate-700 font-serif px-2">{year}–{year+1}</span>
+                            <button onClick={()=>setYear(y=>y+1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">›</button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Tenues</p><p className="text-3xl font-bold font-serif text-orange-500">{filtered.length}</p></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Tenues avec agapes</p><p className="text-3xl font-bold font-serif text-orange-500">{agapesSaison.length} <span className="text-slate-300 text-xl">/</span> <span className="text-slate-400 text-2xl">{tenues.length}</span></p></div>
                         <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total couverts</p><p className="text-3xl font-bold font-serif text-slate-700">{totalCouverts}</p></div>
-                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Coût nourriture</p><p className="text-3xl font-bold font-serif text-red-500">{fmt(totalCout)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Recettes totales</p><p className="text-3xl font-bold font-serif text-emerald-600">{fmt(totalRecettes)}</p></div>
                         <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Bénéfice total</p><p className={`text-3xl font-bold font-serif ${totalBenefice>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBenefice)}</p></div>
                     </div>
-
-                    {isAdding && (
-                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
-                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="utensils" cls="text-orange-500"/> Nouvelle tenue d'Agapes</h3>
-                            <AgapesForm membres={membres} onSave={async d=>{await onAdd(d);setIsAdding(false);}} onCancel={()=>setIsAdding(false)} />
-                        </div>
-                    )}
 
                     {settings?.maitreDuBanquet && (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center gap-3">
                             <Icon n="utensils" cls="text-amber-600" size={18}/>
                             <div>
-                                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Maître du Banquet de l'année</p>
+                                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Maître du Banquet {year}–{year+1}</p>
                                 <p className="font-bold font-serif text-slate-800">{settings.maitreDuBanquet}</p>
                             </div>
                         </div>
                     )}
 
-                    {filtered.length===0 ? (
-                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucune agapes pour cette période.</div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filtered.map(a=>(
-                                <div key={a.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                                    <div className="flex items-start justify-between px-6 py-5">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                <p className="font-bold text-slate-800 font-serif">{a.tenue || 'Tenue sans nom'}</p>
-                                                <span className="text-[10px] text-orange-700 uppercase font-bold tracking-widest font-sans bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{a.date ? new Date(a.date).toLocaleDateString('fr-FR') : ''}</span>
-                                                {a.intendant && <span className="text-[10px] text-slate-500 font-sans">Intendant : <strong className="text-slate-700">{a.intendant}</strong></span>}
-                                            </div>
-                                            {(a.menu?.entree||a.menu?.plat||a.menu?.dessert) && (
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    {a.menu.entree && <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-sans">🥗 {a.menu.entree}</span>}
-                                                    {a.menu.plat && <span className="text-[10px] bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-sans">🍽️ {a.menu.plat}</span>}
-                                                    {a.menu.dessert && <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-sans">🍮 {a.menu.dessert}</span>}
-                                                </div>
-                                            )}
-                                            <div className="flex flex-wrap gap-1 mt-3">
-                                                {(a.selectedMembres||[]).map(id=>membresById[id]&&(
-                                                    <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-sans">{membresById[id].nom}</span>
-                                                ))}
-                                                {(a.invitesNommes||[]).map((inv,i)=>(
-                                                    <span key={i} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-sans">△ {inv}</span>
-                                                ))}
-                                                {!(a.invitesNommes?.length) && (a.nbInvites||0)>0 && <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-sans">+{a.nbInvites} invité{a.nbInvites>1?'s':''}</span>}
-                                            </div>
-                                            {a.note && <p className="text-xs text-slate-400 italic mt-2">{a.note}</p>}
-                                        </div>
-                                        <div className="flex items-center gap-4 ml-4 flex-shrink-0">
-                                            <div className="text-right">
-                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans">{a.totalCouverts} couvert{(a.totalCouverts||0)>1?'s':''}</p>
-                                                <p className={`font-bold font-serif text-lg ${(a.benefice||0)>=0?'text-emerald-600':'text-red-500'}`}>{fmt(a.benefice||0)}</p>
-                                                <p className="text-[10px] text-slate-400 font-sans">bénéfice</p>
-                                            </div>
-                                            <button onClick={()=>onDelete(a.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><Icon n="trash" size={14}/></button>
-                                        </div>
+                    <div className="space-y-4">
+                        {Object.entries(monthGroups).map(([key, items])=>{
+                            const d0 = items[0].d;
+                            const monthName = d0.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                            return (
+                                <div key={key} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="px-6 py-3 bg-slate-800">
+                                        <p className="text-xs font-black uppercase tracking-widest text-white capitalize">{monthName}</p>
                                     </div>
-                                    <div className="border-t bg-slate-50 px-6 py-3 flex flex-wrap gap-4 text-xs text-slate-500 font-sans">
-                                        <span>Membres : <strong className="text-slate-700">{fmt(a.recetteMembres ?? (a.totalCouverts||0)*(a.prixCouvert||0))}</strong></span>
-                                        <span>Invités △ ({a.invitesNommes?.length||a.nbInvites||0}×{PRIX_TRIANGLE}€) : <strong className="text-amber-600">{fmt(a.recetteInvites ?? (a.nbInvites||0)*PRIX_TRIANGLE)}</strong></span>
-                                        <span>Nourriture : <strong className="text-red-500">{fmt(a.coutRepas)}</strong></span>
+                                    <div className="divide-y">
+                                        {items.map(({d, numInMonth})=>{
+                                            const iso = d.toISOString().split('T')[0];
+                                            const agape = agapeByDate[iso];
+                                            const isPast = d < today && !(d.toDateString()===today.toDateString());
+                                            const isToday = d.toDateString()===today.toDateString();
+                                            const isAdding = addingDate===iso;
+                                            return (
+                                                <div key={iso}>
+                                                    <div className={`p-5 ${isToday?'bg-amber-50':agape?'bg-emerald-50/40':isPast?'opacity-60':''}`}>
+                                                        <div className="flex items-start gap-4">
+                                                            <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center text-white font-bold shadow-sm flex-shrink-0 ${isToday?'bg-amber-500':agape?'bg-emerald-600':isPast?'bg-slate-300':'bg-slate-700'}`}>
+                                                                <span className="text-[10px] leading-none uppercase">{d.toLocaleDateString('fr-FR',{month:'short'})}</span>
+                                                                <span className="text-2xl leading-none">{d.getDate()}</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                    <p className="font-bold text-slate-800 capitalize">{d.toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long'})}</p>
+                                                                    <span className="text-[10px] text-slate-400 font-sans">{numInMonth===0?'1ère':'2e'} tenue du mois</span>
+                                                                    {isToday && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Aujourd'hui</span>}
+                                                                </div>
+
+                                                                {agape ? (
+                                                                    <div className="space-y-2 mt-1">
+                                                                        {agape.tenue && <p className="text-xs font-bold text-slate-600 font-serif">{agape.tenue}</p>}
+                                                                        {agape.intendant && <p className="text-xs text-slate-500 font-sans">Intendant : <strong className="text-slate-700">{agape.intendant}</strong></p>}
+                                                                        {(agape.menu?.entree||agape.menu?.plat||agape.menu?.dessert) && (
+                                                                            <div className="flex flex-wrap gap-1.5">
+                                                                                {agape.menu.entree && <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-sans">🥗 {agape.menu.entree}</span>}
+                                                                                {agape.menu.plat && <span className="text-[10px] bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-sans">🍽️ {agape.menu.plat}</span>}
+                                                                                {agape.menu.dessert && <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-sans">🍮 {agape.menu.dessert}</span>}
+                                                                            </div>
+                                                                        )}
+                                                                        {((agape.selectedMembres||[]).length>0||(agape.invitesNommes||[]).length>0) && (
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {(agape.selectedMembres||[]).map(id=>membresById[id]&&(
+                                                                                    <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-sans">{membresById[id].nom}</span>
+                                                                                ))}
+                                                                                {(agape.invitesNommes||[]).map((inv,i)=>(
+                                                                                    <span key={i} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-sans">△ {inv}</span>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        {agape.note && <p className="text-[10px] text-slate-400 italic">{agape.note}</p>}
+                                                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-sans border-t border-slate-100 pt-2 mt-1">
+                                                                            <span className="text-slate-500"><strong>{agape.totalCouverts||0}</strong> couvert{(agape.totalCouverts||0)>1?'s':''}</span>
+                                                                            <span className="text-emerald-600">Recettes : <strong>{fmt(agape.recetteTotale||0)}</strong></span>
+                                                                            <span className="text-red-500">Nourriture : <strong>{fmt(agape.coutRepas||0)}</strong></span>
+                                                                            <span className={`font-bold ${(agape.benefice||0)>=0?'text-emerald-700':'text-red-600'}`}>Bénéfice : {fmt(agape.benefice||0)}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-[10px] text-slate-400 font-sans italic mt-1">{isPast ? 'Pas d\'agapes enregistrées' : 'Tenue à venir — cliquez pour saisir les agapes'}</p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                                                                {agape ? (
+                                                                    <>
+                                                                        <div className="text-right hidden sm:block">
+                                                                            <p className={`text-xl font-bold font-serif ${(agape.benefice||0)>=0?'text-emerald-600':'text-red-500'}`}>{fmt(agape.benefice||0)}</p>
+                                                                            <p className="text-[10px] text-slate-400 font-sans">bénéfice</p>
+                                                                        </div>
+                                                                        <button onClick={()=>onDelete(agape.id)} className="p-1.5 text-slate-200 hover:text-red-500 transition-colors"><Icon n="trash" size={14}/></button>
+                                                                    </>
+                                                                ) : (
+                                                                    <button onClick={()=>setAddingDate(isAdding?null:iso)}
+                                                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all font-serif shadow-sm ${isAdding?'bg-slate-200 text-slate-600':'bg-orange-500 hover:bg-orange-600 text-white'}`}>
+                                                                        <Icon n={isAdding?'x':'plus'} size={13}/>{isAdding?'Annuler':'Agapes'}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {isAdding && (
+                                                        <div className="border-t bg-orange-50/30 px-6 py-6 animate-fade">
+                                                            <h3 className="text-sm font-bold font-serif mb-4 flex items-center gap-2 text-orange-700"><Icon n="utensils" size={16}/> Saisie des agapes — {d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>
+                                                            <AgapesForm membres={membres} initialData={{date:iso, tenue:'', selectedMembres:[], invitesNommes:[], prixCouvert:0, coutRepas:0, intendant:'', menu:{entree:'',plat:'',dessert:''}, note:''}}
+                                                                onSave={async d=>{await onAdd(d);setAddingDate(null);}}
+                                                                onCancel={()=>setAddingDate(null)}
+                                                                lockDate={true}/>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            );
+                        })}
+                    </div>
                 </div>
             );
         }
