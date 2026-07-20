@@ -25,20 +25,97 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin:0; padding:0; }
+        :root {
+            --gold: #c9a227;
+            --gold-light: #f0cc5a;
+            --gold-dark: #8a6f18;
+            --dark: #0b1120;
+            --dark2: #111827;
+            --dark3: #1a2236;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(201,162,39,0.04) 0%, transparent 60%),
+                              radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.03) 0%, transparent 60%);
+            margin: 0; padding: 0;
+        }
         .font-serif { font-family: 'Cinzel', serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+        @keyframes shimmer { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 10px rgba(201,162,39,0.2); } 50% { box-shadow: 0 0 25px rgba(201,162,39,0.5); } }
+        @keyframes countdown-tick { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        .animate-fade { animation: fadeIn 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .animate-scale { animation: fadeInScale 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .animate-shimmer { animation: shimmer 3s ease-in-out infinite; }
+        .animate-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+        .glow-gold { text-shadow: 0 0 20px rgba(201,162,39,0.5), 0 0 40px rgba(201,162,39,0.2); }
+        .gold-border { border: 1px solid rgba(201,162,39,0.3); }
+        .gold-border-double {
+            box-shadow: 0 0 0 1px rgba(201,162,39,0.4), 0 0 0 3px rgba(11,17,32,0.8), 0 0 0 4px rgba(201,162,39,0.2);
+        }
+        .masonic-divider {
+            display: flex; align-items: center; gap: 12px; color: var(--gold); opacity: 0.5;
+            font-size: 10px; letter-spacing: 0.3em;
+        }
+        .masonic-divider::before, .masonic-divider::after {
+            content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--gold), transparent);
+        }
+        .grade-pill-apprenti { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #78350f; border: 1px solid #fcd34d; }
+        .grade-pill-compagnon { background: linear-gradient(135deg,#dbeafe,#bfdbfe); color: #1e3a8a; border: 1px solid #93c5fd; }
+        .grade-pill-maitre { background: linear-gradient(135deg,#f1f5f9,#e2e8f0); color: #1e293b; border: 1px solid #cbd5e1; }
+
+        .nav-gold-top { border-top: 2px solid var(--gold); }
+        .countdown-digit { animation: countdown-tick 0.2s ease-out; }
+
         .prose pre { background-color: #f1f5f9; padding: 1rem; border-radius: 0.5rem; }
+
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        /* Loading screen */
+        #loading-screen {
+            background: radial-gradient(ellipse at center, #111827 0%, #0b1120 100%);
+        }
+        #loading-screen::after {
+            content: '✦ ✦ ✦';
+            display: block;
+            color: rgba(201,162,39,0.4);
+            font-size: 0.8rem;
+            letter-spacing: 0.5em;
+            margin-top: 1.5rem;
+            animation: shimmer 2s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
     <div id="root">
         <!-- Écran de chargement initial -->
-        <div id="loading-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#0f172a; color:#f59e0b; font-family:'Cinzel', serif; flex-direction:column; text-align:center; padding: 20px;">
-            <div style="font-size:1.5rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1rem;">Ouverture du Temple...</div>
+        <div id="loading-screen" style="display:flex; justify-content:center; align-items:center; height:100vh; color:#c9a227; font-family:'Cinzel', serif; flex-direction:column; text-align:center; padding: 20px;">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="margin-bottom:1.5rem;opacity:0.8">
+                <circle cx="32" cy="32" r="28" stroke="#c9a227" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
+                <path d="M32 8 L52 52 L12 52 Z" stroke="#c9a227" stroke-width="1.5" fill="none" opacity="0.6"/>
+                <circle cx="32" cy="32" r="4" fill="#c9a227" opacity="0.8"/>
+            </svg>
+            <div style="font-size:1.2rem; text-transform:uppercase; letter-spacing:0.3em; margin-bottom:0.5rem;">Ouverture du Temple...</div>
+            <div style="font-size:0.65rem; color:rgba(201,162,39,0.5); letter-spacing:0.4em; text-transform:uppercase;">À la Gloire du G∴A∴D∴L∴U∴</div>
         </div>
     </div>
 
@@ -157,8 +234,22 @@
         };
 
         const NavTab = ({ active, onClick, icon, label }) => (
-            <button onClick={onClick} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${active ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
-                <i className={`fa-solid fa-${icon}`}></i><span className="hidden sm:inline font-sans">{label}</span>
+            <button onClick={onClick} style={{
+                display:'flex', alignItems:'center', gap:'6px',
+                padding:'7px 12px', borderRadius:'10px',
+                fontSize:'9px', fontWeight:'bold', textTransform:'uppercase',
+                letterSpacing:'0.1em', fontFamily:'Cinzel,serif',
+                transition:'all 0.2s',
+                background: active ? 'linear-gradient(135deg,rgba(201,162,39,0.25),rgba(201,162,39,0.1))' : 'transparent',
+                color: active ? '#c9a227' : 'rgba(148,163,184,0.8)',
+                border: active ? '1px solid rgba(201,162,39,0.3)' : '1px solid transparent',
+                cursor:'pointer',
+                boxShadow: active ? '0 0 12px rgba(201,162,39,0.15)' : 'none'
+            }}
+            onMouseOver={e=>{ if(!active) e.currentTarget.style.color='#c9a227'; if(!active) e.currentTarget.style.background='rgba(201,162,39,0.05)'; }}
+            onMouseOut={e=>{ if(!active) e.currentTarget.style.color='rgba(148,163,184,0.8)'; if(!active) e.currentTarget.style.background='transparent'; }}>
+                <i className={`fa-solid fa-${icon}`} style={{fontSize:'12px'}}></i>
+                <span className="hidden sm:inline" style={{fontFamily:'Inter,sans-serif'}}>{label}</span>
             </button>
         );
 
@@ -170,34 +261,89 @@
             const [mode, setMode] = useState('member');
             const [n, sN] = useState(''); const [grade, setGrade] = useState('apprenti'); const [p, sP] = useState('');
             const [archPwd, setArchPwd] = useState('');
+
+            const CompassSVG = () => (
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="mx-auto mb-6 animate-shimmer">
+                    <circle cx="40" cy="40" r="36" stroke="rgba(201,162,39,0.25)" strokeWidth="1"/>
+                    <circle cx="40" cy="40" r="28" stroke="rgba(201,162,39,0.15)" strokeWidth="1" strokeDasharray="3 3"/>
+                    {/* Compass legs */}
+                    <path d="M40 12 L28 58 L40 48 L52 58 Z" stroke="#c9a227" strokeWidth="1.8" fill="rgba(201,162,39,0.08)" strokeLinejoin="round"/>
+                    {/* Square */}
+                    <path d="M20 32 L20 60 L48 60" stroke="#c9a227" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                    {/* G */}
+                    <text x="40" y="44" textAnchor="middle" fontSize="12" fontFamily="Cinzel,serif" fill="#c9a227" fontWeight="bold">G</text>
+                    {/* Stars */}
+                    <circle cx="40" cy="12" r="1.5" fill="#c9a227" opacity="0.6"/>
+                    <circle cx="12" cy="40" r="1" fill="#c9a227" opacity="0.4"/>
+                    <circle cx="68" cy="40" r="1" fill="#c9a227" opacity="0.4"/>
+                </svg>
+            );
+
             return (
-                <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-center font-serif text-white animate-fade">
-                    <div className="max-w-md w-full bg-slate-800 p-10 rounded-[2rem] border border-slate-700 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-600"></div>
-                        {logo ? <img src={logo} className="w-24 h-24 mx-auto mb-6 object-contain" /> : <SmartIcon name="Landmark" size={48} className="text-amber-500 mx-auto mb-6" />}
-                        <h1 className="text-2xl uppercase tracking-widest mb-1 font-bold">{logeName || 'LCG51'}</h1>
-                        <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-10 italic font-sans">À la Gloire du Grand Architecte de l'Univers</p>
-                        {error && <div className="bg-red-500/10 border border-red-500 text-red-200 p-4 rounded-xl text-xs mb-8 flex items-center gap-3 text-left font-sans font-bold"><SmartIcon name="AlertTriangle" />{error}</div>}
+                <div style={{minHeight:'100vh', background:'radial-gradient(ellipse at 30% 40%, #141e33 0%, #0b1120 100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px'}}>
+                    <div style={{maxWidth:'420px', width:'100%', background:'linear-gradient(160deg,#1a2236 0%,#111827 100%)', borderRadius:'1.75rem', padding:'2.5rem', boxShadow:'0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,162,39,0.15), 0 0 0 3px rgba(11,17,32,0.8), 0 0 0 4px rgba(201,162,39,0.08)', position:'relative', overflow:'hidden'}} className="animate-scale">
+                        {/* Top gold bar */}
+                        <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(to right, transparent, #c9a227, transparent)'}}></div>
+                        {/* Corner ornaments */}
+                        <div style={{position:'absolute',top:'12px',left:'12px',color:'rgba(201,162,39,0.2)',fontSize:'10px'}}>✦</div>
+                        <div style={{position:'absolute',top:'12px',right:'12px',color:'rgba(201,162,39,0.2)',fontSize:'10px'}}>✦</div>
+
+                        <div className="text-center">
+                            {logo
+                                ? <img src={logo} style={{width:'80px',height:'80px',margin:'0 auto 1.5rem',objectFit:'contain',borderRadius:'12px',border:'1px solid rgba(201,162,39,0.2)'}} />
+                                : <CompassSVG />
+                            }
+                            <h1 style={{fontFamily:'Cinzel,serif',fontSize:'1.3rem',fontWeight:'bold',color:'white',letterSpacing:'0.25em',textTransform:'uppercase',marginBottom:'4px'}}>{logeName || 'LCG51'}</h1>
+                            <p style={{color:'#c9a227',fontSize:'9px',fontWeight:'bold',letterSpacing:'0.3em',textTransform:'uppercase',marginBottom:'2rem',opacity:0.8,fontStyle:'italic'}}>À la Gloire du Grand Architecte de l'Univers</p>
+
+                            <div className="masonic-divider" style={{marginBottom:'1.5rem'}}>✦</div>
+                        </div>
+
+                        {error && (
+                            <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.4)',color:'#fca5a5',padding:'12px 16px',borderRadius:'12px',fontSize:'12px',marginBottom:'1.5rem',display:'flex',alignItems:'center',gap:'10px',textAlign:'left'}}>
+                                <SmartIcon name="AlertTriangle" size={14}/>{error}
+                            </div>
+                        )}
+
                         {mode === 'member' ? (
-                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade, p); }} className="space-y-6 text-left font-sans">
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Nom complet</label><input type="text" required placeholder="Votre nom..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={n} onChange={e=>sN(e.target.value)} /></div>
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Grade</label>
-                                    <select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner">
-                                        <option value="apprenti">Apprenti</option>
-                                        <option value="compagnon">Compagnon</option>
-                                        <option value="maitre">Maître</option>
+                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade, p); }} style={{display:'flex',flexDirection:'column',gap:'1rem',textAlign:'left'}}>
+                                <div>
+                                    <label style={{fontSize:'9px',color:'rgba(201,162,39,0.7)',fontWeight:'bold',letterSpacing:'0.25em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:'Inter,sans-serif'}}>Nom complet</label>
+                                    <input type="text" required placeholder="Votre nom et prénom..." style={{width:'100%',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(201,162,39,0.2)',borderRadius:'10px',padding:'13px 16px',color:'white',outline:'none',fontSize:'14px',transition:'border-color 0.2s'}} value={n} onChange={e=>sN(e.target.value)} onFocus={e=>e.target.style.borderColor='rgba(201,162,39,0.6)'} onBlur={e=>e.target.style.borderColor='rgba(201,162,39,0.2)'} />
+                                </div>
+                                <div>
+                                    <label style={{fontSize:'9px',color:'rgba(201,162,39,0.7)',fontWeight:'bold',letterSpacing:'0.25em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:'Inter,sans-serif'}}>Grade</label>
+                                    <select value={grade} onChange={e=>setGrade(e.target.value)} style={{width:'100%',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(201,162,39,0.2)',borderRadius:'10px',padding:'13px 16px',color:'white',outline:'none',fontSize:'14px',cursor:'pointer'}}>
+                                        <option value="apprenti" style={{background:'#111827'}}>⬦ Apprenti — 1er Degré</option>
+                                        <option value="compagnon" style={{background:'#111827'}}>⬦ Compagnon — 2e Degré</option>
+                                        <option value="maitre" style={{background:'#111827'}}>⬦ Maître — 3e Degré</option>
                                     </select>
                                 </div>
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Clé de Grade</label><input type="password" required placeholder="Mot de passe..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={p} onChange={e=>sP(e.target.value)} /></div>
-                                <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg mt-4 font-serif">FRAPPER À LA PORTE</button>
+                                <div>
+                                    <label style={{fontSize:'9px',color:'rgba(201,162,39,0.7)',fontWeight:'bold',letterSpacing:'0.25em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:'Inter,sans-serif'}}>Clé de Grade</label>
+                                    <input type="password" required placeholder="Mot de passe du grade..." style={{width:'100%',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(201,162,39,0.2)',borderRadius:'10px',padding:'13px 16px',color:'white',outline:'none',fontSize:'14px',letterSpacing:'0.2em',transition:'border-color 0.2s'}} value={p} onChange={e=>sP(e.target.value)} onFocus={e=>e.target.style.borderColor='rgba(201,162,39,0.6)'} onBlur={e=>e.target.style.borderColor='rgba(201,162,39,0.2)'} />
+                                </div>
+                                <button type="submit" style={{marginTop:'8px',width:'100%',background:'linear-gradient(135deg,#c9a227,#a07d18)',color:'white',fontWeight:'bold',padding:'15px',borderRadius:'12px',border:'none',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.25em',fontSize:'11px',fontFamily:'Cinzel,serif',boxShadow:'0 4px 20px rgba(201,162,39,0.3)',transition:'all 0.2s'}} onMouseOver={e=>e.target.style.background='linear-gradient(135deg,#f0cc5a,#c9a227)'} onMouseOut={e=>e.target.style.background='linear-gradient(135deg,#c9a227,#a07d18)'}>
+                                    <i className="fa-solid fa-door-open" style={{marginRight:'8px'}}></i>FRAPPER À LA PORTE
+                                </button>
                             </form>
                         ) : (
-                            <form onSubmit={(e)=>{ e.preventDefault(); onArchitectLogin(archPwd); }} className="space-y-6 text-left font-sans">
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Mot de passe Architecte</label><input type="password" required autoFocus placeholder="Mot de passe..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={archPwd} onChange={e=>setArchPwd(e.target.value)} /></div>
-                                <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg mt-4 font-serif">ENTRER</button>
+                            <form onSubmit={(e)=>{ e.preventDefault(); onArchitectLogin(archPwd); }} style={{display:'flex',flexDirection:'column',gap:'1rem',textAlign:'left'}}>
+                                <div>
+                                    <label style={{fontSize:'9px',color:'rgba(201,162,39,0.7)',fontWeight:'bold',letterSpacing:'0.25em',textTransform:'uppercase',display:'block',marginBottom:'6px'}}>Mot de passe Architecte</label>
+                                    <input type="password" required autoFocus placeholder="Accès réservé..." style={{width:'100%',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(201,162,39,0.2)',borderRadius:'10px',padding:'13px 16px',color:'white',outline:'none',fontSize:'14px',letterSpacing:'0.2em'}} value={archPwd} onChange={e=>setArchPwd(e.target.value)} />
+                                </div>
+                                <button type="submit" style={{width:'100%',background:'linear-gradient(135deg,#c9a227,#a07d18)',color:'white',fontWeight:'bold',padding:'15px',borderRadius:'12px',border:'none',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.25em',fontSize:'11px',fontFamily:'Cinzel,serif',boxShadow:'0 4px 20px rgba(201,162,39,0.3)'}}>
+                                    <i className="fa-solid fa-compass" style={{marginRight:'8px'}}></i>ENTRER
+                                </button>
                             </form>
                         )}
-                        <button type="button" onClick={()=>setMode(mode==='member'?'architect':'member')} className="mt-6 text-slate-500 hover:text-amber-500 text-[10px] uppercase tracking-widest font-sans font-bold underline">{mode==='member' ? 'Accès Architecte' : 'Retour'}</button>
+
+                        <button type="button" onClick={()=>setMode(mode==='member'?'architect':'member')} style={{marginTop:'1.5rem',display:'block',width:'100%',textAlign:'center',color:'rgba(201,162,39,0.4)',fontSize:'9px',fontWeight:'bold',letterSpacing:'0.25em',textTransform:'uppercase',background:'none',border:'none',cursor:'pointer',transition:'color 0.2s',fontFamily:'Inter,sans-serif'}} onMouseOver={e=>e.target.style.color='rgba(201,162,39,0.8)'} onMouseOut={e=>e.target.style.color='rgba(201,162,39,0.4)'}>
+                            {mode==='member' ? '⬦ Accès Architecte du Temple ⬦' : '← Retour au portail'}
+                        </button>
+                        <div style={{position:'absolute',bottom:'12px',left:'12px',color:'rgba(201,162,39,0.15)',fontSize:'10px'}}>✦</div>
+                        <div style={{position:'absolute',bottom:'12px',right:'12px',color:'rgba(201,162,39,0.15)',fontSize:'10px'}}>✦</div>
                     </div>
                 </div>
             );
@@ -205,16 +351,28 @@
 
         function GradeAuthScreen({ grade, onValidate, onCancel, logo }) {
             const [p, s] = useState(''); const [e, sE] = useState(false);
+            const gradeIcons = { apprenti: 'fa-hammer', compagnon: 'fa-star', maitre: 'fa-shield-halved' };
+            const gradeColors = { apprenti: '#c9a227', compagnon: '#3b82f6', maitre: '#64748b' };
+            const gradeLabels = { apprenti: '1er Degré', compagnon: '2e Degré', maitre: '3e Degré' };
             return (
-                <div className="flex justify-center items-center py-20 animate-fade font-sans">
-                    <div className="max-w-md w-full bg-white p-12 rounded-[2.5rem] border shadow-2xl text-center">
-                        {logo ? <img src={logo} className="w-16 h-16 mx-auto mb-6 object-contain" /> : <SmartIcon name="Shield" size={64} className="mx-auto mb-6 text-amber-500 block"/>}
-                        <h2 className="text-2xl uppercase tracking-widest mb-2 font-bold font-serif text-slate-800">Accès Couvert</h2>
-                        <p className="text-slate-500 text-sm mb-10 italic font-sans">Mots pour le grade : {grade.toUpperCase()}.</p>
-                        <form onSubmit={async(ev)=>{ev.preventDefault(); const ok = await onValidate(p); if(!ok) {sE(true); s('');}}} className="space-y-6">
-                            <input type="password" required autoFocus placeholder="MOT DE PASSE" value={p} onChange={ev=>s(ev.target.value)} className={`w-full bg-slate-50 border-2 ${e?'border-red-500':'border-slate-100'} p-5 rounded-2xl text-center text-3xl outline-none shadow-inner tracking-widest font-bold text-slate-800`} />
-                            {e && <p className="text-red-500 text-xs font-bold uppercase">Clef incorrecte</p>}
-                            <div className="flex gap-4 pt-6 text-[10px] font-bold uppercase"><button type="button" onClick={onCancel} className="flex-1 text-slate-400 py-4 font-sans border rounded-xl hover:bg-slate-50">Retour</button><button type="submit" className="flex-1 bg-amber-600 text-white py-4 rounded-xl shadow-md font-bold font-serif hover:bg-amber-700">Frapper</button></div>
+                <div style={{display:'flex',justifyContent:'center',alignItems:'center',padding:'5rem 1rem',minHeight:'60vh'}} className="animate-fade">
+                    <div style={{maxWidth:'420px',width:'100%',background:'white',padding:'3rem',borderRadius:'2rem',boxShadow:'0 25px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(201,162,39,0.1)',textAlign:'center'}}>
+                        <div style={{width:'72px',height:'72px',borderRadius:'50%',background:`linear-gradient(135deg,${gradeColors[grade]}22,${gradeColors[grade]}11)`,border:`2px solid ${gradeColors[grade]}44`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 1.5rem'}}>
+                            {logo
+                                ? <img src={logo} style={{width:'48px',height:'48px',objectFit:'contain'}} />
+                                : <i className={`fa-solid ${gradeIcons[grade]||'fa-shield-halved'}`} style={{fontSize:'28px',color:gradeColors[grade]}}></i>
+                            }
+                        </div>
+                        <h2 style={{fontFamily:'Cinzel,serif',fontSize:'1.25rem',fontWeight:'bold',color:'#1e293b',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:'6px'}}>Travaux Couverts</h2>
+                        <p style={{fontFamily:'Cinzel,serif',fontSize:'11px',color:gradeColors[grade],fontWeight:'bold',letterSpacing:'0.2em',textTransform:'uppercase',marginBottom:'4px'}}>{grade.toUpperCase()} · {gradeLabels[grade]}</p>
+                        <p style={{color:'#94a3b8',fontSize:'12px',marginBottom:'2.5rem',fontStyle:'italic',fontFamily:'Inter,sans-serif'}}>Prononcez les mots du degré pour ouvrir les travaux.</p>
+                        <form onSubmit={async(ev)=>{ev.preventDefault(); const ok = await onValidate(p); if(!ok) {sE(true); s('');}}} style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+                            <input type="password" required autoFocus placeholder="● ● ● ● ● ● ●" value={p} onChange={ev=>s(ev.target.value)} style={{width:'100%',background:e?'#fff5f5':'#f8fafc',border:`2px solid ${e?'#ef4444':gradeColors[grade]+'33'}`,borderRadius:'14px',padding:'18px',textAlign:'center',fontSize:'2rem',outline:'none',letterSpacing:'0.5em',color:'#1e293b',fontWeight:'bold',transition:'border-color 0.2s'}} />
+                            {e && <p style={{color:'#ef4444',fontSize:'11px',fontWeight:'bold',textTransform:'uppercase',letterSpacing:'0.2em',fontFamily:'Inter,sans-serif'}}>⚠ Clef incorrecte — Réessayez</p>}
+                            <div style={{display:'flex',gap:'12px',marginTop:'8px'}}>
+                                <button type="button" onClick={onCancel} style={{flex:1,padding:'14px',borderRadius:'12px',border:'1px solid #e2e8f0',background:'white',color:'#94a3b8',fontWeight:'bold',fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.2em',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Retour</button>
+                                <button type="submit" style={{flex:2,padding:'14px',borderRadius:'12px',border:'none',background:`linear-gradient(135deg,${gradeColors[grade]},${gradeColors[grade]}cc)`,color:'white',fontWeight:'bold',fontSize:'10px',textTransform:'uppercase',letterSpacing:'0.2em',cursor:'pointer',fontFamily:'Cinzel,serif',boxShadow:`0 4px 15px ${gradeColors[grade]}40`}}>Frapper à la Porte</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -262,6 +420,26 @@
                 const quotesForGrade = MASONIC_QUOTES[activeGradeLevel];
                 return quotesForGrade[Math.floor(Math.random() * quotesForGrade.length)];
             }, [activeGradeLevel]);
+
+            const [countdown, setCountdown] = useState({ days:0, hours:0, minutes:0, seconds:0 });
+            useEffect(() => {
+                if (!nextTenue) return;
+                const tick = () => {
+                    const now = new Date();
+                    const target = new Date(nextTenue.date + 'T19:00:00');
+                    const diff = target - now;
+                    if (diff <= 0) { setCountdown({ days:0, hours:0, minutes:0, seconds:0 }); return; }
+                    setCountdown({
+                        days: Math.floor(diff / 86400000),
+                        hours: Math.floor((diff % 86400000) / 3600000),
+                        minutes: Math.floor((diff % 3600000) / 60000),
+                        seconds: Math.floor((diff % 60000) / 1000)
+                    });
+                };
+                tick();
+                const id = setInterval(tick, 1000);
+                return () => clearInterval(id);
+            }, [nextTenue]);
 
             const [isEditingId, setIsEditingId] = useState(false);
             const [idForm, setIdForm] = useState({ name: '', rite: '', obedience: '' });
@@ -353,6 +531,24 @@
                             )}
                         </div>
                     </div>
+
+                    {nextTenue && (
+                        <div style={{background:'linear-gradient(135deg,#0d1525,#111827)',borderRadius:'1.5rem',padding:'1.5rem 2rem',border:'1px solid rgba(201,162,39,0.2)',boxShadow:'0 0 30px rgba(201,162,39,0.05)',display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'1rem'}} className="animate-fade">
+                            <div>
+                                <p style={{fontSize:'9px',fontWeight:'bold',color:'rgba(201,162,39,0.6)',letterSpacing:'0.3em',textTransform:'uppercase',fontFamily:'Inter,sans-serif',marginBottom:'4px'}}>Prochaine Tenue</p>
+                                <p style={{fontFamily:'Cinzel,serif',fontSize:'1.1rem',fontWeight:'bold',color:'white',textTransform:'capitalize'}}>{new Date(nextTenue.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</p>
+                                <p style={{fontSize:'10px',color:'rgba(201,162,39,0.5)',marginTop:'2px',fontFamily:'Inter,sans-serif'}}>{nextTenue.type}</p>
+                            </div>
+                            <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
+                                {[['days','J'],['hours','H'],['minutes','M'],['seconds','S']].map(([k,l]) => (
+                                    <div key={k} style={{textAlign:'center',minWidth:'52px'}}>
+                                        <div style={{fontFamily:'Cinzel,serif',fontSize:'2rem',fontWeight:'bold',color:'#c9a227',lineHeight:1,textShadow:'0 0 20px rgba(201,162,39,0.5)'}} className="countdown-digit">{String(countdown[k]).padStart(2,'0')}</div>
+                                        <div style={{fontSize:'8px',color:'rgba(201,162,39,0.4)',letterSpacing:'0.2em',textTransform:'uppercase',fontFamily:'Inter,sans-serif',marginTop:'4px'}}>{l}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="md:col-span-2 space-y-6">
@@ -1317,36 +1513,50 @@
 
             return (
                 <div className="min-h-screen flex flex-col font-sans">
-                    <nav className="bg-slate-900 text-amber-500 shadow-xl sticky top-0 z-50 p-3 font-sans">
-                        <div className="max-w-7xl mx-auto flex justify-between items-center gap-4 text-white">
-                            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveView('home')}>
-                                {logeLogo ? <img src={logeLogo} className="w-10 h-10 object-contain" /> : <SmartIcon name="Landmark" size={24} className="text-white"/>}
-                                <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'}</span>
+                    <nav style={{background:'linear-gradient(to bottom,#0d1525,#0b1120)',borderTop:'2px solid #c9a227',boxShadow:'0 4px 24px rgba(0,0,0,0.5)',position:'sticky',top:0,zIndex:50,padding:'10px 0'}}>
+                        <div style={{maxWidth:'1280px',margin:'0 auto',padding:'0 16px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',flexShrink:0}} onClick={() => setActiveView('home')}>
+                                {logeLogo
+                                    ? <img src={logeLogo} style={{width:'36px',height:'36px',objectFit:'contain',borderRadius:'8px',border:'1px solid rgba(201,162,39,0.3)'}} />
+                                    : <div style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',color:'#c9a227'}}><i className="fa-solid fa-landmark" style={{fontSize:'18px'}}></i></div>
+                                }
+                                <div className="hidden md:block">
+                                    <div style={{fontFamily:'Cinzel,serif',fontSize:'13px',fontWeight:'bold',color:'white',letterSpacing:'0.2em',textTransform:'uppercase'}}>{logeIdentity?.name || 'Votre Loge'}</div>
+                                    {logeIdentity?.rite && <div style={{fontSize:'8px',color:'rgba(201,162,39,0.5)',letterSpacing:'0.15em',textTransform:'uppercase',marginTop:'1px'}}>{logeIdentity.rite}</div>}
+                                </div>
                             </div>
-                            <div className="flex flex-wrap justify-center items-center gap-2 font-serif text-[10px]">
+                            <div style={{display:'flex',flexWrap:'wrap',justifyContent:'center',alignItems:'center',gap:'4px'}}>
                                 <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="landmark" label="Parvis" />
                                 <NavTab active={activeView==='adherents'} onClick={()=>setActiveView('adherents')} icon="users" label="Tableau de Loge" />
-                                <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
-                                <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
+                                <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Travaux" />
+                                <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
-                                
-                                <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
-                                <div className="relative font-sans">
-                                    <button onClick={() => setShowGradesMenu(!showGradesMenu)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${['apprenti','compagnon','maitre','read','write'].includes(activeView) ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>Travaux Couverts</button>
+                                <div style={{width:'1px',height:'20px',background:'rgba(201,162,39,0.2)',margin:'0 4px'}} className="hidden lg:block"></div>
+                                <div style={{position:'relative'}}>
+                                    <button onClick={() => setShowGradesMenu(!showGradesMenu)} style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',borderRadius:'10px',fontSize:'9px',fontWeight:'bold',textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Cinzel,serif',cursor:'pointer',transition:'all 0.2s',background:['apprenti','compagnon','maitre','read','write'].includes(activeView)?'linear-gradient(135deg,rgba(201,162,39,0.25),rgba(201,162,39,0.1))':'transparent',color:['apprenti','compagnon','maitre','read','write'].includes(activeView)?'#c9a227':'rgba(148,163,184,0.8)',border:'1px solid',borderColor:['apprenti','compagnon','maitre','read','write'].includes(activeView)?'rgba(201,162,39,0.3)':'transparent'}}>
+                                        <i className="fa-solid fa-eye-slash" style={{fontSize:'12px'}}></i>
+                                        <span className="hidden sm:inline" style={{fontFamily:'Inter,sans-serif'}}>Couverts</span>
+                                        <i className="fa-solid fa-chevron-down" style={{fontSize:'8px',opacity:0.5}}></i>
+                                    </button>
                                     {showGradesMenu && (
-                                        <div className="absolute top-full mt-2 right-0 w-40 rounded-xl shadow-2xl bg-slate-800 border border-slate-700 z-50 flex flex-col overflow-hidden animate-fade font-serif">
-                                            {['apprenti', 'compagnon', 'maitre'].map(g => (
-                                                <button key={g} onClick={() => { if(!unlockedGrades[g]) { setPendingGrade(g); setActiveView('grade_auth'); } else setActiveView(g); setShowGradesMenu(false); }} className="flex items-center px-4 py-3 text-slate-300 hover:bg-amber-600 hover:text-white border-b border-slate-700 last:border-0 uppercase font-bold text-[10px] tracking-widest"><SmartIcon name={unlockedGrades[g] ? "Unlock" : "Lock"} size={14} className="mr-3" />{g.toUpperCase()}</button>
+                                        <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,width:'190px',background:'linear-gradient(160deg,#1a2236,#111827)',border:'1px solid rgba(201,162,39,0.2)',borderRadius:'12px',boxShadow:'0 20px 50px rgba(0,0,0,0.6)',zIndex:50,overflow:'hidden'}} className="animate-fade">
+                                            {[['apprenti','Apprenti','1er Degré'], ['compagnon','Compagnon','2e Degré'], ['maitre','Maître','3e Degré']].map(([g, label, sub]) => (
+                                                <button key={g} onClick={() => { if(!unlockedGrades[g]) { setPendingGrade(g); setActiveView('grade_auth'); } else setActiveView(g); setShowGradesMenu(false); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'12px 16px',background:'transparent',border:'none',borderBottom:'1px solid rgba(201,162,39,0.08)',cursor:'pointer',color:'rgba(203,213,225,0.9)',transition:'all 0.15s',textAlign:'left'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(201,162,39,0.1)';e.currentTarget.style.color='#c9a227';}} onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='rgba(203,213,225,0.9)';}}>
+                                                    <div><div style={{fontSize:'10px',fontWeight:'bold',fontFamily:'Cinzel,serif',letterSpacing:'0.15em'}}>{label.toUpperCase()}</div><div style={{fontSize:'8px',opacity:0.5,marginTop:'2px',fontFamily:'Inter,sans-serif'}}>{sub}</div></div>
+                                                    <SmartIcon name={unlockedGrades[g] ? "Unlock" : "Lock"} size={12} />
+                                                </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
                                 {isArchitect && (
-                                    <button onClick={()=>setShowApiKeyModal(true)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${claudeApiKey ? 'text-blue-400 hover:bg-slate-800' : 'text-red-400 hover:bg-slate-800'}`} title="Clé API Intelligence Artificielle">
-                                        IA {claudeApiKey ? '✓' : '✗'}
+                                    <button onClick={()=>setShowApiKeyModal(true)} style={{padding:'7px 10px',borderRadius:'10px',fontSize:'9px',fontWeight:'bold',textTransform:'uppercase',letterSpacing:'0.1em',cursor:'pointer',border:'1px solid',background:'transparent',transition:'all 0.2s',borderColor:claudeApiKey?'rgba(96,165,250,0.3)':'rgba(239,68,68,0.3)',color:claudeApiKey?'#60a5fa':'#f87171'}} title="Clé API IA">
+                                        <i className={`fa-solid fa-${claudeApiKey?'brain':'triangle-exclamation'}`} style={{marginRight:'4px'}}></i>IA
                                     </button>
                                 )}
-                                <button onClick={() => { api.signOut(api.auth); setIsLogged(false); setIsArchitect(false); setUnlockedGrades({apprenti:false,compagnon:false,maitre:false}); setMemberName(''); setMemberRole(''); setActiveView('home'); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors font-sans"><SmartIcon name="LogOut" size={20}/></button>
+                                <button onClick={() => { api.signOut(api.auth); setIsLogged(false); setIsArchitect(false); setUnlockedGrades({apprenti:false,compagnon:false,maitre:false}); setMemberName(''); setMemberRole(''); setActiveView('home'); }} style={{padding:'7px 10px',borderRadius:'10px',color:'rgba(148,163,184,0.6)',background:'transparent',border:'1px solid transparent',cursor:'pointer',transition:'all 0.2s'}} onMouseOver={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.borderColor='rgba(239,68,68,0.3)';}} onMouseOut={e=>{e.currentTarget.style.color='rgba(148,163,184,0.6)';e.currentTarget.style.borderColor='transparent';}}>
+                                    <SmartIcon name="LogOut" size={16}/>
+                                </button>
                             </div>
                         </div>
                     </nav>
@@ -1375,7 +1585,17 @@
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView('home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade="apprenti" currentUser={memberName} />}
                     </main>
-                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>
+                    <footer style={{borderTop:'1px solid rgba(201,162,39,0.15)',background:'linear-gradient(to bottom,#f8fafc,#f0f2f5)',padding:'2rem 1rem',textAlign:'center'}}>
+                        <div style={{display:'flex',justifyContent:'center',gap:'16px',color:'rgba(201,162,39,0.35)',fontSize:'18px',marginBottom:'12px'}}>
+                            <i className="fa-solid fa-compass"></i>
+                            <i className="fa-solid fa-star-of-david"></i>
+                            <i className="fa-solid fa-sun"></i>
+                        </div>
+                        <p style={{fontFamily:'Cinzel,serif',fontSize:'11px',fontWeight:'bold',color:'#64748b',letterSpacing:'0.3em',textTransform:'uppercase'}}>{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'}</p>
+                        {logeIdentity?.rite && <p style={{fontSize:'9px',color:'#94a3b8',letterSpacing:'0.2em',textTransform:'uppercase',marginTop:'4px',fontFamily:'Inter,sans-serif'}}>{logeIdentity.rite}</p>}
+                        {logeIdentity?.obedience && <p style={{fontSize:'9px',color:'#94a3b8',letterSpacing:'0.15em',textTransform:'uppercase',marginTop:'2px',fontFamily:'Inter,sans-serif'}}>{logeIdentity.obedience}</p>}
+                        <p style={{fontSize:'8px',color:'rgba(148,163,184,0.4)',letterSpacing:'0.2em',textTransform:'uppercase',marginTop:'12px',fontFamily:'Inter,sans-serif'}}>À la Gloire du G∴A∴D∴L∴U∴ — Orient de Perpignan</p>
+                    </footer>
                 </div>
             );
         }
