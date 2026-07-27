@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poster Maison — Affiches d'art & décoration</title>
+  <meta name="description" content="Boutique d'affiches artistiques. 3 formats disponibles : 30×40, 50×70, 70×100 cm. Impression haute qualité, livraison soignée.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ===== DESIGN SYSTEM ===== */
+    :root {
+      --black:       #1C1C1E;
+      --gold:        #C8A85C;
+      --gold-dark:   #A8883C;
+      --cream:       #FAFAF7;
+      --gray-light:  #F2F2EE;
+      --gray:        #9A9A96;
+      --border:      #E4E4E0;
+      --white:       #FFFFFF;
+      --radius:      4px;
+      --ease:        0.25s ease;
+      --shadow:      0 2px 20px rgba(0,0,0,0.07);
+      --shadow-lg:   0 8px 40px rgba(0,0,0,0.14);
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--black); min-height: 100vh; }
+
+    /* ===== HEADER ===== */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,247,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-mark {
+      display: flex; align-items: center; gap: 14px;
+      text-decoration: none; color: inherit;
+    }
+    .logo-icon { width: 36px; height: 48px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-poster {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 21px; font-weight: 700;
+      letter-spacing: 4px; color: var(--black);
+    }
+    .brand-maison {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px; font-weight: 300;
+      letter-spacing: 8px; color: var(--gold);
+    }
+    .header-nav { display: flex; align-items: center; gap: 8px; }
+    .cart-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 100px;
+      background: none; cursor: pointer; font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 500; color: var(--black);
+      transition: all var(--ease);
+    }
+    .cart-btn:hover { border-color: var(--black); background: var(--black); color: var(--white); }
+    .cart-btn:hover .cart-count { background: var(--gold); color: var(--black); }
+    .cart-count {
+      background: var(--black); color: var(--white);
+      font-size: 11px; font-weight: 700;
+      min-width: 20px; height: 20px; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 5px; transition: background var(--ease);
+    }
+    .cart-count.has-items { background: var(--gold); color: var(--black); }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: var(--black); color: var(--white);
+      padding: 88px 40px 72px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(200,168,92,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 300; letter-spacing: 1px; line-height: 1.2;
+      margin-bottom: 18px; position: relative;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+    .hero p {
+      font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(255,255,255,0.45); position: relative;
+    }
+    .hero-badges {
+      display: flex; justify-content: center; gap: 40px;
+      margin-top: 40px; flex-wrap: wrap; position: relative;
+    }
+    .hero-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; letter-spacing: 1px; color: rgba(255,255,255,0.55);
+    }
+    .hero-badge svg { color: var(--gold); }
+
+    /* ===== TOOLBAR ===== */
+    .toolbar {
+      padding: 20px 40px; background: var(--cream);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap; position: sticky; top: 72px; z-index: 90;
+    }
+    .categories { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+    .cat-btn {
+      padding: 7px 16px; border: 1.5px solid var(--border); border-radius: 100px;
+      background: none; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all var(--ease); color: var(--gray); white-space: nowrap;
+    }
+    .cat-btn:hover { border-color: var(--black); color: var(--black); }
+    .cat-btn.active { background: var(--black); border-color: var(--black); color: var(--white); }
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray); pointer-events: none; }
+    .search-input {
+      padding: 8px 14px 8px 36px; border: 1.5px solid var(--border);
+      border-radius: 100px; background: var(--white);
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      width: 220px; outline: none; transition: border-color var(--ease);
+    }
+    .search-input:focus { border-color: var(--black); }
+    .results-count { font-size: 12px; color: var(--gray); white-space: nowrap; }
+
+    /* ===== PRODUCT GRID ===== */
+    .products-section { padding: 40px; max-width: 1600px; margin: 0 auto; }
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 32px;
+    }
+    .product-card { cursor: pointer; }
+    .product-image-wrap {
+      position: relative; aspect-ratio: 3/4; overflow: hidden;
+      border-radius: var(--radius); background: var(--gray-light);
+      margin-bottom: 14px;
+    }
+    .product-image-wrap img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.5s ease, opacity 0.3s ease;
+      opacity: 0;
+    }
+    .product-image-wrap img.loaded { opacity: 1; }
+    .product-card:hover .product-image-wrap img { transform: scale(1.05); }
+    .product-overlay {
+      position: absolute; inset: 0;
+      background: rgba(28,28,30,0); display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.3s ease;
+    }
+    .product-card:hover .product-overlay { background: rgba(28,28,30,0.22); }
+    .quick-view-btn {
+      background: var(--white); color: var(--black);
+      border: none; padding: 10px 24px;
+      font-family: 'Inter', sans-serif; font-size: 11px;
+      font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; border-radius: 2px;
+      opacity: 0; transform: translateY(6px);
+      transition: all 0.2s ease;
+    }
+    .product-card:hover .quick-view-btn { opacity: 1; transform: translateY(0); }
+    .product-category {
+      font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 5px;
+    }
+    .product-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-weight: 600; margin-bottom: 5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .product-price { font-size: 13px; color: var(--gray); }
+    .load-more-wrap { text-align: center; padding: 56px 0; }
+    .load-more-btn {
+      padding: 14px 52px; background: none;
+      border: 1.5px solid var(--black); border-radius: 2px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; letter-spacing: 2px; cursor: pointer;
+      transition: all var(--ease);
+    }
+    .load-more-btn:hover { background: var(--black); color: var(--white); }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(28,28,30,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 200; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--white); border-radius: 6px;
+      max-width: 860px; width: 100%; max-height: 92vh; overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+      transform: scale(0.96); transition: transform 0.25s ease;
+      position: relative;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-image-side {
+      position: relative; overflow: hidden;
+      background: var(--gray-light);
+    }
+    .modal-image {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--white); border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: var(--shadow); font-size: 16px;
+      color: var(--black); z-index: 10; transition: background var(--ease);
+    }
+    .modal-close:hover { background: var(--black); color: var(--white); }
+    .modal-body { padding: 48px 40px; display: flex; flex-direction: column; overflow-y: auto; }
+    .modal-cat { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+    .modal-name { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; line-height: 1.2; margin-bottom: 24px; }
+    hr.modal-divider { border: none; border-top: 1px solid var(--border); margin-bottom: 24px; }
+    .size-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gray); margin-bottom: 12px; }
+    .size-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .size-option {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      transition: all var(--ease); user-select: none;
+    }
+    .size-option:hover { border-color: var(--black); }
+    .size-option.selected { border-color: var(--black); background: var(--black); color: var(--white); }
+    .size-opt-label { font-size: 14px; font-weight: 500; }
+    .size-opt-price { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; }
+    .modal-info { font-size: 12px; color: var(--gray); line-height: 1.7; margin-bottom: 24px; }
+    .add-cart-btn {
+      padding: 15px 28px; background: var(--black); color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; transition: background var(--ease); margin-top: auto;
+    }
+    .add-cart-btn:hover { background: var(--gold); }
+    .add-cart-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ===== CART SIDEBAR ===== */
+    .sidebar-overlay {
+      position: fixed; inset: 0;
+      background: rgba(28,28,30,0.35);
+      z-index: 280; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+    .cart-sidebar {
+      position: fixed; right: 0; top: 0; bottom: 0;
+      width: 400px; background: var(--white); z-index: 300;
+      box-shadow: -8px 0 48px rgba(0,0,0,0.12);
+      display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 0.32s ease;
+    }
+    .cart-sidebar.open { transform: translateX(0); }
+    .cart-header {
+      padding: 24px 28px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cart-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; }
+    .cart-close-x { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--gray); padding: 4px; transition: color var(--ease); }
+    .cart-close-x:hover { color: var(--black); }
+    .cart-items { flex: 1; overflow-y: auto; padding: 20px 28px; }
+    .cart-empty { text-align: center; padding: 64px 20px; color: var(--gray); }
+    .cart-empty svg { opacity: 0.25; margin-bottom: 16px; }
+    .cart-empty p { font-size: 15px; }
+    .cart-item {
+      display: grid; grid-template-columns: 60px 1fr auto;
+      gap: 14px; padding: 16px 0;
+      border-bottom: 1px solid var(--border); align-items: center;
+    }
+    .cart-item-img { width: 60px; height: 80px; object-fit: cover; border-radius: 2px; background: var(--gray-light); }
+    .ci-name { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+    .ci-size { font-size: 11px; color: var(--gray); margin-bottom: 10px; letter-spacing: 1px; }
+    .qty-row { display: flex; align-items: center; gap: 10px; }
+    .qty-btn {
+      width: 26px; height: 26px; border: 1.5px solid var(--border);
+      background: none; border-radius: 50%; cursor: pointer;
+      font-size: 15px; display: flex; align-items: center; justify-content: center;
+      transition: all var(--ease); font-weight: 300; line-height: 1;
+    }
+    .qty-btn:hover { border-color: var(--black); background: var(--black); color: var(--white); }
+    .qty-val { font-size: 14px; font-weight: 500; min-width: 18px; text-align: center; }
+    .ci-price-col { text-align: right; }
+    .ci-price { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 700; }
+    .ci-remove { font-size: 11px; color: var(--gray); background: none; border: none; cursor: pointer; margin-top: 6px; display: block; text-align: right; transition: color var(--ease); }
+    .ci-remove:hover { color: var(--black); }
+    .cart-footer { padding: 24px 28px; border-top: 1px solid var(--border); }
+    .cart-total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .cart-total-lbl { font-size: 13px; color: var(--gray); }
+    .cart-total-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; }
+    .checkout-btn {
+      width: 100%; padding: 15px;
+      background: var(--black); color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; transition: background var(--ease);
+    }
+    .checkout-btn:hover { background: var(--gold); }
+    .checkout-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .free-ship { font-size: 11px; color: var(--gray); text-align: center; margin-top: 12px; letter-spacing: 0.5px; }
+
+    /* ===== SUCCESS BANNER ===== */
+    .success-banner {
+      background: #D4EDDA; color: #155724;
+      padding: 14px 40px; display: flex; align-items: center; gap: 10px;
+      font-size: 14px;
+    }
+
+    /* ===== SKELETON ===== */
+    .skeleton {
+      background: linear-gradient(90deg, var(--gray-light) 25%, #E8E8E4 50%, var(--gray-light) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 80px 40px; color: var(--gray); }
+    .empty-state svg { opacity: 0.25; margin-bottom: 16px; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: var(--black); color: rgba(255,255,255,0.5);
+      padding: 64px 40px 48px;
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px;
+      margin-top: 80px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .footer-logo-icon { width: 28px; height: 38px; }
+    .footer-logo-poster { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+    .footer-logo-maison { font-family: 'Cormorant Garamond', serif; font-size: 11px; font-weight: 300; letter-spacing: 6px; color: var(--gold); }
+    footer h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 16px; letter-spacing: 1px; }
+    footer p, footer a { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.45); text-decoration: none; display: block; }
+    footer a:hover { color: var(--gold); }
+    .footer-formats p { font-size: 13px; display: flex; justify-content: space-between; line-height: 2.2; }
+    .footer-formats span { color: var(--gold); font-weight: 600; }
+    .footer-bottom {
+      background: var(--black); border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 18px 40px; display: flex;
+      justify-content: space-between; align-items: center;
+      font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .modal { grid-template-columns: 1fr; }
+      .modal-image-side { display: none; }
+    }
+    @media (max-width: 768px) {
+      header { padding: 0 20px; }
+      .toolbar { padding: 14px 20px; top: 72px; }
+      .products-section { padding: 24px 20px; }
+      .products-grid { gap: 18px; }
+      .hero { padding: 60px 20px; }
+      .hero-badges { gap: 24px; }
+      .cart-sidebar { width: 100%; }
+      footer { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+      .success-banner { padding: 14px 20px; }
+    }
+    @media (max-width: 480px) {
+      .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SUCCESS BANNER -->
+  <div class="success-banner" id="success-banner" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    Merci pour votre commande ! Vous recevrez une confirmation par e-mail.
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <a href="." class="logo-mark" aria-label="Poster Maison — Accueil">
+      <svg class="logo-icon" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div class="logo-text">
+        <span class="brand-poster">POSTER</span>
+        <span class="brand-maison">MAISON</span>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <button class="cart-btn" id="cart-toggle-btn" onclick="toggleCart()" aria-label="Ouvrir le panier">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+        Panier
+        <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Des affiches qui<br><em>transforment vos murs</em></h1>
+    <p>Impression haute qualité &nbsp;·&nbsp; Livraison soignée &nbsp;·&nbsp; Partout en France</p>
+    <div class="hero-badges">
+      <span class="hero-badge">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Livraison en 5–7 jours
+      </span>
+      <span class="hero-badge">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Paiement 100 % sécurisé
+      </span>
+      <span class="hero-badge">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        3 formats disponibles
+      </span>
+    </div>
+  </section>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar" role="navigation" aria-label="Filtres">
+    <div class="categories" id="categories" role="group" aria-label="Catégories">
+      <button class="cat-btn active" data-cat="all" onclick="filterCat('all')">Toutes</button>
+    </div>
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" class="search-input" id="search-input" placeholder="Rechercher…" aria-label="Rechercher une affiche">
+    </div>
+    <span class="results-count" id="results-count" aria-live="polite"></span>
+  </div>
+
+  <!-- PRODUCTS -->
+  <main class="products-section">
+    <div class="products-grid" id="products-grid" role="list"></div>
+    <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+      <button class="load-more-btn" onclick="loadMore()">Voir plus d'affiches</button>
+    </div>
+  </main>
+
+  <!-- PRODUCT MODAL -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-name" onclick="handleOverlayClick(event)">
+    <div class="modal" id="modal">
+      <div class="modal-image-side">
+        <img class="modal-image" id="modal-image" src="" alt="">
+      </div>
+      <div class="modal-body">
+        <button class="modal-close" onclick="closeModal()" aria-label="Fermer">✕</button>
+        <div class="modal-cat" id="modal-cat"></div>
+        <h2 class="modal-name" id="modal-name"></h2>
+        <hr class="modal-divider">
+        <div class="size-label">Choisir un format</div>
+        <div class="size-options" id="size-options"></div>
+        <p class="modal-info">Impression sur papier premium 200 g/m². Livraison soignée sous tube ou à plat. Retours acceptés sous 14 jours.</p>
+        <button class="add-cart-btn" id="add-cart-btn" onclick="addToCartFromModal()" disabled>Ajouter au panier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CART -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleCart()"></div>
+  <aside class="cart-sidebar" id="cart-sidebar" role="complementary" aria-label="Panier">
+    <div class="cart-header">
+      <span class="cart-title">Mon panier</span>
+      <button class="cart-close-x" onclick="toggleCart()" aria-label="Fermer le panier">✕</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer" id="cart-footer" style="display:none">
+      <div class="cart-total-row">
+        <span class="cart-total-lbl">Total TTC</span>
+        <span class="cart-total-val" id="cart-total">0 €</span>
+      </div>
+      <button class="checkout-btn" id="checkout-btn" onclick="checkout()">
+        Commander — Paiement sécurisé
+      </button>
+      <p class="free-ship">🎁 Livraison offerte dès 60 €</p>
+    </div>
+  </aside>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>
+      <div class="footer-logo">
+        <svg class="footer-logo-icon" viewBox="0 0 36 48" fill="none" aria-hidden="true">
+          <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+          <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/>
+        </svg>
+        <div>
+          <div class="footer-logo-poster">POSTER</div>
+          <div class="footer-logo-maison">MAISON</div>
+        </div>
+      </div>
+      <p>Des affiches artistiques pour décorer votre intérieur avec style. Impression haute qualité, papier premium, emballage soigné.</p>
+    </div>
+    <div>
+      <h3>Informations</h3>
+      <a href="#">Livraison & retours</a>
+      <a href="#">Mentions légales</a>
+      <a href="#">Politique de confidentialité</a>
+      <a href="#">Nous contacter</a>
+    </div>
+    <div class="footer-formats">
+      <h3>Nos formats</h3>
+      <p>30 × 40 cm <span>19 €</span></p>
+      <p>50 × 70 cm <span>29 €</span></p>
+      <p>70 × 100 cm <span>45 €</span></p>
+    </div>
+  </footer>
+  <div class="footer-bottom">
+    <span>© 2026 Poster Maison — Tous droits réservés</span>
+    <span>Paiement sécurisé par Stripe</span>
+  </div>
+
+  <script>
+    /* ============================================================
+       CONFIGURATION — À PERSONNALISER AVANT MISE EN LIGNE
+    ============================================================ */
+    const CFG = {
+      STRIPE_ENDPOINT : '/api/checkout',
+      PAGE_SIZE       : 24,
+      SIZES           : {
+        '30x40'  : { label: '30 × 40 cm',   price: 19 },
+        '50x70'  : { label: '50 × 70 cm',   price: 29 },
+        '70x100' : { label: '70 × 100 cm',  price: 45 },
+      }
+    };
+
+    /* ============================================================
+       STATE
+    ============================================================ */
+    let allProducts = [];
+    let filtered    = [];
+    let shown       = 0;
+    let activeCat   = 'all';
+    let query       = '';
+    let cart        = JSON.parse(localStorage.getItem('pm_cart') || '[]');
+    let selProduct  = null;
+    let selSize     = null;
+    let searchTmr   = null;
+
+    /* ============================================================
+       LAZY IMAGE OBSERVER
+    ============================================================ */
+    const imgObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const img = e.target;
+        img.src = img.dataset.src;
+        img.onload  = () => img.classList.add('loaded');
+        img.onerror = () => { img.src = blankImg(); img.classList.add('loaded'); };
+        imgObserver.unobserve(img);
+      });
+    }, { rootMargin: '400px' });
+
+    function blankImg() {
+      return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='4' viewBox='0 0 3 4'%3E%3Crect width='3' height='4' fill='%23f2f2ee'/%3E%3C/svg%3E";
+    }
+
+    /* ============================================================
+       INIT
+    ============================================================ */
+    async function init() {
+      const params = new URLSearchParams(location.search);
+      if (params.get('success') === 'true') {
+        document.getElementById('success-banner').style.display = 'flex';
+        cart = []; saveCart();
+        history.replaceState({}, '', location.pathname);
+      }
+      updateCartUI();
+
+      try {
+        const res = await fetch('products.json');
+        if (!res.ok) throw new Error('Catalogue introuvable');
+        const data = await res.json();
+        allProducts = data.products || [];
+        renderCats(data.categories || []);
+        applyFilters();
+      } catch (err) {
+        document.getElementById('products-grid').innerHTML =
+          `<div class="empty-state"><p>Catalogue en cours de chargement…</p></div>`;
+      }
+
+      document.getElementById('search-input').addEventListener('input', e => {
+        clearTimeout(searchTmr);
+        searchTmr = setTimeout(() => { query = e.target.value.toLowerCase().trim(); applyFilters(); }, 280);
+      });
+    }
+
+    /* ============================================================
+       CATEGORIES
+    ============================================================ */
+    function renderCats(cats) {
+      const el = document.getElementById('categories');
+      cats.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-btn'; btn.dataset.cat = c;
+        btn.textContent = c; btn.onclick = () => filterCat(c);
+        el.appendChild(btn);
+      });
+    }
+
+    function filterCat(cat) {
+      activeCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+      applyFilters();
+    }
+
+    /* ============================================================
+       FILTERING & RENDERING
+    ============================================================ */
+    function applyFilters() {
+      filtered = allProducts.filter(p => {
+        const okCat = activeCat === 'all' || p.category === activeCat;
+        const okQ   = !query || p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query);
+        return okCat && okQ;
+      });
+      shown = 0;
+      document.getElementById('products-grid').innerHTML = '';
+      document.getElementById('results-count').textContent =
+        `${filtered.length} affiche${filtered.length !== 1 ? 's' : ''}`;
+      loadMore();
+    }
+
+    function loadMore() {
+      const grid  = document.getElementById('products-grid');
+      const batch = filtered.slice(shown, shown + CFG.PAGE_SIZE);
+
+      if (shown === 0 && batch.length === 0) {
+        grid.innerHTML = `<div class="empty-state">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <p>Aucune affiche trouvée</p></div>`;
+      }
+
+      batch.forEach(p => { const card = mkCard(p); grid.appendChild(card); });
+      shown += batch.length;
+
+      const wrap = document.getElementById('load-more-wrap');
+      wrap.style.display = shown < filtered.length ? 'block' : 'none';
+
+      grid.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
+    }
+
+    function mkCard(p) {
+      const div = document.createElement('div');
+      div.className = 'product-card'; div.setAttribute('role', 'listitem');
+      div.innerHTML = `
+        <div class="product-image-wrap">
+          <img data-src="${p.image}" alt="${p.name}" loading="lazy">
+          <div class="product-overlay"><button class="quick-view-btn">Voir</button></div>
+        </div>
+        <div class="product-category">${p.category}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">À partir de 19 €</div>`;
+      div.onclick = () => openModal(p);
+      return div;
+    }
+
+    /* ============================================================
+       MODAL
+    ============================================================ */
+    function openModal(p) {
+      selProduct = p; selSize = null;
+      const img = document.getElementById('modal-image');
+      img.src = p.image; img.alt = p.name;
+      document.getElementById('modal-cat').textContent  = p.category;
+      document.getElementById('modal-name').textContent = p.name;
+      document.getElementById('add-cart-btn').disabled  = true;
+
+      document.getElementById('size-options').innerHTML =
+        Object.entries(CFG.SIZES).map(([k, s]) => `
+          <div class="size-option" data-size="${k}" onclick="pickSize('${k}')">
+            <span class="size-opt-label">${s.label}</span>
+            <span class="size-opt-price">${s.price} €</span>
+          </div>`).join('');
+
+      document.getElementById('modal-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function pickSize(k) {
+      selSize = k;
+      document.querySelectorAll('.size-option').forEach(el =>
+        el.classList.toggle('selected', el.dataset.size === k));
+      document.getElementById('add-cart-btn').disabled = false;
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+      selProduct = null; selSize = null;
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target.id === 'modal-overlay') closeModal();
+    }
+
+    /* ============================================================
+       CART
+    ============================================================ */
+    function addToCartFromModal() {
+      if (!selProduct || !selSize) return;
+      const s   = CFG.SIZES[selSize];
+      const cid = `${selProduct.id}__${selSize}`;
+      const ex  = cart.find(i => i.id === cid);
+      if (ex) { ex.qty++; } else {
+        cart.push({ id: cid, productId: selProduct.id, name: selProduct.name,
+          category: selProduct.category, image: selProduct.image,
+          size: selSize, sizeLabel: s.label, price: s.price, qty: 1 });
+      }
+      saveCart(); updateCartUI(); closeModal();
+      setTimeout(toggleCart, 280);
+    }
+
+    function removeFromCart(id) { cart = cart.filter(i => i.id !== id); saveCart(); updateCartUI(); renderCartItems(); }
+
+    function updateQty(id, d) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      item.qty += d;
+      if (item.qty <= 0) { removeFromCart(id); return; }
+      saveCart(); updateCartUI(); renderCartItems();
+    }
+
+    function saveCart() { localStorage.setItem('pm_cart', JSON.stringify(cart)); }
+
+    function updateCartUI() {
+      const n  = cart.reduce((s, i) => s + i.qty, 0);
+      const el = document.getElementById('cart-count');
+      el.textContent = n; el.classList.toggle('has-items', n > 0);
+    }
+
+    function renderCartItems() {
+      const box    = document.getElementById('cart-items');
+      const footer = document.getElementById('cart-footer');
+      if (!cart.length) {
+        box.innerHTML = `<div class="cart-empty">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <p>Votre panier est vide</p></div>`;
+        footer.style.display = 'none'; return;
+      }
+      const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      box.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <img class="cart-item-img" src="${item.image}" alt="${item.name}" loading="lazy"
+            onerror="this.style.background='var(--gray-light)'">
+          <div>
+            <div class="ci-name">${item.name}</div>
+            <div class="ci-size">${item.sizeLabel}</div>
+            <div class="qty-row">
+              <button class="qty-btn" onclick="updateQty('${item.id}',-1)">−</button>
+              <span class="qty-val">${item.qty}</span>
+              <button class="qty-btn" onclick="updateQty('${item.id}',1)">+</button>
+            </div>
+          </div>
+          <div class="ci-price-col">
+            <div class="ci-price">${item.price * item.qty} €</div>
+            <button class="ci-remove" onclick="removeFromCart('${item.id}')">Retirer</button>
+          </div>
+        </div>`).join('');
+      document.getElementById('cart-total').textContent = `${total} €`;
+      footer.style.display = 'block';
+    }
+
+    function toggleCart() {
+      const sb = document.getElementById('cart-sidebar');
+      const ov = document.getElementById('sidebar-overlay');
+      const open = sb.classList.contains('open');
+      if (!open) {
+        renderCartItems();
+        sb.classList.add('open'); ov.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      } else {
+        sb.classList.remove('open'); ov.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    }
+
+    /* ============================================================
+       STRIPE CHECKOUT
+    ============================================================ */
+    async function checkout() {
+      const btn = document.getElementById('checkout-btn');
+      btn.disabled = true; btn.textContent = 'Chargement…';
+      const base = window.location.origin + window.location.pathname.replace(/\/?$/, '/');
+      try {
+        const res = await fetch(CFG.STRIPE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            returnUrl : base,
+            items     : cart.map(i => ({ name: `${i.name} — ${i.sizeLabel}`, price: i.price, qty: i.qty }))
+          })
+        });
+        if (!res.ok) throw new Error('Réponse serveur invalide');
+        const { url, error } = await res.json();
+        if (error) throw new Error(error);
+        window.location.href = url;
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false; btn.textContent = 'Commander — Paiement sécurisé';
+        alert('Une erreur est survenue. Veuillez réessayer.');
+      }
+    }
+
+    /* ============================================================
+       KEYBOARD ACCESSIBILITY
+    ============================================================ */
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); if (document.getElementById('cart-sidebar').classList.contains('open')) toggleCart(); } });
+
+    /* START */
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poster Maison — Charte graphique</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black:      #1C1C1E;
+      --gold:       #C8A85C;
+      --cream:      #FAFAF7;
+      --gray-light: #F2F2EE;
+      --gray:       #9A9A96;
+      --border:     #E4E4E0;
+      --white:      #FFFFFF;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { font-family:'Inter', sans-serif; background:var(--cream); color:var(--black); }
+
+    /* Layout */
+    .page { max-width: 960px; margin: 0 auto; padding: 64px 40px; }
+
+    /* Header charte */
+    .charte-header {
+      border-bottom: 1.5px solid var(--border);
+      padding-bottom: 48px; margin-bottom: 64px;
+      display: flex; align-items: center; gap: 32px;
+    }
+    .charte-logo { display:flex; align-items:center; gap:14px; }
+    .logo-icon { width:44px; height:58px; }
+    .logo-txt { display:flex; flex-direction:column; line-height:1.1; }
+    .lp { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:700; letter-spacing:5px; }
+    .lm { font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:300; letter-spacing:10px; color:var(--gold); }
+    .charte-meta { margin-left:auto; text-align:right; }
+    .charte-meta h1 { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:300; margin-bottom:4px; }
+    .charte-meta p { font-size:12px; color:var(--gray); letter-spacing:1px; }
+
+    /* Section titles */
+    h2 {
+      font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:400;
+      letter-spacing:2px; text-transform:uppercase;
+      color:var(--black); margin-bottom:8px;
+      display:flex; align-items:center; gap:12px;
+    }
+    h2::after { content:''; flex:1; height:1px; background:var(--border); }
+    .section { margin-bottom:64px; }
+    .section-desc { font-size:13px; color:var(--gray); margin-bottom:28px; line-height:1.8; }
+
+    /* Colors */
+    .color-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:20px; }
+    .color-card { border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+    .color-swatch { height:96px; }
+    .color-info { padding:14px; background:var(--white); }
+    .color-name { font-weight:600; font-size:13px; margin-bottom:4px; }
+    .color-hex  { font-family:monospace; font-size:12px; color:var(--gray); margin-bottom:2px; }
+    .color-use  { font-size:11px; color:var(--gray); }
+
+    /* Typography */
+    .type-block { margin-bottom:32px; padding:32px; background:var(--white); border:1px solid var(--border); border-radius:4px; }
+    .type-meta  { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+    .type-sample-serif { font-family:'Cormorant Garamond',serif; color:var(--black); }
+    .type-sample-sans  { font-family:'Inter',sans-serif; color:var(--black); }
+    .type-weights { display:flex; gap:24px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+    .tw { font-size:13px; }
+    .tw span { display:block; font-size:11px; color:var(--gray); margin-top:2px; font-style:normal; }
+
+    /* Logo versions */
+    .logo-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .logo-box {
+      padding:40px 32px; border-radius:4px; border:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center; gap:24px;
+    }
+    .logo-box.dark { background:var(--black); }
+    .logo-box.gold-bg { background:var(--gold); }
+    .logo-box label { font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+    .logo-box.dark label { color:rgba(255,255,255,0.4); }
+
+    /* Spacing */
+    .space-scale { display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap; }
+    .sp { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .sp-bar { background:var(--gold); width:40px; border-radius:2px; }
+    .sp-label { font-size:11px; color:var(--gray); font-family:monospace; }
+
+    /* UI Components */
+    .comp-grid { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+    .btn-primary {
+      padding:13px 28px; background:var(--black); color:var(--white);
+      border:none; border-radius:4px; font-family:'Inter',sans-serif;
+      font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+    }
+    .btn-secondary {
+      padding:13px 28px; background:none; color:var(--black);
+      border:1.5px solid var(--black); border-radius:100px; font-family:'Inter',sans-serif;
+      font-size:12px; font-weight:500; cursor:pointer;
+    }
+    .btn-gold {
+      padding:13px 28px; background:var(--gold); color:var(--white);
+      border:none; border-radius:4px; font-family:'Inter',sans-serif;
+      font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+    }
+    .tag {
+      padding:6px 14px; border:1.5px solid var(--border); border-radius:100px;
+      font-size:12px; font-weight:500; color:var(--gray);
+    }
+    .tag.active { background:var(--black); border-color:var(--black); color:var(--white); }
+    .badge {
+      background:var(--black); color:var(--white);
+      font-size:11px; font-weight:700; min-width:20px; height:20px;
+      border-radius:10px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px;
+    }
+    .badge.gold { background:var(--gold); color:var(--black); }
+
+    /* Sizes */
+    .sizes-table { width:100%; border-collapse:collapse; background:var(--white); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+    .sizes-table th { background:var(--black); color:var(--white); padding:12px 18px; text-align:left; font-size:11px; letter-spacing:2px; text-transform:uppercase; font-weight:500; }
+    .sizes-table td { padding:14px 18px; border-bottom:1px solid var(--border); font-size:13px; }
+    .sizes-table tr:last-child td { border-bottom:none; }
+    .sizes-table td:nth-child(3) { font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:700; color:var(--gold); }
+
+    /* Don't grid */
+    .dont-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .do-box, .dont-box { padding:24px; border-radius:4px; border:2px solid; }
+    .do-box { border-color:#22C55E; background:#F0FDF4; }
+    .dont-box { border-color:#EF4444; background:#FEF2F2; }
+    .rule-label { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    .do-box .rule-label { color:#15803D; }
+    .dont-box .rule-label { color:#DC2626; }
+    .rule-text { font-size:13px; line-height:1.7; }
+
+    /* Footer charte */
+    .charte-footer {
+      border-top:1px solid var(--border); padding-top:32px; margin-top:32px;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:12px; color:var(--gray);
+    }
+
+    @media (max-width:600px) {
+      .page { padding:32px 20px; }
+      .logo-grid { grid-template-columns:1fr; }
+      .dont-grid { grid-template-columns:1fr; }
+      .charte-header { flex-direction:column; align-items:flex-start; }
+      .charte-meta { margin-left:0; text-align:left; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- EN-TÊTE -->
+  <div class="charte-header">
+    <div class="charte-logo">
+      <svg class="logo-icon" viewBox="0 0 36 48" fill="none">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div class="logo-txt">
+        <span class="lp">POSTER</span>
+        <span class="lm">MAISON</span>
+      </div>
+    </div>
+    <div class="charte-meta">
+      <h1>Charte Graphique</h1>
+      <p>Version 1.0 — Juillet 2026</p>
+    </div>
+  </div>
+
+  <!-- 1. PALETTE DE COULEURS -->
+  <div class="section">
+    <h2>Palette de couleurs</h2>
+    <p class="section-desc">Cinq couleurs définissent l'identité visuelle de Poster Maison. Le noir profond et le crème chaud créent une base élégante ; l'or apporte le caractère premium de la marque.</p>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background:#1C1C1E"></div>
+        <div class="color-info">
+          <div class="color-name">Noir Profond</div>
+          <div class="color-hex">#1C1C1E</div>
+          <div class="color-use">Texte principal, CTA, header</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#C8A85C"></div>
+        <div class="color-info">
+          <div class="color-name">Or Chaud</div>
+          <div class="color-hex">#C8A85C</div>
+          <div class="color-use">Accentuation, logo maison, prix</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#FAFAF7; border:1px solid #E4E4E0"></div>
+        <div class="color-info">
+          <div class="color-name">Crème</div>
+          <div class="color-hex">#FAFAF7</div>
+          <div class="color-use">Fond principal, arrière-plans</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#F2F2EE; border:1px solid #E4E4E0"></div>
+        <div class="color-info">
+          <div class="color-name">Gris Perle</div>
+          <div class="color-hex">#F2F2EE</div>
+          <div class="color-use">Fonds secondaires, squelettes</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#9A9A96"></div>
+        <div class="color-info">
+          <div class="color-name">Gris Doux</div>
+          <div class="color-hex">#9A9A96</div>
+          <div class="color-use">Textes secondaires, labels</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#E4E4E0; border:1px solid #D0D0CC"></div>
+        <div class="color-info">
+          <div class="color-name">Bordure</div>
+          <div class="color-hex">#E4E4E0</div>
+          <div class="color-use">Séparateurs, contours</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. TYPOGRAPHIE -->
+  <div class="section">
+    <h2>Typographie</h2>
+    <p class="section-desc">Deux polices complémentaires : <strong>Cormorant Garamond</strong> pour le prestige et la personnalité, <strong>Inter</strong> pour la lisibilité et la modernité.</p>
+
+    <div class="type-block">
+      <div class="type-meta">Police principale — Cormorant Garamond</div>
+      <div class="type-sample-serif" style="font-size:48px; font-weight:300; line-height:1.1; margin-bottom:8px;">Des affiches <em>qui inspirent</em></div>
+      <div class="type-sample-serif" style="font-size:28px; font-weight:600; letter-spacing:1px; margin-bottom:8px;">Poster Maison</div>
+      <div class="type-sample-serif" style="font-size:18px; font-weight:400; color:var(--gray);">Titres, noms de produits, prix, logo</div>
+      <div class="type-weights">
+        <div class="tw">
+          <span class="type-sample-serif" style="font-size:15px; font-weight:300;">Light 300</span>
+          <span>Sous-titres, corps élégant</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-serif" style="font-size:15px; font-weight:400;">Regular 400</span>
+          <span>Texte courant serif</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-serif" style="font-size:15px; font-weight:600;">SemiBold 600</span>
+          <span>Titres produits, modal</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-serif" style="font-size:15px; font-weight:700;">Bold 700</span>
+          <span>Logo POSTER, prix totaux</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="type-block">
+      <div class="type-meta">Police secondaire — Inter</div>
+      <div class="type-sample-sans" style="font-size:22px; font-weight:500; margin-bottom:8px;">Interface · Navigation · Boutons</div>
+      <div class="type-sample-sans" style="font-size:14px; font-weight:400; color:var(--gray); line-height:1.7;">Livraison en 5 à 7 jours ouvrés. Impression sur papier premium 200 g/m². Paiement 100 % sécurisé par Stripe.</div>
+      <div class="type-weights">
+        <div class="tw">
+          <span class="type-sample-sans" style="font-size:14px; font-weight:300;">Light 300</span>
+          <span>Corps secondaire</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-sans" style="font-size:14px; font-weight:400;">Regular 400</span>
+          <span>Texte standard UI</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-sans" style="font-size:14px; font-weight:500;">Medium 500</span>
+          <span>Labels, navigation</span>
+        </div>
+        <div class="tw">
+          <span class="type-sample-sans" style="font-size:14px; font-weight:600;">SemiBold 600</span>
+          <span>Boutons CTA, badges</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. LOGO -->
+  <div class="section">
+    <h2>Logo</h2>
+    <p class="section-desc">Le logo combine une icône maison-cadre et le nom de marque en deux lignes. L'icône représente un cadre d'affiche sous un toit — l'union de l'art et du foyer.</p>
+    <div class="logo-grid">
+      <div class="logo-box" style="background:var(--white)">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <svg style="width:44px;height:58px;" viewBox="0 0 36 48" fill="none">
+            <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+            <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+          </svg>
+          <div style="display:flex;flex-direction:column;line-height:1.1;">
+            <span style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;letter-spacing:5px;">POSTER</span>
+            <span style="font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:300;letter-spacing:9px;color:#C8A85C;">MAISON</span>
+          </div>
+        </div>
+        <label style="color:var(--gray);">Fond clair (principal)</label>
+      </div>
+      <div class="logo-box dark">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <svg style="width:44px;height:58px;" viewBox="0 0 36 48" fill="none">
+            <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.8)" stroke-width="2.5" fill="none"/>
+            <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" fill="none"/>
+          </svg>
+          <div style="display:flex;flex-direction:column;line-height:1.1;">
+            <span style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;letter-spacing:5px;color:#fff;">POSTER</span>
+            <span style="font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:300;letter-spacing:9px;color:#C8A85C;">MAISON</span>
+          </div>
+        </div>
+        <label>Fond sombre (footer, hero)</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. COMPOSANTS UI -->
+  <div class="section">
+    <h2>Composants UI</h2>
+    <p class="section-desc">Les boutons, tags et badges suivent une logique de contraste et de hiérarchie. Le CTA principal est toujours en noir plein.</p>
+
+    <div class="type-block">
+      <div class="type-meta">Boutons</div>
+      <div class="comp-grid">
+        <button class="btn-primary">Ajouter au panier</button>
+        <button class="btn-gold">Commander maintenant</button>
+        <button class="btn-secondary">Voir toutes les affiches</button>
+      </div>
+    </div>
+
+    <div class="type-block" style="margin-top:16px;">
+      <div class="type-meta">Tags & Filtres de catégories</div>
+      <div class="comp-grid">
+        <span class="tag active">Toutes</span>
+        <span class="tag">Vintage</span>
+        <span class="tag">Nature</span>
+        <span class="tag">Abstraite</span>
+        <span class="tag">Typographie</span>
+      </div>
+    </div>
+
+    <div class="type-block" style="margin-top:16px;">
+      <div class="type-meta">Badges & compteurs</div>
+      <div class="comp-grid" style="align-items:center;">
+        <span class="badge">0</span>
+        <span class="badge gold">3</span>
+        <span style="font-size:13px;color:var(--gray);">Panier vide → noir &nbsp;|&nbsp; Avec articles → or</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. FORMATS & PRIX -->
+  <div class="section">
+    <h2>Formats & Tarifs</h2>
+    <p class="section-desc">Trois formats standardisés pour s'adapter à tous les espaces. Le prix est affiché en Cormorant Garamond gras pour valoriser l'information.</p>
+    <table class="sizes-table">
+      <thead>
+        <tr>
+          <th>Format</th>
+          <th>Dimensions</th>
+          <th>Prix</th>
+          <th>Usage recommandé</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S</strong></td>
+          <td>30 × 40 cm</td>
+          <td>19 €</td>
+          <td>Bureau, étagère, entrée</td>
+        </tr>
+        <tr>
+          <td><strong>M</strong></td>
+          <td>50 × 70 cm</td>
+          <td>29 €</td>
+          <td>Salon, chambre, bureau</td>
+        </tr>
+        <tr>
+          <td><strong>L</strong></td>
+          <td>70 × 100 cm</td>
+          <td>45 €</td>
+          <td>Grand mur, espace de vie</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 6. RÈGLES D'USAGE -->
+  <div class="section">
+    <h2>Règles d'utilisation</h2>
+    <div class="dont-grid">
+      <div class="do-box">
+        <div class="rule-label">✓ À faire</div>
+        <ul style="list-style:none;">
+          <li class="rule-text" style="margin-bottom:8px;">• Utiliser le logo sur fond crème, blanc ou noir uniquement</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Respecter la hiérarchie : POSTER en noir gras, MAISON en or léger</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Garder une zone de protection de 20 px minimum autour du logo</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Utiliser Cormorant Garamond pour tout titre ou affichage de prix</li>
+          <li class="rule-text">• Utiliser l'or (#C8A85C) uniquement en accentuation, jamais en fond principal</li>
+        </ul>
+      </div>
+      <div class="dont-box">
+        <div class="rule-label">✗ À éviter</div>
+        <ul style="list-style:none;">
+          <li class="rule-text" style="margin-bottom:8px;">• Ne pas changer les couleurs du logo</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Ne pas modifier les proportions ou l'espacement des lettres</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Ne pas utiliser d'autres polices que Cormorant Garamond et Inter</li>
+          <li class="rule-text" style="margin-bottom:8px;">• Ne pas placer le logo sur un fond coloré (rouge, bleu, etc.)</li>
+          <li class="rule-text">• Ne pas utiliser l'or comme couleur de fond sur de grandes surfaces</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="charte-footer">
+    <span>Poster Maison — Charte graphique v1.0</span>
+    <span style="color:var(--gold);">#1C1C1E &nbsp;·&nbsp; #C8A85C &nbsp;·&nbsp; #FAFAF7</span>
+  </div>
+
+</div>
+</body>
+</html>

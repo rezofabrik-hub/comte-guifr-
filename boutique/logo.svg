@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <!-- Frame icon with house roof -->
+  <polyline points="4,26 24,6 44,26" fill="none" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <rect x="4" y="25" width="40" height="48" rx="1.5" fill="none" stroke="#1C1C1E" stroke-width="2.5"/>
+  <rect x="10" y="31" width="28" height="36" rx="1" fill="none" stroke="#1C1C1E" stroke-width="1.5"/>
+  <!-- Vertical divider -->
+  <line x1="60" y1="14" x2="60" y2="66" stroke="#E4E4E0" stroke-width="1"/>
+  <!-- POSTER text -->
+  <text x="74" y="44"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="30"
+    font-weight="bold"
+    fill="#1C1C1E"
+    letter-spacing="5">POSTER</text>
+  <!-- Gold separator line -->
+  <line x1="74" y1="52" x2="308" y2="52" stroke="#C8A85C" stroke-width="0.8"/>
+  <!-- MAISON text -->
+  <text x="74" y="69"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="20"
+    fill="#C8A85C"
+    letter-spacing="10">MAISON</text>
+</svg>

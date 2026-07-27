@@ -1,0 +1,34 @@
+name: 🖼 Mise à jour automatique du catalogue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'boutique/images/**'
+
+jobs:
+  update-catalog:
+    name: Générer products.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Générer le catalogue
+        run: node boutique/generate-catalog.js
+
+      - name: Commit & push products.json
+        run: |
+          git config user.name  "Poster Maison Bot"
+          git config user.email "bot@postermaison.fr"
+          git add boutique/products.json
+          git diff --staged --quiet && echo "Aucun changement." || \
+            git commit -m "🔄 Catalogue mis à jour automatiquement" && git push

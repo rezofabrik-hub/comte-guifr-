@@ -1,0 +1,27 @@
+{
+  "generated": "2026-07-27T00:00:00.000Z",
+  "total": 20,
+  "categories": ["Vintage", "Nature", "Abstraite", "Typographie", "Architecture"],
+  "products": [
+    { "id": "vintage-0001", "name": "Paris 1920", "category": "Vintage", "image": "https://picsum.photos/seed/paris1920/600/800" },
+    { "id": "vintage-0002", "name": "Route 66", "category": "Vintage", "image": "https://picsum.photos/seed/route66v/600/800" },
+    { "id": "vintage-0003", "name": "Jazz Club", "category": "Vintage", "image": "https://picsum.photos/seed/jazzclub/600/800" },
+    { "id": "vintage-0004", "name": "Côte d'Azur", "category": "Vintage", "image": "https://picsum.photos/seed/cotedazur/600/800" },
+    { "id": "nature-0005", "name": "Forêt Boréale", "category": "Nature", "image": "https://picsum.photos/seed/boreal1/600/800" },
+    { "id": "nature-0006", "name": "Coucher de Soleil", "category": "Nature", "image": "https://picsum.photos/seed/sunset22/600/800" },
+    { "id": "nature-0007", "name": "Montagne Brumeuse", "category": "Nature", "image": "https://picsum.photos/seed/mountain3/600/800" },
+    { "id": "nature-0008", "name": "Champs Fleuris", "category": "Nature", "image": "https://picsum.photos/seed/flowers4/600/800" },
+    { "id": "abstraite-0009", "name": "Géométrie Dorée", "category": "Abstraite", "image": "https://picsum.photos/seed/abstract11/600/800" },
+    { "id": "abstraite-0010", "name": "Aquarelle Bleue", "category": "Abstraite", "image": "https://picsum.photos/seed/abstract22/600/800" },
+    { "id": "abstraite-0011", "name": "Minimalisme", "category": "Abstraite", "image": "https://picsum.photos/seed/abstract33/600/800" },
+    { "id": "abstraite-0012", "name": "Vagues de Couleur", "category": "Abstraite", "image": "https://picsum.photos/seed/abstract44/600/800" },
+    { "id": "typographie-0013", "name": "Carpe Diem", "category": "Typographie", "image": "https://picsum.photos/seed/type11/600/800" },
+    { "id": "typographie-0014", "name": "La Vie Est Belle", "category": "Typographie", "image": "https://picsum.photos/seed/type22/600/800" },
+    { "id": "typographie-0015", "name": "Rêver Grand", "category": "Typographie", "image": "https://picsum.photos/seed/type33/600/800" },
+    { "id": "typographie-0016", "name": "À Table", "category": "Typographie", "image": "https://picsum.photos/seed/type44/600/800" },
+    { "id": "architecture-0017", "name": "Tour Eiffel", "category": "Architecture", "image": "https://picsum.photos/seed/arch11/600/800" },
+    { "id": "architecture-0018", "name": "New York Skyline", "category": "Architecture", "image": "https://picsum.photos/seed/arch22/600/800" },
+    { "id": "architecture-0019", "name": "Pont de Pierre", "category": "Architecture", "image": "https://picsum.photos/seed/arch33/600/800" },
+    { "id": "architecture-0020", "name": "Ruelle Parisienne", "category": "Architecture", "image": "https://picsum.photos/seed/arch44/600/800" }
+  ]
+}
