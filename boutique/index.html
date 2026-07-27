@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poster Maison — Affiches d'art & décoration</title>
-  <meta name="description" content="Boutique d'affiches artistiques. 3 formats disponibles : 30×40, 50×70, 70×100 cm. Impression haute qualité, livraison soignée.">
+  <meta name="description" content="Boutique d'affiches artistiques. Papier ou dibond 3 mm, 3 formats : 30×40, 50×70, 70×100 cm. Impression haute qualité, livraison soignée.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -228,8 +228,21 @@
     .modal-cat { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
     .modal-name { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; line-height: 1.2; margin-bottom: 24px; }
     hr.modal-divider { border: none; border-top: 1px solid var(--border); margin-bottom: 24px; }
+    .material-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gray); margin-bottom: 10px; }
+    .material-options { display: flex; gap: 10px; margin-bottom: 22px; }
+    .material-option {
+      flex: 1; padding: 13px 15px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+      transition: all var(--ease); user-select: none;
+    }
+    .material-option:hover { border-color: var(--black); }
+    .material-option.selected { border-color: var(--black); background: var(--black); color: var(--white); }
+    .mat-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .mat-desc { font-size: 11px; line-height: 1.5; color: var(--gray); }
+    .material-option.selected .mat-desc { color: rgba(255,255,255,0.55); }
+    .mat-badge { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
     .size-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gray); margin-bottom: 12px; }
-    .size-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .size-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .size-option {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 18px; border: 1.5px solid var(--border);
@@ -428,7 +441,7 @@
       </span>
       <span class="hero-badge">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-        3 formats disponibles
+        Papier ou Dibond 3 mm
       </span>
     </div>
   </section>
@@ -464,9 +477,11 @@
         <div class="modal-cat" id="modal-cat"></div>
         <h2 class="modal-name" id="modal-name"></h2>
         <hr class="modal-divider">
-        <div class="size-label">Choisir un format</div>
+        <div class="material-label">Matière</div>
+        <div class="material-options" id="material-options"></div>
+        <div class="size-label">Format</div>
         <div class="size-options" id="size-options"></div>
-        <p class="modal-info">Impression sur papier premium 200 g/m². Livraison soignée sous tube ou à plat. Retours acceptés sous 14 jours.</p>
+        <p class="modal-info" id="modal-info">Sélectionnez une matière puis un format.</p>
         <button class="add-cart-btn" id="add-cart-btn" onclick="addToCartFromModal()" disabled>Ajouter au panier</button>
       </div>
     </div>
@@ -517,9 +532,14 @@
     </div>
     <div class="footer-formats">
       <h3>Nos formats</h3>
+      <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.28);margin-bottom:2px">Papier</p>
       <p>30 × 40 cm <span>19 €</span></p>
       <p>50 × 70 cm <span>29 €</span></p>
       <p>70 × 100 cm <span>45 €</span></p>
+      <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.28);margin-top:10px;margin-bottom:2px">Dibond 3 mm</p>
+      <p>30 × 40 cm <span>29 €</span></p>
+      <p>50 × 70 cm <span>39 €</span></p>
+      <p>70 × 100 cm <span>55 €</span></p>
     </div>
   </footer>
   <div class="footer-bottom">
@@ -534,10 +554,26 @@
     const CFG = {
       STRIPE_ENDPOINT : '/api/checkout',
       PAGE_SIZE       : 24,
-      SIZES           : {
-        '30x40'  : { label: '30 × 40 cm',   price: 19 },
-        '50x70'  : { label: '50 × 70 cm',   price: 29 },
-        '70x100' : { label: '70 × 100 cm',  price: 45 },
+      MATERIALS : {
+        'papier' : {
+          label    : 'Papier',
+          desc     : 'Impression haute définition sur papier photo satiné 200 g/m²',
+          badge    : 'Standard',
+          info     : 'Impression sur papier photo satiné 200 g/m². Livraison soignée sous tube ou à plat. Retours sous 14 jours.',
+          surcharge: 0,
+        },
+        'dibond' : {
+          label    : 'Dibond 3 mm',
+          desc     : 'Impression numérique collée sur aluminium dibond 3 mm, plastification mate antireflet',
+          badge    : '+10 € · Premium',
+          info     : 'Image imprimée et collée sur panneau dibond aluminium 3 mm, plastifié mat antireflet. Finition rigide, prête à accrocher. Retours sous 14 jours.',
+          surcharge: 10,
+        },
+      },
+      SIZES : {
+        '30x40'  : { label: '30 × 40 cm',  price: 19 },
+        '50x70'  : { label: '50 × 70 cm',  price: 29 },
+        '70x100' : { label: '70 × 100 cm', price: 45 },
       }
     };
 
@@ -551,6 +587,7 @@
     let query       = '';
     let cart        = JSON.parse(localStorage.getItem('pm_cart') || '[]');
     let selProduct  = null;
+    let selMaterial = null;
     let selSize     = null;
     let searchTmr   = null;
 
@@ -675,35 +712,57 @@
        MODAL
     ============================================================ */
     function openModal(p) {
-      selProduct = p; selSize = null;
+      selProduct = p; selMaterial = null; selSize = null;
       const img = document.getElementById('modal-image');
       img.src = p.image; img.alt = p.name;
       document.getElementById('modal-cat').textContent  = p.category;
       document.getElementById('modal-name').textContent = p.name;
       document.getElementById('add-cart-btn').disabled  = true;
+      document.getElementById('modal-info').textContent = 'Sélectionnez une matière puis un format.';
 
-      document.getElementById('size-options').innerHTML =
-        Object.entries(CFG.SIZES).map(([k, s]) => `
-          <div class="size-option" data-size="${k}" onclick="pickSize('${k}')">
-            <span class="size-opt-label">${s.label}</span>
-            <span class="size-opt-price">${s.price} €</span>
+      document.getElementById('material-options').innerHTML =
+        Object.entries(CFG.MATERIALS).map(([k, m]) => `
+          <div class="material-option" data-mat="${k}" onclick="pickMaterial('${k}')">
+            <div class="mat-name">${m.label}</div>
+            <div class="mat-desc">${m.desc}</div>
+            <span class="mat-badge">${m.badge}</span>
           </div>`).join('');
 
+      renderSizeOptions();
       document.getElementById('modal-overlay').classList.add('open');
       document.body.style.overflow = 'hidden';
+    }
+
+    function pickMaterial(k) {
+      selMaterial = k; selSize = null;
+      document.querySelectorAll('.material-option').forEach(el =>
+        el.classList.toggle('selected', el.dataset.mat === k));
+      document.getElementById('modal-info').textContent = CFG.MATERIALS[k].info;
+      renderSizeOptions();
+      document.getElementById('add-cart-btn').disabled = true;
+    }
+
+    function renderSizeOptions() {
+      const surcharge = selMaterial ? CFG.MATERIALS[selMaterial].surcharge : 0;
+      document.getElementById('size-options').innerHTML =
+        Object.entries(CFG.SIZES).map(([k, s]) => `
+          <div class="size-option${selSize === k ? ' selected' : ''}" data-size="${k}" onclick="pickSize('${k}')">
+            <span class="size-opt-label">${s.label}</span>
+            <span class="size-opt-price">${s.price + surcharge} €</span>
+          </div>`).join('');
     }
 
     function pickSize(k) {
       selSize = k;
       document.querySelectorAll('.size-option').forEach(el =>
         el.classList.toggle('selected', el.dataset.size === k));
-      document.getElementById('add-cart-btn').disabled = false;
+      document.getElementById('add-cart-btn').disabled = !selMaterial;
     }
 
     function closeModal() {
       document.getElementById('modal-overlay').classList.remove('open');
       document.body.style.overflow = '';
-      selProduct = null; selSize = null;
+      selProduct = null; selMaterial = null; selSize = null;
     }
 
     function handleOverlayClick(e) {
@@ -714,14 +773,20 @@
        CART
     ============================================================ */
     function addToCartFromModal() {
-      if (!selProduct || !selSize) return;
-      const s   = CFG.SIZES[selSize];
-      const cid = `${selProduct.id}__${selSize}`;
-      const ex  = cart.find(i => i.id === cid);
+      if (!selProduct || !selMaterial || !selSize) return;
+      const s     = CFG.SIZES[selSize];
+      const m     = CFG.MATERIALS[selMaterial];
+      const price = s.price + m.surcharge;
+      const cid   = `${selProduct.id}__${selMaterial}__${selSize}`;
+      const ex    = cart.find(i => i.id === cid);
       if (ex) { ex.qty++; } else {
-        cart.push({ id: cid, productId: selProduct.id, name: selProduct.name,
+        cart.push({
+          id: cid, productId: selProduct.id, name: selProduct.name,
           category: selProduct.category, image: selProduct.image,
-          size: selSize, sizeLabel: s.label, price: s.price, qty: 1 });
+          material: selMaterial, materialLabel: m.label,
+          size: selSize, sizeLabel: s.label,
+          price, qty: 1
+        });
       }
       saveCart(); updateCartUI(); closeModal();
       setTimeout(toggleCart, 280);
@@ -761,7 +826,7 @@
             onerror="this.style.background='var(--gray-light)'">
           <div>
             <div class="ci-name">${item.name}</div>
-            <div class="ci-size">${item.sizeLabel}</div>
+            <div class="ci-size">${item.materialLabel} — ${item.sizeLabel}</div>
             <div class="qty-row">
               <button class="qty-btn" onclick="updateQty('${item.id}',-1)">−</button>
               <span class="qty-val">${item.qty}</span>
@@ -804,7 +869,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             returnUrl : base,
-            items     : cart.map(i => ({ name: `${i.name} — ${i.sizeLabel}`, price: i.price, qty: i.qty }))
+            items     : cart.map(i => ({ name: `${i.name} — ${i.materialLabel} — ${i.sizeLabel}`, price: i.price, qty: i.qty }))
           })
         });
         if (!res.ok) throw new Error('Réponse serveur invalide');
