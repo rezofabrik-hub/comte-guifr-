@@ -39,9 +39,6 @@ async function handleCheckout(request, env) {
     cancel_url                                      : origin,
     'payment_method_types[0]'                       : 'card',
     'shipping_address_collection[allowed_countries][0]' : 'FR',
-    'shipping_address_collection[allowed_countries][1]' : 'BE',
-    'shipping_address_collection[allowed_countries][2]' : 'CH',
-    'shipping_address_collection[allowed_countries][3]' : 'LU',
   });
 
   items.forEach((item, i) => {
