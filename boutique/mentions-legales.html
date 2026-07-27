@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentions légales — Poster Maison</title>
+  <meta name="description" content="Mentions légales de Poster Maison — éditeur, hébergeur, propriété intellectuelle, données personnelles.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #1C1C1E; --gold: #C8A85C; --cream: #FAFAF7;
+      --gray-light: #F2F2EE; --gray: #9A9A96; --border: #E4E4E0;
+      --white: #FFFFFF; --ease: 0.22s ease;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--black); min-height: 100vh; }
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,247,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-mark { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .logo-icon { width: 36px; height: 48px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-poster { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; color: var(--black); }
+    .brand-maison { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 300; letter-spacing: 8px; color: var(--gold); }
+    .back-link { font-size: 13px; color: var(--gray); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color var(--ease); }
+    .back-link:hover { color: var(--black); }
+    .page-hero { background: var(--black); color: var(--white); padding: 64px 40px 52px; text-align: center; }
+    .page-hero p { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .page-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; letter-spacing: 1px; }
+    .content { max-width: 800px; margin: 0 auto; padding: 64px 40px; }
+    section { margin-bottom: 48px; }
+    h2 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    h3 { font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin: 20px 0 8px; }
+    p { font-size: 14px; line-height: 1.85; color: #3A3A3C; margin-bottom: 10px; }
+    .placeholder {
+      display: inline; background: rgba(200,168,92,0.15);
+      border: 1px dashed var(--gold); border-radius: 3px;
+      padding: 1px 6px; font-size: 13px; color: var(--gold);
+      font-weight: 600; font-style: normal;
+    }
+    a { color: var(--gold); text-decoration: underline; }
+    footer {
+      background: var(--black); color: rgba(255,255,255,0.5);
+      padding: 48px 40px 36px;
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; margin-top: 80px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .footer-logo-icon { width: 26px; height: 34px; }
+    .footer-logo-poster { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+    .footer-logo-maison { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; letter-spacing: 6px; color: var(--gold); }
+    footer h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 14px; text-transform: none; letter-spacing: normal; }
+    footer p, footer a { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.45); text-decoration: none; display: block; }
+    footer a:hover { color: var(--gold); }
+    .footer-formats p { display: flex; justify-content: space-between; }
+    .footer-formats span { color: var(--gold); font-weight: 600; }
+    .footer-bottom { background: var(--black); border-top: 1px solid rgba(255,255,255,0.08); padding: 16px 40px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; }
+    .notice { background: rgba(200,168,92,0.08); border-left: 3px solid var(--gold); padding: 14px 18px; border-radius: 0 4px 4px 0; font-size: 13px; color: #3A3A3C; line-height: 1.7; margin: 16px 0; }
+    @media (max-width: 768px) { header { padding: 0 20px; } .page-hero { padding: 48px 20px 40px; } .content { padding: 40px 20px; } footer { grid-template-columns: 1fr; gap: 28px; } .footer-bottom { flex-direction: column; gap: 6px; text-align: center; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo-mark">
+    <svg class="logo-icon" viewBox="0 0 36 48" fill="none">
+      <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+      <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="logo-text">
+      <span class="brand-poster">POSTER</span>
+      <span class="brand-maison">MAISON</span>
+    </div>
+  </a>
+  <a href="index.html" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Retour à la boutique
+  </a>
+</header>
+
+<div class="page-hero">
+  <p>Informations légales</p>
+  <h1>Mentions légales</h1>
+</div>
+
+<div class="content">
+
+  <div class="notice">
+    Les champs surlignés en doré <span class="placeholder">comme celui-ci</span> sont à compléter avec vos informations personnelles avant mise en ligne.
+  </div>
+
+  <section>
+    <h2>Éditeur du site</h2>
+    <p>Le site <strong>postermaison.fr</strong> est édité par :</p>
+    <p>
+      <span class="placeholder">Prénom NOM</span><br>
+      <span class="placeholder">Adresse complète</span><br>
+      <span class="placeholder">Code postal — Ville</span><br>
+      France
+    </p>
+    <h3>Statut juridique</h3>
+    <p>
+      Statut : <span class="placeholder">Auto-entrepreneur / SARL / SAS…</span><br>
+      SIRET : <span class="placeholder">XXX XXX XXX XXXXX</span><br>
+      N° TVA intracommunautaire : <span class="placeholder">FR XX XXX XXX XXX</span> <em style="font-size:12px;color:var(--gray)">(si applicable)</em>
+    </p>
+    <h3>Contact</h3>
+    <p>
+      E-mail : <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a><br>
+      Téléphone : <span class="placeholder">+33 X XX XX XX XX</span>
+    </p>
+    <h3>Directeur de la publication</h3>
+    <p><span class="placeholder">Prénom NOM</span></p>
+  </section>
+
+  <section>
+    <h2>Hébergement</h2>
+    <p>Le site est hébergé par :</p>
+    <p>
+      <strong>Cloudflare, Inc.</strong><br>
+      101 Townsend St<br>
+      San Francisco, CA 94107<br>
+      États-Unis<br>
+      <a href="https://www.cloudflare.com" target="_blank" rel="noopener">www.cloudflare.com</a>
+    </p>
+  </section>
+
+  <section>
+    <h2>Propriété intellectuelle</h2>
+    <p>L'ensemble du contenu du site postermaison.fr — textes, photographies, illustrations, affiches, logo, charte graphique et mise en page — est la propriété exclusive de <span class="placeholder">Prénom NOM</span>, sauf mention contraire.</p>
+    <p>Toute reproduction, représentation, modification, publication ou adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite sans autorisation écrite préalable de l'éditeur.</p>
+    <p>Toute exploitation non autorisée du site ou de l'un quelconque des éléments qu'il contient sera considérée comme constitutive d'une contrefaçon et poursuivie conformément aux dispositions des articles L.335-2 et suivants du Code de Propriété Intellectuelle.</p>
+  </section>
+
+  <section>
+    <h2>Données personnelles (RGPD)</h2>
+    <p>Dans le cadre de la commande et du paiement, les données personnelles collectées (nom, adresse e-mail, adresse de livraison) sont traitées exclusivement dans le but d'exécuter votre commande et d'assurer le service après-vente.</p>
+    <h3>Responsable du traitement</h3>
+    <p><span class="placeholder">Prénom NOM</span> — <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a></p>
+    <h3>Vos droits</h3>
+    <p>Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi « Informatique et Libertés » du 6 janvier 1978, vous disposez d'un droit d'accès, de rectification, d'opposition, de limitation et de suppression de vos données personnelles. Pour exercer ces droits, contactez-nous à <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a>.</p>
+    <h3>Paiement sécurisé</h3>
+    <p>Les paiements sont traités par <strong>Stripe, Inc.</strong> Poster Maison ne conserve à aucun moment vos données bancaires. Pour plus d'informations, consultez la politique de confidentialité de Stripe : <a href="https://stripe.com/fr/privacy" target="_blank" rel="noopener">stripe.com/fr/privacy</a>.</p>
+    <h3>Durée de conservation</h3>
+    <p>Les données liées aux commandes sont conservées pendant la durée légale de 10 ans conformément aux obligations comptables.</p>
+  </section>
+
+  <section>
+    <h2>Cookies</h2>
+    <p>Le site postermaison.fr utilise uniquement les technologies strictement nécessaires au bon fonctionnement du panier d'achat (<code style="font-size:12px;background:var(--gray-light);padding:2px 6px;border-radius:3px">localStorage</code>). Aucun cookie de traçage publicitaire ou analytique n'est déposé sur votre navigateur sans votre consentement.</p>
+  </section>
+
+  <section>
+    <h2>Droit applicable</h2>
+    <p>Les présentes mentions légales sont soumises au droit français. En cas de litige, et à défaut de résolution amiable, les tribunaux français seront compétents.</p>
+    <p>Pour tout litige de consommation, vous pouvez également recourir à la plateforme de résolution en ligne des litiges de l'Union Européenne : <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>.</p>
+    <p style="margin-top:20px;font-size:12px;color:var(--gray)">Dernière mise à jour : juillet 2026</p>
+  </section>
+
+</div>
+
+<footer>
+  <div>
+    <div class="footer-logo">
+      <svg class="footer-logo-icon" viewBox="0 0 36 48" fill="none">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div>
+        <div class="footer-logo-poster">POSTER</div>
+        <div class="footer-logo-maison">MAISON</div>
+      </div>
+    </div>
+    <p>Des affiches artistiques pour décorer votre intérieur avec style. Impression haute qualité, emballage soigné.</p>
+  </div>
+  <div>
+    <h3>Informations</h3>
+    <a href="livraison.html">Livraison & retours</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+    <a href="contact.html">Nous contacter</a>
+    <a href="faq.html">FAQ</a>
+  </div>
+  <div class="footer-formats">
+    <h3>Nos formats</h3>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-bottom:2px">Papier</p>
+    <p>30 × 40 cm <span>19 €</span></p>
+    <p>50 × 70 cm <span>29 €</span></p>
+    <p>70 × 100 cm <span>45 €</span></p>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-top:10px;margin-bottom:2px">Dibond 3 mm</p>
+    <p>30 × 40 cm <span>29 €</span></p>
+    <p>50 × 70 cm <span>39 €</span></p>
+    <p>70 × 100 cm <span>55 €</span></p>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 Poster Maison — Tous droits réservés</span>
+  <span>Paiement sécurisé par Stripe</span>
+</div>
+
+</body>
+</html>

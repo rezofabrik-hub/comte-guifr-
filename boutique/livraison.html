@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Livraison & Retours — Poster Maison</title>
+  <meta name="description" content="Tout savoir sur la livraison et les retours Poster Maison : délais, emballage, frais de port et politique de remboursement.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #1C1C1E; --gold: #C8A85C; --cream: #FAFAF7;
+      --gray-light: #F2F2EE; --gray: #9A9A96; --border: #E4E4E0;
+      --white: #FFFFFF; --ease: 0.22s ease;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--black); min-height: 100vh; }
+
+    /* HEADER */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,247,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-mark { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .logo-icon { width: 36px; height: 48px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-poster { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; color: var(--black); }
+    .brand-maison { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 300; letter-spacing: 8px; color: var(--gold); }
+    .back-link {
+      font-size: 13px; color: var(--gray); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      transition: color var(--ease);
+    }
+    .back-link:hover { color: var(--black); }
+
+    /* PAGE HERO */
+    .page-hero {
+      background: var(--black); color: var(--white);
+      padding: 64px 40px 52px; text-align: center;
+    }
+    .page-hero p { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .page-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; letter-spacing: 1px; }
+
+    /* CONTENT */
+    .content { max-width: 800px; margin: 0 auto; padding: 64px 40px; }
+    section { margin-bottom: 56px; }
+    h2 {
+      font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600;
+      margin-bottom: 24px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin: 24px 0 10px; }
+    p { font-size: 14px; line-height: 1.85; color: #3A3A3C; margin-bottom: 12px; }
+    ul { padding-left: 0; list-style: none; }
+    ul li { font-size: 14px; line-height: 1.85; color: #3A3A3C; padding: 4px 0 4px 20px; position: relative; }
+    ul li::before { content: '—'; position: absolute; left: 0; color: var(--gold); font-weight: 600; }
+
+    /* INFO CARDS */
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin: 28px 0; }
+    .info-card {
+      padding: 24px 22px; background: var(--white);
+      border: 1px solid var(--border); border-radius: 4px;
+    }
+    .info-card .ic-icon { font-size: 22px; margin-bottom: 12px; }
+    .info-card .ic-title { font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray); margin-bottom: 6px; }
+    .info-card .ic-value { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--black); }
+    .info-card .ic-note { font-size: 12px; color: var(--gray); margin-top: 4px; line-height: 1.6; }
+
+    /* TABLE */
+    .rate-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+    .rate-table th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray); padding: 10px 16px; border-bottom: 2px solid var(--border); }
+    .rate-table td { padding: 13px 16px; border-bottom: 1px solid var(--gray-light); color: #3A3A3C; }
+    .rate-table tr:last-child td { border-bottom: none; }
+    .rate-table td:last-child { font-weight: 600; color: var(--black); text-align: right; }
+    .gold-val { color: var(--gold) !important; }
+
+    /* NOTICE */
+    .notice {
+      background: var(--gray-light); border-left: 3px solid var(--gold);
+      padding: 18px 22px; border-radius: 0 4px 4px 0;
+      font-size: 13px; color: #3A3A3C; line-height: 1.7; margin: 20px 0;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--black); color: rgba(255,255,255,0.5);
+      padding: 48px 40px 36px;
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px;
+      margin-top: 80px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .footer-logo-icon { width: 26px; height: 34px; }
+    .footer-logo-poster { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+    .footer-logo-maison { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; letter-spacing: 6px; color: var(--gold); }
+    footer h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 14px; }
+    footer p, footer a { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.45); text-decoration: none; display: block; }
+    footer a:hover { color: var(--gold); }
+    .footer-formats p { display: flex; justify-content: space-between; }
+    .footer-formats span { color: var(--gold); font-weight: 600; }
+    .footer-bottom {
+      background: var(--black); border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 16px 40px; display: flex; justify-content: space-between;
+      font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px;
+    }
+    @media (max-width: 768px) {
+      header { padding: 0 20px; }
+      .page-hero { padding: 48px 20px 40px; }
+      .content { padding: 40px 20px; }
+      footer { grid-template-columns: 1fr; gap: 28px; }
+      .footer-bottom { flex-direction: column; gap: 6px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo-mark">
+    <svg class="logo-icon" viewBox="0 0 36 48" fill="none">
+      <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+      <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="logo-text">
+      <span class="brand-poster">POSTER</span>
+      <span class="brand-maison">MAISON</span>
+    </div>
+  </a>
+  <a href="index.html" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Retour à la boutique
+  </a>
+</header>
+
+<div class="page-hero">
+  <p>Informations pratiques</p>
+  <h1>Livraison & Retours</h1>
+</div>
+
+<div class="content">
+
+  <section>
+    <h2>Délais de livraison</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="ic-icon">🇫🇷</div>
+        <div class="ic-title">France métropolitaine</div>
+        <div class="ic-value">5 – 7 jours</div>
+        <div class="ic-note">Ouvrés, hors week-ends et jours fériés</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-icon">🇧🇪 🇨🇭 🇱🇺</div>
+        <div class="ic-title">Belgique · Suisse · Luxembourg</div>
+        <div class="ic-value">7 – 14 jours</div>
+        <div class="ic-note">Ouvrés selon les délais postaux locaux</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-icon">📋</div>
+        <div class="ic-title">Préparation</div>
+        <div class="ic-value">1 – 2 jours</div>
+        <div class="ic-note">Avant expédition (impression + contrôle qualité)</div>
+      </div>
+    </div>
+    <p>Un e-mail de confirmation avec numéro de suivi vous est envoyé dès l'expédition de votre commande.</p>
+  </section>
+
+  <section>
+    <h2>Frais de port</h2>
+    <table class="rate-table">
+      <thead>
+        <tr>
+          <th>Destination</th>
+          <th>Montant de commande</th>
+          <th>Frais de port</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>France métropolitaine</td>
+          <td>Dès 60 €</td>
+          <td class="gold-val">Offerts</td>
+        </tr>
+        <tr>
+          <td>France métropolitaine</td>
+          <td>Moins de 60 €</td>
+          <td>5,90 €</td>
+        </tr>
+        <tr>
+          <td>Belgique / Luxembourg</td>
+          <td>Toutes commandes</td>
+          <td>9,90 €</td>
+        </tr>
+        <tr>
+          <td>Suisse</td>
+          <td>Toutes commandes</td>
+          <td>14,90 €</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="notice">
+      🎁 <strong>Livraison offerte dès 60 € d'achat</strong> en France métropolitaine — profitez-en pour composer votre galerie murale.
+    </div>
+  </section>
+
+  <section>
+    <h2>Emballage & protection</h2>
+
+    <h3>Affiches papier</h3>
+    <ul>
+      <li>Formats 30×40 et 50×70 cm : roulées avec soin dans un tube cartonné rigide de 10 cm de diamètre</li>
+      <li>Format 70×100 cm : expédiées à plat dans un colis carton double cannelure renforcé</li>
+      <li>Chaque affiche est protégée par un film de protection avant conditionnement</li>
+    </ul>
+
+    <h3>Affiches dibond 3 mm</h3>
+    <ul>
+      <li>Expédiées à plat dans une caisse carton sur mesure avec calage mousse haute densité</li>
+      <li>Angles protégés par des cornières en carton</li>
+      <li>Panneau emballé dans une housse de protection antirayures</li>
+    </ul>
+
+    <p style="margin-top:16px">Nous apportons le plus grand soin à l'emballage de chaque commande. Si votre colis arrive endommagé, photographiez-le avant de l'ouvrir et contactez-nous immédiatement.</p>
+  </section>
+
+  <section>
+    <h2>Politique de retours</h2>
+    <p>Vous disposez de <strong>14 jours</strong> à compter de la réception pour nous retourner votre commande, sans avoir à justifier votre décision.</p>
+
+    <h3>Conditions</h3>
+    <ul>
+      <li>L'article doit être dans son état d'origine, non utilisé et dans son emballage d'origine</li>
+      <li>Les affiches endommagées par une mauvaise manipulation après réception ne sont pas éligibles au retour</li>
+      <li>Les commandes personnalisées ou sur-mesure sont exclues du droit de rétractation</li>
+    </ul>
+
+    <h3>Procédure</h3>
+    <ul>
+      <li>Contactez-nous à <a href="mailto:contact@postermaison.fr" style="color:var(--gold);text-decoration:underline">contact@postermaison.fr</a> en indiquant votre numéro de commande</li>
+      <li>Nous vous communiquons l'adresse de retour et les instructions d'emballage</li>
+      <li>Les frais de retour sont à la charge du client, sauf en cas d'erreur de notre part</li>
+      <li>Le remboursement est effectué dans les <strong>5 jours ouvrés</strong> suivant la réception du retour, sur le moyen de paiement initial</li>
+    </ul>
+
+    <div class="notice">
+      En cas de produit défectueux ou d'erreur d'expédition de notre part, nous prenons en charge l'intégralité des frais de retour et vous renvoyons votre commande sans supplément.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div>
+    <div class="footer-logo">
+      <svg class="footer-logo-icon" viewBox="0 0 36 48" fill="none">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div>
+        <div class="footer-logo-poster">POSTER</div>
+        <div class="footer-logo-maison">MAISON</div>
+      </div>
+    </div>
+    <p>Des affiches artistiques pour décorer votre intérieur avec style. Impression haute qualité, emballage soigné.</p>
+  </div>
+  <div>
+    <h3>Informations</h3>
+    <a href="livraison.html">Livraison & retours</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+    <a href="contact.html">Nous contacter</a>
+    <a href="faq.html">FAQ</a>
+  </div>
+  <div class="footer-formats">
+    <h3>Nos formats</h3>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-bottom:2px">Papier</p>
+    <p>30 × 40 cm <span>19 €</span></p>
+    <p>50 × 70 cm <span>29 €</span></p>
+    <p>70 × 100 cm <span>45 €</span></p>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-top:10px;margin-bottom:2px">Dibond 3 mm</p>
+    <p>30 × 40 cm <span>29 €</span></p>
+    <p>50 × 70 cm <span>39 €</span></p>
+    <p>70 × 100 cm <span>55 €</span></p>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 Poster Maison — Tous droits réservés</span>
+  <span>Paiement sécurisé par Stripe</span>
+</div>
+
+</body>
+</html>

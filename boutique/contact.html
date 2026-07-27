@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Poster Maison</title>
+  <meta name="description" content="Contactez Poster Maison pour toute question sur votre commande, une affiche ou un projet sur-mesure.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #1C1C1E; --gold: #C8A85C; --cream: #FAFAF7;
+      --gray-light: #F2F2EE; --gray: #9A9A96; --border: #E4E4E0;
+      --white: #FFFFFF; --ease: 0.22s ease;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--black); min-height: 100vh; }
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,247,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border); padding: 0 40px; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-mark { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .logo-icon { width: 36px; height: 48px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-poster { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; color: var(--black); }
+    .brand-maison { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 300; letter-spacing: 8px; color: var(--gold); }
+    .back-link { font-size: 13px; color: var(--gray); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color var(--ease); }
+    .back-link:hover { color: var(--black); }
+    .page-hero { background: var(--black); color: var(--white); padding: 64px 40px 52px; text-align: center; }
+    .page-hero p { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .page-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; letter-spacing: 1px; }
+    .page-hero .hero-sub { font-size: 14px; color: rgba(255,255,255,0.45); margin-top: 14px; line-height: 1.7; }
+
+    .content { max-width: 900px; margin: 0 auto; padding: 64px 40px; }
+
+    /* TWO-COLUMN LAYOUT */
+    .contact-layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; align-items: start; }
+
+    /* INFO SIDE */
+    .contact-info h2 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; margin-bottom: 20px; }
+    .contact-info p { font-size: 14px; line-height: 1.85; color: #3A3A3C; margin-bottom: 28px; }
+    .contact-card {
+      padding: 22px 20px; background: var(--white);
+      border: 1px solid var(--border); border-radius: 4px;
+      margin-bottom: 14px; display: flex; align-items: flex-start; gap: 16px;
+    }
+    .cc-icon { width: 38px; height: 38px; background: var(--black); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cc-icon svg { color: var(--gold); }
+    .cc-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray); margin-bottom: 4px; }
+    .cc-value { font-size: 14px; font-weight: 500; color: var(--black); }
+    .cc-note { font-size: 12px; color: var(--gray); margin-top: 3px; line-height: 1.5; }
+    a.cc-value-link { color: var(--black); text-decoration: none; font-size: 14px; font-weight: 500; transition: color var(--ease); }
+    a.cc-value-link:hover { color: var(--gold); }
+
+    /* FORM SIDE */
+    .contact-form h2 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; margin-bottom: 24px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray); margin-bottom: 7px; }
+    input[type="text"], input[type="email"], select, textarea {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--border); border-radius: 4px;
+      background: var(--white); color: var(--black);
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      outline: none; transition: border-color var(--ease);
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--black); }
+    textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A96' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px; cursor: pointer; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .submit-btn {
+      width: 100%; padding: 15px; background: var(--black); color: var(--white);
+      border: none; border-radius: 4px; font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; transition: background var(--ease); margin-top: 6px;
+    }
+    .submit-btn:hover { background: var(--gold); }
+    .form-note { font-size: 12px; color: var(--gray); text-align: center; margin-top: 12px; line-height: 1.6; }
+
+    /* SUCCESS */
+    .form-success {
+      display: none; background: #D4EDDA; border-left: 3px solid #28A745;
+      padding: 16px 20px; border-radius: 0 4px 4px 0;
+      font-size: 14px; color: #155724; margin-bottom: 20px; line-height: 1.6;
+    }
+
+    footer {
+      background: var(--black); color: rgba(255,255,255,0.5);
+      padding: 48px 40px 36px;
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; margin-top: 80px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .footer-logo-icon { width: 26px; height: 34px; }
+    .footer-logo-poster { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+    .footer-logo-maison { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; letter-spacing: 6px; color: var(--gold); }
+    footer h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 14px; letter-spacing: normal; text-transform: none; }
+    footer p, footer a { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.45); text-decoration: none; display: block; }
+    footer a:hover { color: var(--gold); }
+    .footer-formats p { display: flex; justify-content: space-between; }
+    .footer-formats span { color: var(--gold); font-weight: 600; }
+    .footer-bottom { background: var(--black); border-top: 1px solid rgba(255,255,255,0.08); padding: 16px 40px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; }
+    @media (max-width: 768px) {
+      header { padding: 0 20px; } .page-hero { padding: 48px 20px 40px; }
+      .content { padding: 40px 20px; } .contact-layout { grid-template-columns: 1fr; gap: 40px; }
+      .form-row { grid-template-columns: 1fr; }
+      footer { grid-template-columns: 1fr; gap: 28px; }
+      .footer-bottom { flex-direction: column; gap: 6px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo-mark">
+    <svg class="logo-icon" viewBox="0 0 36 48" fill="none">
+      <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+      <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="logo-text">
+      <span class="brand-poster">POSTER</span>
+      <span class="brand-maison">MAISON</span>
+    </div>
+  </a>
+  <a href="index.html" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Retour à la boutique
+  </a>
+</header>
+
+<div class="page-hero">
+  <p>Nous sommes à votre écoute</p>
+  <h1>Nous contacter</h1>
+  <p class="hero-sub">Réponse sous 48 heures ouvrées · Du lundi au vendredi</p>
+</div>
+
+<div class="content">
+  <div class="contact-layout">
+
+    <div class="contact-info">
+      <h2>Restons en contact</h2>
+      <p>Une question sur votre commande, un doute sur les formats, ou un projet de galerie murale ? Nous sommes là pour vous aider.</p>
+
+      <div class="contact-card">
+        <div class="cc-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <div class="cc-title">E-mail</div>
+          <a class="cc-value-link" href="mailto:contact@postermaison.fr">contact@postermaison.fr</a>
+          <div class="cc-note">Réponse sous 48 h ouvrées</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="cc-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="cc-title">Horaires de réponse</div>
+          <div class="cc-value">Lun – Ven, 9h – 18h</div>
+          <div class="cc-note">Hors jours fériés</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="cc-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+          <div class="cc-title">Adresse</div>
+          <div class="cc-value">France</div>
+          <div class="cc-note">Commandes expédiées depuis la France vers FR, BE, CH, LU</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-form">
+      <h2>Envoyer un message</h2>
+      <div class="form-success" id="form-success">
+        ✓ Votre message a bien été envoyé. Nous vous répondrons dans les 48 heures ouvrées.
+      </div>
+      <form id="contact-form" onsubmit="handleSubmit(event)" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prenom">Prénom</label>
+            <input type="text" id="prenom" name="prenom" placeholder="Marie" required>
+          </div>
+          <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" name="nom" placeholder="Dupont" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">Adresse e-mail</label>
+          <input type="email" id="email" name="email" placeholder="marie@exemple.fr" required>
+        </div>
+        <div class="form-group">
+          <label for="sujet">Sujet</label>
+          <select id="sujet" name="sujet" required>
+            <option value="" disabled selected>Choisir un sujet…</option>
+            <option value="commande">Question sur ma commande</option>
+            <option value="produit">Question sur un produit</option>
+            <option value="retour">Retour ou remboursement</option>
+            <option value="livraison">Livraison</option>
+            <option value="sur-mesure">Projet sur-mesure</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="commande">Numéro de commande <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--gray)">(optionnel)</span></label>
+          <input type="text" id="commande" name="commande" placeholder="PM-XXXXXX">
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" placeholder="Décrivez votre demande en détail…" required></textarea>
+        </div>
+        <button type="submit" class="submit-btn">Envoyer le message</button>
+        <p class="form-note">En soumettant ce formulaire, vous acceptez que vos données soient utilisées pour répondre à votre demande. Elles ne seront jamais transmises à des tiers.</p>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div>
+    <div class="footer-logo">
+      <svg class="footer-logo-icon" viewBox="0 0 36 48" fill="none">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div>
+        <div class="footer-logo-poster">POSTER</div>
+        <div class="footer-logo-maison">MAISON</div>
+      </div>
+    </div>
+    <p>Des affiches artistiques pour décorer votre intérieur avec style. Impression haute qualité, emballage soigné.</p>
+  </div>
+  <div>
+    <h3>Informations</h3>
+    <a href="livraison.html">Livraison & retours</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+    <a href="contact.html">Nous contacter</a>
+    <a href="faq.html">FAQ</a>
+  </div>
+  <div class="footer-formats">
+    <h3>Nos formats</h3>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-bottom:2px">Papier</p>
+    <p>30 × 40 cm <span>19 €</span></p>
+    <p>50 × 70 cm <span>29 €</span></p>
+    <p>70 × 100 cm <span>45 €</span></p>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-top:10px;margin-bottom:2px">Dibond 3 mm</p>
+    <p>30 × 40 cm <span>29 €</span></p>
+    <p>50 × 70 cm <span>39 €</span></p>
+    <p>70 × 100 cm <span>55 €</span></p>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 Poster Maison — Tous droits réservés</span>
+  <span>Paiement sécurisé par Stripe</span>
+</div>
+
+<script>
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('contact-form');
+  const success = document.getElementById('form-success');
+  const btn = form.querySelector('.submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+  /* Intégrer ici Formspree, EmailJS ou tout autre service de formulaire */
+  setTimeout(() => {
+    form.style.display = 'none';
+    success.style.display = 'block';
+    success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 800);
+}
+</script>
+</body>
+</html>

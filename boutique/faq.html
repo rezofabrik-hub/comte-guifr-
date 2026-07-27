@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ — Poster Maison</title>
+  <meta name="description" content="Questions fréquentes sur les affiches Poster Maison : formats, matières, délais de livraison, retours, paiement.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #1C1C1E; --gold: #C8A85C; --cream: #FAFAF7;
+      --gray-light: #F2F2EE; --gray: #9A9A96; --border: #E4E4E0;
+      --white: #FFFFFF; --ease: 0.22s ease;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--black); min-height: 100vh; }
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,247,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border); padding: 0 40px; height: 72px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-mark { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .logo-icon { width: 36px; height: 48px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-poster { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; color: var(--black); }
+    .brand-maison { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 300; letter-spacing: 8px; color: var(--gold); }
+    .back-link { font-size: 13px; color: var(--gray); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color var(--ease); }
+    .back-link:hover { color: var(--black); }
+    .page-hero { background: var(--black); color: var(--white); padding: 64px 40px 52px; text-align: center; }
+    .page-hero p { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+    .page-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; letter-spacing: 1px; }
+
+    .content { max-width: 780px; margin: 0 auto; padding: 64px 40px; }
+
+    /* CATEGORY TABS */
+    .faq-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 48px; }
+    .faq-tab {
+      padding: 8px 18px; border: 1.5px solid var(--border); border-radius: 100px;
+      background: none; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all var(--ease); color: var(--gray);
+    }
+    .faq-tab:hover { border-color: var(--black); color: var(--black); }
+    .faq-tab.active { background: var(--black); border-color: var(--black); color: var(--white); }
+
+    /* FAQ SECTIONS */
+    .faq-section { margin-bottom: 48px; }
+    .faq-section h2 {
+      font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;
+      margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+    }
+    .faq-section h2 span { font-size: 20px; }
+
+    /* ACCORDION */
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:first-of-type { border-top: 1px solid var(--border); }
+    .faq-q {
+      width: 100%; text-align: left; padding: 18px 0;
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+      color: var(--black); transition: color var(--ease);
+    }
+    .faq-q:hover { color: var(--gold); }
+    .faq-q.open { color: var(--gold); }
+    .faq-icon { width: 20px; height: 20px; border: 1.5px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; line-height: 1; transition: all var(--ease); }
+    .faq-q.open .faq-icon { background: var(--gold); border-color: var(--gold); color: var(--white); }
+    .faq-a {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.32s ease, padding 0.22s ease;
+    }
+    .faq-a.open { max-height: 400px; padding-bottom: 18px; }
+    .faq-a p { font-size: 14px; line-height: 1.85; color: #3A3A3C; margin-bottom: 8px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+    .faq-a a { color: var(--gold); text-decoration: underline; }
+    .faq-a ul { padding-left: 0; list-style: none; }
+    .faq-a ul li { font-size: 14px; line-height: 1.85; color: #3A3A3C; padding: 3px 0 3px 18px; position: relative; }
+    .faq-a ul li::before { content: '—'; position: absolute; left: 0; color: var(--gold); }
+
+    /* CTA */
+    .faq-cta {
+      background: var(--black); color: var(--white);
+      padding: 40px; border-radius: 4px; text-align: center; margin-top: 56px;
+    }
+    .faq-cta h3 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; margin-bottom: 10px; }
+    .faq-cta p { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 24px; }
+    .faq-cta a {
+      display: inline-block; padding: 13px 36px;
+      background: var(--gold); color: var(--black);
+      text-decoration: none; border-radius: 4px;
+      font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+      transition: background var(--ease);
+    }
+    .faq-cta a:hover { background: #E0BC6E; }
+
+    footer {
+      background: var(--black); color: rgba(255,255,255,0.5);
+      padding: 48px 40px 36px;
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; margin-top: 80px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .footer-logo-icon { width: 26px; height: 34px; }
+    .footer-logo-poster { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+    .footer-logo-maison { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; letter-spacing: 6px; color: var(--gold); }
+    footer h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 14px; letter-spacing: normal; text-transform: none; }
+    footer p, footer a { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.45); text-decoration: none; display: block; }
+    footer a:hover { color: var(--gold); }
+    .footer-formats p { display: flex; justify-content: space-between; }
+    .footer-formats span { color: var(--gold); font-weight: 600; }
+    .footer-bottom { background: var(--black); border-top: 1px solid rgba(255,255,255,0.08); padding: 16px 40px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; }
+    @media (max-width: 768px) {
+      header { padding: 0 20px; } .page-hero { padding: 48px 20px 40px; }
+      .content { padding: 40px 20px; }
+      footer { grid-template-columns: 1fr; gap: 28px; }
+      .footer-bottom { flex-direction: column; gap: 6px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo-mark">
+    <svg class="logo-icon" viewBox="0 0 36 48" fill="none">
+      <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="#1C1C1E" stroke-width="2.5" fill="none"/>
+      <rect x="7" y="26" width="22" height="15" rx="1" stroke="#1C1C1E" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="logo-text">
+      <span class="brand-poster">POSTER</span>
+      <span class="brand-maison">MAISON</span>
+    </div>
+  </a>
+  <a href="index.html" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Retour à la boutique
+  </a>
+</header>
+
+<div class="page-hero">
+  <p>Questions fréquentes</p>
+  <h1>FAQ</h1>
+</div>
+
+<div class="content">
+
+  <div class="faq-section">
+    <h2><span>🖼</span> Produits & formats</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Quels formats d'affiches proposez-vous ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Nous proposons trois formats d'affiches :</p>
+        <ul>
+          <li><strong>30 × 40 cm</strong> — idéal pour une petite niche, une étagère ou un couloir</li>
+          <li><strong>50 × 70 cm</strong> — le format le plus populaire, parfait pour un mur de salon ou une chambre</li>
+          <li><strong>70 × 100 cm</strong> — grand format pour un impact visuel maximal</li>
+        </ul>
+        <p>Ces trois formats correspondent aux dimensions standard des cadres disponibles dans la plupart des enseignes de décoration.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Quelle est la différence entre l'affiche papier et le dibond 3 mm ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p><strong>Papier (impression standard) :</strong> affiche imprimée sur papier photo satiné 200 g/m², idéale pour être encadrée. Livraison sous tube ou à plat selon le format.</p>
+        <p><strong>Dibond 3 mm (finition premium) :</strong> l'image est imprimée numériquement puis collée sur un panneau aluminium dibond de 3 mm d'épaisseur, et protégée par une plastification mate antireflet. Le résultat est rigide, solide et prêt à accrocher directement au mur sans cadre. C'est une finition haut de gamme avec un rendu particulièrement élégant.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Quelle est la qualité d'impression ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Toutes nos affiches sont imprimées en haute définition (300 dpi minimum) avec des encres pigmentaires longue durée, résistantes à la lumière. La qualité de chaque impression est contrôlée avant expédition.</p>
+        <p>Le papier photo satiné 200 g/m² offre une reproduction fidèle des couleurs et des noirs profonds. La plastification mate du dibond élimine tout reflet désagréable.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Vendez-vous des cadres ou des systèmes d'accrochage ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Nous ne vendons pas de cadres pour le moment. Nos formats (30×40, 50×70 et 70×100 cm) sont des dimensions standard facilement trouvables chez IKEA, Maisons du Monde ou tout magasin de décoration.</p>
+        <p>Les affiches dibond 3 mm sont livrées avec un système d'accrochage intégré au dos du panneau — aucun cadre n'est nécessaire.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2><span>🛒</span> Commande & paiement</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Quels moyens de paiement acceptez-vous ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Nous acceptons toutes les cartes bancaires (Visa, Mastercard, American Express) via Stripe, notre prestataire de paiement sécurisé. Vos données de carte ne transitent jamais par nos serveurs.</p>
+        <p>Le paiement est entièrement chiffré (SSL/TLS) et vous êtes redirigé vers la page de paiement sécurisée de Stripe pour finaliser votre commande.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Puis-je modifier ou annuler ma commande ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Vous pouvez annuler votre commande dans un délai de <strong>2 heures</strong> après la validation, en nous contactant par e-mail à <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a> avec votre numéro de commande.</p>
+        <p>Au-delà de ce délai, l'impression est généralement déjà en cours. Dans ce cas, vous pourrez exercer votre droit de retour à réception du colis.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Vais-je recevoir une confirmation de commande ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Oui. Après validation du paiement, vous êtes automatiquement redirigé vers la boutique avec un message de confirmation. Un e-mail récapitulatif vous est également envoyé par Stripe.</p>
+        <p>Un second e-mail vous sera envoyé lors de l'expédition de votre colis, avec le numéro de suivi.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2><span>📦</span> Livraison</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Dans quels pays livrez-vous ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Nous livrons actuellement en <strong>France métropolitaine, Belgique, Suisse et Luxembourg</strong>.</p>
+        <p>Si vous souhaitez une livraison dans un autre pays, contactez-nous à <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a> et nous étudierons votre demande.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Quels sont les délais de livraison ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <ul>
+          <li>Préparation et impression : 1 à 2 jours ouvrés</li>
+          <li>France métropolitaine : 5 à 7 jours ouvrés après expédition</li>
+          <li>Belgique et Luxembourg : 7 à 10 jours ouvrés</li>
+          <li>Suisse : 10 à 14 jours ouvrés</li>
+        </ul>
+        <p style="margin-top:8px">Ces délais sont donnés à titre indicatif. Un e-mail avec numéro de suivi vous est envoyé dès l'expédition.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Comment mes affiches sont-elles emballées ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p><strong>Affiches papier :</strong> les formats 30×40 et 50×70 cm sont roulées dans un tube cartonné rigide. Le format 70×100 cm est expédié à plat dans un carton double cannelure renforcé.</p>
+        <p><strong>Affiches dibond :</strong> expédiées à plat dans une caisse carton sur mesure avec calage mousse haute densité et cornières de protection.</p>
+        <p>En cas de colis endommagé, photographiez-le avant ouverture et contactez-nous immédiatement.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2><span>↩️</span> Retours & remboursements</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Comment retourner un article ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Vous disposez de <strong>14 jours</strong> à compter de la réception pour retourner votre commande. L'article doit être dans son état d'origine, non utilisé, et dans son emballage d'origine.</p>
+        <p>Pour initier un retour :</p>
+        <ul>
+          <li>Contactez-nous à <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a> avec votre numéro de commande</li>
+          <li>Nous vous communiquons l'adresse de retour et les instructions d'emballage</li>
+          <li>Les frais de retour sont à votre charge, sauf erreur de notre part</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Mon affiche est arrivée endommagée, que faire ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Avant tout, photographiez le colis et l'affiche dans l'état où vous les avez reçus, même si l'emballage extérieur semble intact.</p>
+        <p>Contactez-nous dans les <strong>48 heures</strong> à <a href="mailto:contact@postermaison.fr">contact@postermaison.fr</a> avec les photos. Nous vous enverrons un remplacement sans frais supplémentaires.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Dans quel délai suis-je remboursé ?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <p>Le remboursement est effectué dans les <strong>5 jours ouvrés</strong> suivant la réception de votre retour ou la validation de votre demande, sur le moyen de paiement utilisé lors de la commande (carte bancaire via Stripe).</p>
+        <p>Votre banque peut ensuite prendre 3 à 5 jours ouvrés supplémentaires pour créditer votre compte.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-cta">
+    <h3>Vous n'avez pas trouvé votre réponse ?</h3>
+    <p>Notre équipe répond à toutes vos questions dans les 48 heures ouvrées.</p>
+    <a href="contact.html">Nous contacter</a>
+  </div>
+
+</div>
+
+<footer>
+  <div>
+    <div class="footer-logo">
+      <svg class="footer-logo-icon" viewBox="0 0 36 48" fill="none">
+        <polyline points="2,22 18,4 34,22" stroke="#C8A85C" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="2" y="21" width="32" height="25" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none"/>
+        <rect x="7" y="26" width="22" height="15" rx="1" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div>
+        <div class="footer-logo-poster">POSTER</div>
+        <div class="footer-logo-maison">MAISON</div>
+      </div>
+    </div>
+    <p>Des affiches artistiques pour décorer votre intérieur avec style. Impression haute qualité, emballage soigné.</p>
+  </div>
+  <div>
+    <h3>Informations</h3>
+    <a href="livraison.html">Livraison & retours</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+    <a href="contact.html">Nous contacter</a>
+    <a href="faq.html">FAQ</a>
+  </div>
+  <div class="footer-formats">
+    <h3>Nos formats</h3>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-bottom:2px">Papier</p>
+    <p>30 × 40 cm <span>19 €</span></p>
+    <p>50 × 70 cm <span>29 €</span></p>
+    <p>70 × 100 cm <span>45 €</span></p>
+    <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin-top:10px;margin-bottom:2px">Dibond 3 mm</p>
+    <p>30 × 40 cm <span>29 €</span></p>
+    <p>50 × 70 cm <span>39 €</span></p>
+    <p>70 × 100 cm <span>55 €</span></p>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 Poster Maison — Tous droits réservés</span>
+  <span>Paiement sécurisé par Stripe</span>
+</div>
+
+<script>
+function toggle(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  document.querySelectorAll('.faq-q.open').forEach(b => {
+    b.classList.remove('open');
+    b.querySelector('.faq-icon').textContent = '+';
+    b.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    btn.classList.add('open');
+    btn.querySelector('.faq-icon').textContent = '−';
+    answer.classList.add('open');
+  }
+}
+</script>
+</body>
+</html>
