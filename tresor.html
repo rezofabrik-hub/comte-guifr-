@@ -74,6 +74,59 @@
             const gb = GRADE_ORDER[(b.grade||'').toLowerCase().trim()] ?? 3;
             return ga !== gb ? ga - gb : (a.nom||'').localeCompare(b.nom||'','fr');
         });
+
+        // ── Tableau de Loge : tri hiérarchique ──────────────────────────────
+        const LUM1_K=['vénérable','venerable'];
+        const LUM2_K=['1er surveil','premier surveil'];
+        const LUM3_K=['2ème surveil','2e surveil','deuxième surveil','second surveil','2nd surveil'];
+        const OFF_K=['orateur','secrétaire','secretaire','trésorier','tresorier','hospitalier','expert','cérémonie','ceremonie','couvreur','terrible','architecte','bibliothéc','porte-drap'];
+        function getRoleGroup(role){
+            const r=(role||'').toLowerCase();
+            if(LUM1_K.some(k=>r.includes(k))) return 0;
+            if(LUM2_K.some(k=>r.includes(k))) return 1;
+            if(LUM3_K.some(k=>r.includes(k))) return 2;
+            if(OFF_K.some(k=>r.includes(k))) return 3;
+            return 4;
+        }
+        const GRADE_NUM={'maître':0,'maitre':0,'compagnon':1,'apprenti':2};
+        const sortMembres = arr => [...arr].sort((a,b)=>{
+            const ga=getRoleGroup(a.role),gb=getRoleGroup(b.role);
+            if(ga!==gb) return ga-gb;
+            if(ga>=4){
+                const gra=GRADE_NUM[(a.grade||'').toLowerCase().trim()]??3;
+                const grb=GRADE_NUM[(b.grade||'').toLowerCase().trim()]??3;
+                if(gra!==grb) return gra-grb;
+            }
+            return (a.nom||'').localeCompare(b.nom||'','fr');
+        });
+        function getDisplayGroup(m){
+            const g=getRoleGroup(m.role);
+            if(g<=2) return 'lumieres';
+            if(g===3) return 'officiers';
+            const gr=(m.grade||'').toLowerCase();
+            if(gr.includes('maît')||gr.includes('mait')) return 'maitres';
+            if(gr.includes('compagnon')) return 'compagnons';
+            if(gr.includes('apprenti')) return 'apprentis';
+            return 'membres';
+        }
+        const GROUP_DISPLAY={lumieres:'Les 3 Lumières',officiers:'Officiers',maitres:'Maîtres',compagnons:'Compagnons',apprentis:'Apprentis',membres:'Membres'};
+
+        function SautoirIcon({role}){
+            const r=(role||'').toLowerCase();
+            const c='#b45309';
+            const sv=(children,title)=><svg title={title||role} viewBox="0 0 40 40" width="32" height="32">{children}</svg>;
+            if(LUM1_K.some(k=>r.includes(k))) return sv(<path d="M8 8 L8 32 L32 32" stroke={c} strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>,'Vénérable — Équerre');
+            if(LUM2_K.some(k=>r.includes(k))) return sv(<><line x1="4" y1="14" x2="36" y2="14" stroke={c} strokeWidth="4" strokeLinecap="round"/><line x1="20" y1="14" x2="20" y2="24" stroke={c} strokeWidth="3"/><polygon points="14,32 20,22 26,32" fill={c}/></>,'1er Surveillant — Niveau');
+            if(LUM3_K.some(k=>r.includes(k))) return sv(<><line x1="20" y1="4" x2="20" y2="24" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><ellipse cx="20" cy="32" rx="9" ry="6" fill={c}/></>,'2ème Surveillant — Fil à plomb');
+            if(r.includes('orateur')) return sv(<><polygon points="20,4 17,14 23,14" fill={c}/><line x1="20" y1="4" x2="20" y2="34" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="10" y1="26" x2="30" y2="26" stroke={c} strokeWidth="3" strokeLinecap="round"/></>,'Orateur — Épée');
+            if(r.includes('secret')) return sv(<><path d="M30 5 Q8 14 10 36" stroke={c} strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M30 5 Q22 22 10 36 Q16 24 30 5" fill={c} opacity="0.45"/><line x1="10" y1="36" x2="18" y2="34" stroke={c} strokeWidth="2.5" strokeLinecap="round"/></>,'Secrétaire — Plume');
+            if(r.includes('trésor')||r.includes('tresor')) return sv(<><circle cx="13" cy="13" r="7" stroke={c} strokeWidth="3" fill="none"/><line x1="18" y1="18" x2="34" y2="34" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="27" y1="28" x2="25" y2="34" stroke={c} strokeWidth="2.5" strokeLinecap="round"/><line x1="32" y1="30" x2="30" y2="36" stroke={c} strokeWidth="2.5" strokeLinecap="round"/></>,'Trésorier — Clés');
+            if(r.includes('hospital')) return sv(<><line x1="20" y1="4" x2="20" y2="36" stroke={c} strokeWidth="3" strokeLinecap="round"/><path d="M12 14 Q7 20 12 26 Q20 22 28 26 Q33 20 28 14 Q20 10 12 14" stroke={c} strokeWidth="2.5" fill="none"/></>,'Hospitalier — Caducée');
+            if(r.includes('expert')) return sv(<><line x1="20" y1="5" x2="7" y2="34" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><line x1="20" y1="5" x2="33" y2="34" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><path d="M10 22 Q20 27 30 22" stroke={c} strokeWidth="2.5" fill="none"/></>,'Expert — Compas');
+            if(r.includes('cérémonie')||r.includes('ceremonie')) return sv(<><line x1="7" y1="33" x2="33" y2="7" stroke={c} strokeWidth="3" strokeLinecap="round"/><circle cx="33" cy="7" r="5" fill={c}/></>,'Maître des Cérémonies — Baguette');
+            if(r.includes('couvreur')||r.includes('terrible')) return sv(<><polygon points="20,36 17,26 23,26" fill={c}/><line x1="20" y1="36" x2="20" y2="8" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="12" y1="18" x2="28" y2="18" stroke={c} strokeWidth="3" strokeLinecap="round"/></>,'Couvreur — Épée pointée');
+            return <span className="text-slate-200 text-base select-none">◆</span>;
+        }
         // Format date en ISO local (YYYY-MM-DD) sans décalage UTC
         const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         const todayISO = () => toLocalISO(new Date());
@@ -1645,56 +1698,77 @@
 
                         {membres.length===0 ? (
                             <p className="text-slate-400 italic text-center py-12 font-sans">Aucun membre. Cliquez sur "Nouveau membre" pour commencer.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-slate-50 border-b">
-                                        <tr>
-                                            <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
-                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
-                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
-                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
-                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
-                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
-                                            <th className="px-4 py-3"></th>
+                        ) : (()=>{
+                            const sorted = sortMembres(membres);
+                            let lastGroup = null;
+                            const rows = [];
+                            sorted.forEach(m=>{
+                                const grp = getDisplayGroup(m);
+                                if(grp !== lastGroup){
+                                    lastGroup = grp;
+                                    rows.push(
+                                        <tr key={`grp-${grp}`} className="bg-slate-800">
+                                            <td colSpan={8} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
+                                                {GROUP_DISPLAY[grp]}
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {sortByGrade(membres).map(m=>(
-                                            <React.Fragment key={m.id}>
-                                                <tr className="hover:bg-amber-50 transition-colors group">
-                                                    <td className="px-6 py-4 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
-                                                    <td className="px-4 py-4">
-                                                        {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
-                                                    </td>
-                                                    <td className="px-4 py-4">
-                                                        {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
-                                                    </td>
-                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
-                                                    <td className="px-4 py-4 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
-                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
-                                                            <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {editingMId===m.id && (
-                                                    <tr>
-                                                        <td colSpan={6} className="px-6 py-4 bg-amber-50 border-b">
-                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
-                                                                onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
-                                                                onCancel={()=>setEditingMId(null)} />
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                    );
+                                }
+                                rows.push(
+                                    <React.Fragment key={m.id}>
+                                        <tr className="hover:bg-amber-50 transition-colors group">
+                                            <td className="px-4 py-3 text-center w-12">
+                                                <SautoirIcon role={m.role}/>
+                                            </td>
+                                            <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
+                                            <td className="px-3 py-3">
+                                                {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
+                                            </td>
+                                            <td className="px-3 py-3 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
+                                            <td className="px-3 py-3 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
+                                            <td className="px-3 py-3 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
+                                            <td className="px-3 py-3">
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
+                                                    <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {editingMId===m.id && (
+                                            <tr>
+                                                <td colSpan={8} className="px-6 py-4 bg-amber-50 border-b">
+                                                    <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
+                                                        onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
+                                                        onCancel={()=>setEditingMId(null)} />
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            });
+                            return (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-50 border-b">
+                                            <tr>
+                                                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center w-12">Sautoir</th>
+                                                <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
+                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
+                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
+                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
+                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
+                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
+                                                <th className="px-3 py-3"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">{rows}</tbody>
+                                    </table>
+                                </div>
+                            );
+                        })()}
                     </div>
 
 
