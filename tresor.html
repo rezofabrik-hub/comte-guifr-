@@ -89,14 +89,10 @@
             return 4;
         }
         const GRADE_NUM={'maître':0,'maitre':0,'compagnon':1,'apprenti':2};
+        const GROUP_SORT={lumieres:0,officiers:1,maitres:2,compagnons:3,apprentis:4,membres:5};
         const sortMembres = arr => [...arr].sort((a,b)=>{
-            const ga=getRoleGroup(a.role),gb=getRoleGroup(b.role);
+            const ga=GROUP_SORT[getDisplayGroup(a)]??6, gb=GROUP_SORT[getDisplayGroup(b)]??6;
             if(ga!==gb) return ga-gb;
-            if(ga>=4){
-                const gra=GRADE_NUM[(a.grade||'').toLowerCase().trim()]??3;
-                const grb=GRADE_NUM[(b.grade||'').toLowerCase().trim()]??3;
-                if(gra!==grb) return gra-grb;
-            }
             return (a.nom||'').localeCompare(b.nom||'','fr');
         });
         const CAT_TO_KEY={'Les 3 Lumières':'lumieres','Officiers':'officiers','Maîtres':'maitres','Compagnons':'compagnons','Apprentis':'apprentis','Membres':'membres'};
@@ -1739,7 +1735,7 @@
                                     lastGroup = grp;
                                     rows.push(
                                         <tr key={`grp-${grp}`} className="bg-slate-800">
-                                            <td colSpan={9} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
+                                            <td colSpan={8} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
                                                 {GROUP_DISPLAY[grp]}
                                             </td>
                                         </tr>
@@ -1748,9 +1744,6 @@
                                 rows.push(
                                     <React.Fragment key={m.id}>
                                         <tr className="hover:bg-amber-50 transition-colors group">
-                                            <td className="px-4 py-3 text-center w-12">
-                                                <SautoirIcon role={m.role}/>
-                                            </td>
                                             <td className="px-3 py-3">
                                                 <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
                                                     {m.photo
@@ -1777,7 +1770,7 @@
                                         </tr>
                                         {editingMId===m.id && (
                                             <tr>
-                                                <td colSpan={9} className="px-6 py-4 bg-amber-50 border-b">
+                                                <td colSpan={8} className="px-6 py-4 bg-amber-50 border-b">
                                                     <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||'',photo:m.photo||'',categorie:m.categorie||''}}
                                                         onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
                                                         onCancel={()=>setEditingMId(null)} />
@@ -1792,7 +1785,6 @@
                                     <table className="w-full text-sm">
                                         <thead className="bg-slate-50 border-b">
                                             <tr>
-                                                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center w-12">Sautoir</th>
                                                 <th className="px-3 py-3 w-12"></th>
                                                 <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
                                                 <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
