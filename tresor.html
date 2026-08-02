@@ -165,30 +165,42 @@
             const totalAttendu = membres.length * montantCotis;
             const cotisYear = yr || 'toutes les années';
 
-            // ── SYNTHÈSE MENSUELLE ─────────────────────────────────
-            const monthlyBreakdown = useMemo(()=>{
-                const map = {};
-                const addOp = (date, recette, depense) => {
-                    if(!date) return;
-                    const key = date.substring(0,7); // YYYY-MM
-                    if(!map[key]) map[key]={recette:0,depense:0};
-                    map[key].recette += recette||0;
-                    map[key].depense += depense||0;
-                };
-                txRecettes.forEach(t=>addOp(t.date,t.montant,0));
-                txDepenses.forEach(t=>addOp(t.date,0,t.montant));
-                cotisFiltered.forEach(c=>addOp(c.datePaiement||`${c.annee}-${String(c.mois||1).padStart(2,'0')}-01`,c.montant,0));
-                agapesFil.forEach(a=>{
-                    addOp(a.date, a.recetteTotale||0, a.coutRepas||0);
+            // ── SYNTHÈSE : lignes détaillées avec date + libellé ───
+            const [synthMode, setSynthMode] = useState('mois'); // 'mois' | 'annee'
+            const [synthOpen, setSynthOpen] = useState({}); // clé → expanded
+
+            const allOpsFiltered = useMemo(()=>{
+                const ops = [];
+                txRecettes.forEach(t=>ops.push({date:t.date,libelle:t.libelle,recette:t.montant,depense:0,source:'caisse'}));
+                txDepenses.forEach(t=>ops.push({date:t.date,libelle:t.libelle,recette:0,depense:t.montant,source:'caisse'}));
+                cotisFiltered.forEach(c=>{
+                    const m2=membres.find(x=>x.id===c.membreId);
+                    ops.push({date:c.datePaiement||`${c.annee}-${String(c.mois||1).padStart(2,'0')}-01`,libelle:`Cotisation — ${m2?.nom||'Membre'}`,recette:c.montant,depense:0,source:'cotisation'});
                 });
-                chargesFil.forEach(c=>addOp(c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`,0,c.montant));
+                agapesFil.forEach(a=>{
+                    if(a.recetteTotale) ops.push({date:a.date,libelle:`Agapes — ${a.tenue||'Tenue'}`,recette:a.recetteTotale,depense:0,source:'agapes'});
+                    if(a.coutRepas)     ops.push({date:a.date,libelle:`Nourriture — ${a.tenue||'Tenue'}`,recette:0,depense:a.coutRepas,source:'agapes'});
+                });
+                chargesFil.forEach(c=>ops.push({date:c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`,libelle:c.nom,recette:0,depense:c.montant,source:'charge'}));
+                return ops.filter(o=>o.date).sort((a,b)=>a.date.localeCompare(b.date));
+            },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil,membres]);
+
+            const synthBreakdown = useMemo(()=>{
+                const map = {};
+                allOpsFiltered.forEach(op=>{
+                    const key = synthMode==='annee' ? op.date.substring(0,4) : op.date.substring(0,7);
+                    if(!map[key]) map[key]={recette:0,depense:0,ops:[]};
+                    map[key].recette += op.recette||0;
+                    map[key].depense += op.depense||0;
+                    map[key].ops.push(op);
+                });
                 const rows = Object.entries(map).sort(([a],[b])=>a.localeCompare(b));
                 let cumul = 0;
                 return rows.map(([key,v])=>{
                     cumul += v.recette - v.depense;
-                    return { key, recette:v.recette, depense:v.depense, solde:v.recette-v.depense, cumul };
+                    return { key, recette:v.recette, depense:v.depense, solde:v.recette-v.depense, cumul, ops:v.ops };
                 });
-            },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil]);
+            },[allOpsFiltered, synthMode]);
 
             // ── GRAND LIVRE : toutes opérations chronologiques ────
             const grandLivre = useMemo(()=>{
@@ -286,41 +298,73 @@
                         </div>
                     </div>
 
-                    {/* Synthèse mensuelle */}
-                    {monthlyBreakdown.length > 0 && (
+                    {/* Synthèse par mois / par année */}
+                    {synthBreakdown.length > 0 && (
                         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                            <div className="px-6 py-3 bg-slate-800 flex items-center gap-2">
-                                <p className="text-xs font-black uppercase tracking-widest text-white font-serif">Synthèse par mois</p>
+                            <div className="px-6 py-3 bg-slate-800 flex items-center justify-between">
+                                <p className="text-xs font-black uppercase tracking-widest text-white font-serif">Synthèse comptable</p>
+                                <div className="flex rounded-lg overflow-hidden border border-slate-600">
+                                    {['mois','annee'].map(m=>(
+                                        <button key={m} onClick={()=>{setSynthMode(m);setSynthOpen({});}}
+                                            className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors ${synthMode===m?'bg-amber-500 text-white':'text-slate-300 hover:bg-slate-700'}`}>
+                                            {m==='mois'?'Par mois':'Par année'}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead className="bg-slate-50 border-b">
                                         <tr>
-                                            <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Mois</th>
+                                            <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500 w-6"></th>
+                                            <th className="text-left px-2 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">{synthMode==='mois'?'Mois':'Année'}</th>
                                             <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-emerald-600">Recettes</th>
                                             <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500">Dépenses</th>
-                                            <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Solde mois</th>
+                                            <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Solde période</th>
                                             <th className="text-right px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-700">Solde cumulé</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y">
-                                        {monthlyBreakdown.map(row=>{
-                                            const [yyyy,mm] = row.key.split('-');
-                                            const label = new Date(parseInt(yyyy),parseInt(mm)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                                    <tbody>
+                                        {synthBreakdown.map(row=>{
+                                            const isOpen = !!synthOpen[row.key];
+                                            let label;
+                                            if(synthMode==='annee') {
+                                                label = row.key;
+                                            } else {
+                                                const [yyyy,mm] = row.key.split('-');
+                                                label = new Date(parseInt(yyyy),parseInt(mm)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                                            }
+                                            const SOURCE_BADGE = { caisse:'bg-slate-100 text-slate-600', cotisation:'bg-amber-100 text-amber-700', agapes:'bg-orange-100 text-orange-700', charge:'bg-purple-100 text-purple-700' };
                                             return (
-                                                <tr key={row.key} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-4 py-2.5 font-semibold text-slate-700 font-sans capitalize text-xs">{label}</td>
-                                                    <td className="px-4 py-2.5 text-right font-serif font-bold text-emerald-600 text-xs">{row.recette>0?fmt(row.recette):<span className="text-slate-300">—</span>}</td>
-                                                    <td className="px-4 py-2.5 text-right font-serif font-bold text-red-500 text-xs">{row.depense>0?fmt(row.depense):<span className="text-slate-300">—</span>}</td>
-                                                    <td className={`px-4 py-2.5 text-right font-serif font-bold text-xs ${row.solde>=0?'text-emerald-600':'text-red-500'}`}>{fmt(row.solde)}</td>
-                                                    <td className={`px-6 py-2.5 text-right font-serif font-bold text-sm ${row.cumul>=0?'text-slate-800':'text-red-600'}`}>{fmt(row.cumul)}</td>
-                                                </tr>
+                                                <React.Fragment key={row.key}>
+                                                    <tr onClick={()=>setSynthOpen(s=>({...s,[row.key]:!s[row.key]}))}
+                                                        className="border-t hover:bg-slate-50 cursor-pointer transition-colors">
+                                                        <td className="px-4 py-2.5 text-slate-400 text-xs">{isOpen?'▾':'▸'}</td>
+                                                        <td className="px-2 py-2.5 font-semibold text-slate-800 font-sans capitalize text-xs">{label}</td>
+                                                        <td className="px-4 py-2.5 text-right font-serif font-bold text-emerald-600 text-xs">{row.recette>0?fmt(row.recette):<span className="text-slate-300">—</span>}</td>
+                                                        <td className="px-4 py-2.5 text-right font-serif font-bold text-red-500 text-xs">{row.depense>0?fmt(row.depense):<span className="text-slate-300">—</span>}</td>
+                                                        <td className={`px-4 py-2.5 text-right font-serif font-bold text-xs ${row.solde>=0?'text-emerald-600':'text-red-500'}`}>{fmt(row.solde)}</td>
+                                                        <td className={`px-6 py-2.5 text-right font-serif font-bold text-sm ${row.cumul>=0?'text-slate-800':'text-red-600'}`}>{fmt(row.cumul)}</td>
+                                                    </tr>
+                                                    {isOpen && row.ops.map((op,i)=>(
+                                                        <tr key={i} className="bg-slate-50 border-t border-slate-100">
+                                                            <td className="px-4 py-2"></td>
+                                                            <td className="px-2 py-2 text-[11px] text-slate-500 font-sans whitespace-nowrap">{new Date(op.date+'T12:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</td>
+                                                            <td colSpan={2} className="px-4 py-2 text-[11px] text-slate-700 font-sans">
+                                                                <span className="font-medium">{op.libelle}</span>
+                                                                <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${SOURCE_BADGE[op.source]||'bg-slate-100 text-slate-500'}`}>{op.source}</span>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right text-[11px] font-serif font-bold text-emerald-600">{op.recette>0?fmt(op.recette):''}</td>
+                                                            <td className="px-6 py-2 text-right text-[11px] font-serif font-bold text-red-500">{op.depense>0?fmt(op.depense):''}</td>
+                                                        </tr>
+                                                    ))}
+                                                </React.Fragment>
                                             );
                                         })}
                                     </tbody>
                                     <tfoot className="border-t-2 bg-slate-50">
                                         <tr>
-                                            <td className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 font-serif">Total</td>
+                                            <td colSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 font-serif">Total</td>
                                             <td className="px-4 py-3 text-right font-bold font-serif text-emerald-700">{fmt(totalRecettes)}</td>
                                             <td className="px-4 py-3 text-right font-bold font-serif text-red-600">{fmt(totalDepenses)}</td>
                                             <td colSpan={2} className={`px-4 py-3 text-right font-bold font-serif text-base ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</td>
