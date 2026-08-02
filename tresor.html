@@ -888,7 +888,202 @@
             );
         }
 
-        function AgapesView({ membres, agapes, settings, onAdd, onDelete }) {
+        // ── VISITEURS ──────────────────────────────────────────────
+        function compressPhoto(file, cb) {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX = 700;
+                    const r = Math.min(MAX/img.width, MAX/img.height, 1);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width*r); c.height = Math.round(img.height*r);
+                    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+                    cb(c.toDataURL('image/jpeg',0.72));
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function VisiteurForm({ onSave, onCancel }) {
+            const [f, setF] = useState({nom:'',loge:'',grade:'Maître',resteAgapes:false});
+            const [photo, setPhoto] = useState(null);
+            const [photoPreview, setPhotoPreview] = useState(null);
+            const up = k => v => setF(p=>({...p,[k]:v}));
+            const handlePhoto = e => {
+                const file = e.target.files[0];
+                if(!file) return;
+                compressPhoto(file, b64 => { setPhoto(b64); setPhotoPreview(b64); });
+            };
+            return (
+                <form onSubmit={e=>{e.preventDefault();if(!f.nom.trim())return;onSave({...f,photo});}}
+                    className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 font-serif mb-2">Ajouter un visiteur</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input required placeholder="Nom du visiteur *" value={f.nom} onChange={e=>up('nom')(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans" autoComplete="off"/>
+                        <input placeholder="Loge d'origine" value={f.loge} onChange={e=>up('loge')(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans" autoComplete="off"/>
+                        <select value={f.grade} onChange={e=>up('grade')(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans bg-white">
+                            {['Apprenti','Compagnon','Maître'].map(g=><option key={g}>{g}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" checked={f.resteAgapes} onChange={e=>up('resteAgapes')(e.target.checked)}
+                                className="w-4 h-4 accent-orange-500"/>
+                            <span className="text-sm font-bold text-slate-700 font-sans">Reste aux agapes</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-500 font-sans border rounded-lg px-3 py-1.5 bg-white hover:bg-slate-50">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            {photoPreview ? 'Changer photo' : 'Photo feuille de présence'}
+                            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden"/>
+                        </label>
+                        {photoPreview && <img src={photoPreview} alt="preview" className="h-10 rounded border object-cover"/>}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                        <button type="submit" className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-amber-600 font-sans">Ajouter</button>
+                        <button type="button" onClick={onCancel} className="text-xs px-4 py-2 rounded-lg border hover:bg-slate-50 font-sans">Annuler</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function VisiteursMiniTable({ presences, onAdd, onDelete, date }) {
+            const [adding, setAdding] = useState(false);
+            const [viewPhoto, setViewPhoto] = useState(null);
+            const datePresences = presences.filter(p=>p.date===date);
+            return (
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-sans">
+                            Visiteurs ({datePresences.length})
+                            {datePresences.filter(p=>p.resteAgapes).length > 0 &&
+                                <span className="ml-2 text-orange-500">· {datePresences.filter(p=>p.resteAgapes).length} aux agapes</span>}
+                        </p>
+                        <button onClick={()=>setAdding(a=>!a)}
+                            className="text-[10px] font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1 font-sans">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            {adding ? 'Annuler' : 'Ajouter visiteur'}
+                        </button>
+                    </div>
+                    {adding && <div className="mb-3"><VisiteurForm onSave={async d=>{await onAdd({...d,date});setAdding(false);}} onCancel={()=>setAdding(false)}/></div>}
+                    {datePresences.length > 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead><tr className="text-[9px] uppercase tracking-widest text-slate-400 border-b font-sans">
+                                    <th className="text-left py-1.5 pr-3 font-bold">Nom</th>
+                                    <th className="text-left py-1.5 pr-3 font-bold">Loge</th>
+                                    <th className="text-left py-1.5 pr-3 font-bold">Grade</th>
+                                    <th className="text-center py-1.5 pr-3 font-bold">Agapes</th>
+                                    <th className="py-1.5 w-6"></th>
+                                    <th className="py-1.5 w-6"></th>
+                                </tr></thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {datePresences.map(p=>(
+                                        <tr key={p.id} className="group hover:bg-slate-50">
+                                            <td className="py-1.5 pr-3 font-semibold text-slate-800">{p.nom}</td>
+                                            <td className="py-1.5 pr-3 text-slate-500">{p.loge||'—'}</td>
+                                            <td className="py-1.5 pr-3 text-slate-500 capitalize">{p.grade||'—'}</td>
+                                            <td className="py-1.5 pr-3 text-center">
+                                                {p.resteAgapes
+                                                    ? <span className="inline-block w-4 h-4 bg-orange-500 rounded-full text-white text-[8px] flex items-center justify-center">✓</span>
+                                                    : <span className="text-slate-200">—</span>}
+                                            </td>
+                                            <td className="py-1.5">
+                                                {p.photo && <button onClick={()=>setViewPhoto(p.photo)} className="text-slate-300 hover:text-amber-500" title="Voir photo">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                </button>}
+                                            </td>
+                                            <td className="py-1.5">
+                                                <button onClick={()=>onDelete(p.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all">
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {viewPhoto && (
+                        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={()=>setViewPhoto(null)}>
+                            <img src={viewPhoto} alt="Feuille de présence" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"/>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function VisiteursBilan({ presences, year }) {
+            const saison = presences.filter(p=>{
+                if(!p.date) return false;
+                const y=parseInt(p.date.split('-')[0]), m=parseInt(p.date.split('-')[1]);
+                return (y===year && m>=9)||(y===year+1 && m<=6);
+            });
+            const byVisiteur = {};
+            saison.forEach(p=>{
+                const key = p.nom.trim().toLowerCase();
+                if(!byVisiteur[key]) byVisiteur[key]={nom:p.nom,loge:p.loge||'',grade:p.grade||'',visites:[],agapes:0};
+                byVisiteur[key].visites.push(p.date);
+                if(p.resteAgapes) byVisiteur[key].agapes++;
+            });
+            const rows = Object.values(byVisiteur).sort((a,b)=>b.visites.length-a.visites.length);
+            if(rows.length===0) return null;
+            return (
+                <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                    <div className="px-6 py-3 bg-amber-700">
+                        <p className="text-xs font-black uppercase tracking-widest text-white font-serif">Bilan visiteurs {year}–{year+1}</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 border-b">
+                                <tr>
+                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Visiteur</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Loge</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
+                                    <th className="text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600">Visites</th>
+                                    <th className="text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-orange-500">Agapes</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400">Dates</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {rows.map((r,i)=>(
+                                    <tr key={i} className="hover:bg-amber-50 transition-colors">
+                                        <td className="px-4 py-2.5 font-bold text-slate-800 font-sans">{r.nom}</td>
+                                        <td className="px-4 py-2.5 text-slate-500 font-sans text-xs">{r.loge||'—'}</td>
+                                        <td className="px-4 py-2.5 text-slate-500 font-sans text-xs capitalize">{r.grade||'—'}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <span className="inline-block bg-slate-800 text-white text-xs font-bold px-2.5 py-0.5 rounded-full font-serif">{r.visites.length}</span>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            {r.agapes>0
+                                                ? <span className="inline-block bg-orange-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full font-serif">{r.agapes}</span>
+                                                : <span className="text-slate-300 text-xs">—</span>}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-[10px] text-slate-400 font-sans">
+                                            {r.visites.sort().map(d=>new Date(d+'T12:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})).join(', ')}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot className="border-t-2 bg-slate-50">
+                                <tr>
+                                    <td colSpan={3} className="px-4 py-2.5 text-xs font-black uppercase tracking-widest text-slate-600 font-serif">Total</td>
+                                    <td className="px-4 py-2.5 text-center font-bold font-serif text-slate-800">{saison.length}</td>
+                                    <td className="px-4 py-2.5 text-center font-bold font-serif text-orange-600">{saison.filter(p=>p.resteAgapes).length}</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        function AgapesView({ membres, agapes, presences, settings, onAdd, onDelete, onAddPresence, onDeletePresence }) {
             const today = new Date();
             const [year, setYear] = useState(today.getFullYear());
             const [addingDate, setAddingDate] = useState(null); // ISO date of tenue being filled
@@ -1035,6 +1230,10 @@
                                                         </div>
                                                     </div>
 
+                                                    <div className="border-t px-6 pb-4 pt-1">
+                                                        <VisiteursMiniTable presences={presences} date={iso} onAdd={onAddPresence} onDelete={onDeletePresence}/>
+                                                    </div>
+
                                                     {isAdding && (
                                                         <div className="border-t bg-orange-50/30 px-6 py-6 animate-fade">
                                                             <h3 className="text-sm font-bold font-serif mb-4 flex items-center gap-2 text-orange-700"><Icon n="utensils" size={16}/> Saisie des agapes — {d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>
@@ -1052,6 +1251,8 @@
                             );
                         })}
                     </div>
+
+                    <VisiteursBilan presences={presences} year={year}/>
                 </div>
             );
         }
@@ -1687,6 +1888,7 @@
             const [agapes, setAgapes] = useState([]);
             const [charges, setCharges] = useState([]);
             const [planches, setPlanches] = useState([]);
+            const [presences, setPresences] = useState([]);
             const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
 
             const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
@@ -1704,8 +1906,9 @@
                 const unsubAg = api.onSnapshot(path('tresor_agapes'),s=>setAgapes(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubCh = api.onSnapshot(path('tresor_charges'),s=>setCharges(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubPl = api.onSnapshot(path('tresor_planches'),s=>setPlanches(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubPr = api.onSnapshot(path('tresor_presences'),s=>setPresences(s.docs.map(d=>({id:d.id,...d.data()}))));
                 const unsubS = api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d=>{if(d.exists()) setSettings(d.data());});
-                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubPl();unsubS();};
+                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubPl();unsubPr();unsubS();};
             },[api,ready]);
 
             const logeName = settings.logeName || 'Trésorerie';
@@ -1730,6 +1933,9 @@
 
             const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
             const deleteAgape = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_agapes',id));
+
+            const addPresence = async d => await api.addDoc(path('tresor_presences'),{...d, createdAt: todayISO()});
+            const deletePresence = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_presences',id));
 
             const addCharge = async d => await api.addDoc(path('tresor_charges'),d);
             const deleteCharge = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_charges',id));
@@ -1799,7 +2005,7 @@
                         {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView} onDeleteTx={deleteTx} onDeleteVersement={deleteVersement} onDeleteAgape={deleteAgape} onDeleteCharge={deleteCharge}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} settings={settings} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
                         {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
-                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} settings={settings} onAdd={addAgape} onDelete={deleteAgape}/>}
+                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} presences={presences} settings={settings} onAdd={addAgape} onDelete={deleteAgape} onAddPresence={addPresence} onDeletePresence={deletePresence}/>}
                         {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
                         {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
