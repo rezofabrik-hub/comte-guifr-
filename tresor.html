@@ -1085,22 +1085,37 @@
 
         function PlancheMiniSection({ planches, membres, date, onAdd, onDelete }) {
             const [adding, setAdding] = useState(false);
-            const [f, setF] = useState({titre:'', auteurId:'', grade:'Maître'});
-            const [photo, setPhoto] = useState(null);
-            const [photoPreview, setPhotoPreview] = useState(null);
-            const [viewPhoto, setViewPhoto] = useState(null);
+            const [f, setF] = useState({titre:'', auteurId:''});
+            const [fichier, setFichier] = useState(null);   // base64
+            const [fichierNom, setFichierNom] = useState('');
+            const [fichierType, setFichierType] = useState(''); // 'pdf' | 'image'
+            const [loading, setLoading] = useState(false);
+            const [viewFichier, setViewFichier] = useState(null); // {data, type}
             const datePlanches = planches.filter(p=>p.date===date);
 
-            const handlePhoto = e => {
+            const handleFile = e => {
                 const file = e.target.files[0];
                 if(!file) return;
-                compressPhoto(file, b64=>{ setPhoto(b64); setPhotoPreview(b64); });
+                setLoading(true);
+                const isPdf = file.type==='application/pdf' || file.name.endsWith('.pdf');
+                const isWord = file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.type.includes('word');
+                const isImage = file.type.startsWith('image/');
+                setFichierNom(file.name);
+                setFichierType(isPdf?'pdf':isWord?'word':'image');
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    if(isImage) {
+                        compressPhoto(file, b64=>{ setFichier(b64); setLoading(false); });
+                    } else {
+                        setFichier(ev.target.result); setLoading(false);
+                    }
+                };
+                reader.readAsDataURL(file);
             };
 
-            const handleAuteur = id => {
-                const m = membres.find(x=>x.id===id);
-                setF(p=>({...p, auteurId:id, grade:m?.grade||'Maître'}));
-            };
+            const handleAuteur = id => setF(p=>({...p, auteurId:id}));
+
+            const reset = () => { setAdding(false); setF({titre:'',auteurId:''}); setFichier(null); setFichierNom(''); setFichierType(''); };
 
             const handleSave = async () => {
                 const m = membres.find(x=>x.id===f.auteurId);
@@ -1108,13 +1123,30 @@
                 await onAdd({
                     date,
                     auteur: m ? m.nom : f.titre,
-                    grade: m ? (m.grade||'Maître') : f.grade,
+                    grade: m ? (m.grade||'Maître') : 'Maître',
                     titre: f.titre || `Planche du ${new Date(date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}`,
-                    fichier: photo||'',
-                    fichierNom: photo ? `planche_${date}.jpg` : '',
+                    fichier: fichier||'',
+                    fichierNom,
+                    fichierType,
                     resume: '',
                 });
-                setAdding(false); setF({titre:'',auteurId:'',grade:'Maître'}); setPhoto(null); setPhotoPreview(null);
+                reset();
+            };
+
+            const openFichier = p => {
+                if(!p.fichier) return;
+                if(p.fichierType==='word' || p.fichierNom?.match(/\.docx?$/)) {
+                    // Télécharger le fichier Word
+                    const a = document.createElement('a');
+                    a.href = p.fichier;
+                    a.download = p.fichierNom || 'planche.docx';
+                    a.click();
+                } else if(p.fichierType==='pdf' || p.fichierNom?.endsWith('.pdf')) {
+                    const win = window.open();
+                    win.document.write(`<iframe src="${p.fichier}" style="width:100%;height:100vh;border:none;"></iframe>`);
+                } else {
+                    setViewFichier(p.fichier);
+                }
             };
 
             return (
@@ -1143,47 +1175,64 @@
                                     className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400 font-sans" autoComplete="off"/>
                             </div>
                             <div className="flex items-center gap-3 flex-wrap">
-                                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-500 font-sans border rounded-lg px-3 py-1.5 bg-white hover:bg-slate-50">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                                    {photoPreview ? 'Changer photo' : 'Photographier la planche'}
-                                    <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden"/>
+                                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 font-sans border rounded-lg px-3 py-2 bg-white hover:bg-indigo-50 border-indigo-200">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    {fichierNom ? fichierNom : 'Importer fichier (PDF, Word ou image)'}
+                                    <input type="file" accept="image/*,.pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFile} className="hidden"/>
                                 </label>
-                                {photoPreview && <img src={photoPreview} alt="preview" className="h-10 rounded border object-cover"/>}
+                                {loading && <span className="text-xs text-indigo-500 font-sans">Chargement…</span>}
+                                {fichier && !loading && fichierType==='image' && <img src={fichier} alt="preview" className="h-10 rounded border object-cover"/>}
+                                {fichier && !loading && fichierType==='pdf' && (
+                                    <span className="flex items-center gap-1 text-xs text-red-600 font-bold font-sans">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        PDF prêt
+                                    </span>
+                                )}
+                                {fichier && !loading && fichierType==='word' && (
+                                    <span className="flex items-center gap-1 text-xs text-blue-700 font-bold font-sans">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        Word prêt
+                                    </span>
+                                )}
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={handleSave} className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 font-sans">Enregistrer</button>
-                                <button onClick={()=>setAdding(false)} className="text-xs px-4 py-2 rounded-lg border hover:bg-slate-50 font-sans">Annuler</button>
+                                <button onClick={handleSave} disabled={loading} className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 font-sans disabled:opacity-50">Enregistrer</button>
+                                <button onClick={reset} className="text-xs px-4 py-2 rounded-lg border hover:bg-slate-50 font-sans">Annuler</button>
                             </div>
                         </div>
                     )}
 
                     {datePlanches.length > 0 && (
                         <div className="space-y-1.5">
-                            {datePlanches.map(p=>(
+                            {datePlanches.map(p=>{
+                                const isPdf = p.fichierType==='pdf' || p.fichierNom?.endsWith('.pdf');
+                                const isWord = p.fichierType==='word' || p.fichierNom?.match(/\.docx?$/);
+                                return (
                                 <div key={p.id} className="flex items-center gap-3 group py-1.5 px-2 rounded-lg hover:bg-slate-50">
-                                    <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isPdf?'bg-red-100':isWord?'bg-blue-100':'bg-indigo-100'}`}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isPdf?'#dc2626':isWord?'#1d4ed8':'#4f46e5'} strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-bold text-slate-800 truncate">{p.titre||'Planche'}</p>
-                                        <p className="text-[10px] text-slate-500 font-sans">{p.auteur} · <span className="capitalize">{p.grade}</span></p>
+                                        <p className="text-[10px] text-slate-500 font-sans">{p.auteur} · <span className="capitalize">{p.grade}</span>{p.fichierNom && <span className="ml-1 text-slate-300">· {p.fichierNom}</span>}</p>
                                     </div>
                                     {p.fichier && (
-                                        <button onClick={()=>setViewPhoto(p.fichier)} className="text-indigo-300 hover:text-indigo-600 transition-colors" title="Voir la planche">
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                        <button onClick={()=>openFichier(p)} className="text-indigo-300 hover:text-indigo-600 transition-colors" title={isPdf?'Ouvrir PDF':isWord?'Télécharger Word':'Voir image'}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                                         </button>
                                     )}
                                     <button onClick={()=>onDelete(p.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                                     </button>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
-                    {viewPhoto && (
-                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={()=>setViewPhoto(null)}>
-                            <img src={viewPhoto} alt="Planche" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"/>
+                    {viewFichier && (
+                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={()=>setViewFichier(null)}>
+                            <img src={viewFichier} alt="Planche" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"/>
                         </div>
                     )}
                 </div>
