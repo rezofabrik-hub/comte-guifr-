@@ -99,7 +99,9 @@
             }
             return (a.nom||'').localeCompare(b.nom||'','fr');
         });
+        const CAT_TO_KEY={'Les 3 Lumières':'lumieres','Officiers':'officiers','Maîtres':'maitres','Compagnons':'compagnons','Apprentis':'apprentis','Membres':'membres'};
         function getDisplayGroup(m){
+            if(m.categorie && CAT_TO_KEY[m.categorie]) return CAT_TO_KEY[m.categorie];
             const g=getRoleGroup(m.role);
             if(g<=2) return 'lumieres';
             if(g===3) return 'officiers';
@@ -1605,19 +1607,48 @@
         // ==============================
         // PARAMÈTRES / TABLEAU
         // ==============================
-        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'' };
+        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'', photo:'', categorie:'' };
+        const CATEGORIES_MEMBRE = ['Les 3 Lumières','Officiers','Maîtres','Compagnons','Apprentis','Membres'];
 
         function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
             const [f, setF] = useState(initial || EMPTY_MEMBRE);
+            const handlePhoto = e => {
+                const file = e.target.files?.[0];
+                if(!file) return;
+                compressPhoto(file, b64 => setF(p=>({...p, photo:b64})));
+            };
             return (
                 <div className="bg-slate-50 p-6 rounded-2xl border animate-fade">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoComplete="off" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" autoComplete="off" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                    <div className="flex gap-5 items-start mb-4">
+                        {/* Photo */}
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                            <div className="w-20 h-20 rounded-full border-2 border-amber-300 overflow-hidden bg-slate-200 flex items-center justify-center">
+                                {f.photo
+                                    ? <img src={f.photo} alt="photo" className="w-full h-full object-cover"/>
+                                    : <i className="fa-solid fa-user text-slate-400 text-2xl"/>}
+                            </div>
+                            <label className="cursor-pointer text-[10px] font-bold text-amber-700 uppercase tracking-widest bg-white border border-amber-300 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors">
+                                {f.photo ? 'Changer' : 'Photo'}
+                                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden"/>
+                            </label>
+                            {f.photo && <button type="button" onClick={()=>setF(p=>({...p,photo:''}))} className="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase">Supprimer</button>}
+                        </div>
+                        {/* Champs */}
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoComplete="off" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Catégorie</label>
+                                <select value={f.categorie||''} onChange={e=>setF({...f,categorie:e.target.value})} className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500 text-sm">
+                                    <option value="">— Auto (selon grade/fonction) —</option>
+                                    {CATEGORIES_MEMBRE.map(c=><option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" autoComplete="off" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                        </div>
                     </div>
                     <div className="flex gap-3 justify-end">
                         <button onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
@@ -1708,7 +1739,7 @@
                                     lastGroup = grp;
                                     rows.push(
                                         <tr key={`grp-${grp}`} className="bg-slate-800">
-                                            <td colSpan={8} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
+                                            <td colSpan={9} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
                                                 {GROUP_DISPLAY[grp]}
                                             </td>
                                         </tr>
@@ -1719,6 +1750,13 @@
                                         <tr className="hover:bg-amber-50 transition-colors group">
                                             <td className="px-4 py-3 text-center w-12">
                                                 <SautoirIcon role={m.role}/>
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                                    {m.photo
+                                                        ? <img src={m.photo} alt={m.nom} className="w-full h-full object-cover"/>
+                                                        : <i className="fa-solid fa-user text-slate-300 text-sm"/>}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
                                             <td className="px-3 py-3">
@@ -1739,8 +1777,8 @@
                                         </tr>
                                         {editingMId===m.id && (
                                             <tr>
-                                                <td colSpan={8} className="px-6 py-4 bg-amber-50 border-b">
-                                                    <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
+                                                <td colSpan={9} className="px-6 py-4 bg-amber-50 border-b">
+                                                    <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||'',photo:m.photo||'',categorie:m.categorie||''}}
                                                         onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
                                                         onCancel={()=>setEditingMId(null)} />
                                                 </td>
@@ -1755,6 +1793,7 @@
                                         <thead className="bg-slate-50 border-b">
                                             <tr>
                                                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center w-12">Sautoir</th>
+                                                <th className="px-3 py-3 w-12"></th>
                                                 <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
                                                 <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
                                                 <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
