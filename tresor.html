@@ -128,7 +128,13 @@
             const cotisFiltered = cotisations.filter(c=>!yr||String(c.annee)===yr);
             const totalCotisations = cotisFiltered.reduce((s,c)=>s+(c.montant||0),0);
 
-            const agapesFil = agapes.filter(a=>!yr||a.date?.startsWith(yr));
+            // Agapes filtrées par saison (sept yr → juin yr+1) quand un an est sélectionné
+            const agapesFil = agapes.filter(a=>{
+                if(!yr||!a.date) return !yr;
+                const ay=parseInt(a.date.split('-')[0]), am=parseInt(a.date.split('-')[1]);
+                const y=parseInt(yr);
+                return (ay===y && am>=9) || (ay===y+1 && am<=6);
+            });
             const totalRecettesAgapes = agapesFil.reduce((s,a)=>s+(a.recetteTotale||0),0);
 
             const totalRecettes = totalTxRecettes + totalCotisations + totalRecettesAgapes;
