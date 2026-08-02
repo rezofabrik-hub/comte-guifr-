@@ -907,7 +907,7 @@
         }
 
         function VisiteurForm({ onSave, onCancel }) {
-            const [f, setF] = useState({nom:'',loge:'',grade:'Maître',resteAgapes:false});
+            const [f, setF] = useState({nom:'',loge:'',obedience:'',grade:'Maître',resteAgapes:false});
             const [photo, setPhoto] = useState(null);
             const [photoPreview, setPhotoPreview] = useState(null);
             const up = k => v => setF(p=>({...p,[k]:v}));
@@ -920,10 +920,12 @@
                 <form onSubmit={e=>{e.preventDefault();if(!f.nom.trim())return;onSave({...f,photo});}}
                     className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 font-serif mb-2">Ajouter un visiteur</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <input required placeholder="Nom du visiteur *" value={f.nom} onChange={e=>up('nom')(e.target.value)}
                             className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans" autoComplete="off"/>
                         <input placeholder="Loge d'origine" value={f.loge} onChange={e=>up('loge')(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans" autoComplete="off"/>
+                        <input placeholder="Obédience (ex : GLNF, GODF…)" value={f.obedience} onChange={e=>up('obedience')(e.target.value)}
                             className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans" autoComplete="off"/>
                         <select value={f.grade} onChange={e=>up('grade')(e.target.value)}
                             className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans bg-white">
@@ -976,6 +978,7 @@
                                 <thead><tr className="text-[9px] uppercase tracking-widest text-slate-400 border-b font-sans">
                                     <th className="text-left py-1.5 pr-3 font-bold">Nom</th>
                                     <th className="text-left py-1.5 pr-3 font-bold">Loge</th>
+                                    <th className="text-left py-1.5 pr-3 font-bold">Obédience</th>
                                     <th className="text-left py-1.5 pr-3 font-bold">Grade</th>
                                     <th className="text-center py-1.5 pr-3 font-bold">Agapes</th>
                                     <th className="py-1.5 w-6"></th>
@@ -986,6 +989,7 @@
                                         <tr key={p.id} className="group hover:bg-slate-50">
                                             <td className="py-1.5 pr-3 font-semibold text-slate-800">{p.nom}</td>
                                             <td className="py-1.5 pr-3 text-slate-500">{p.loge||'—'}</td>
+                                            <td className="py-1.5 pr-3 text-slate-500">{p.obedience||'—'}</td>
                                             <td className="py-1.5 pr-3 text-slate-500 capitalize">{p.grade||'—'}</td>
                                             <td className="py-1.5 pr-3 text-center">
                                                 {p.resteAgapes
@@ -1026,7 +1030,7 @@
             const byVisiteur = {};
             saison.forEach(p=>{
                 const key = p.nom.trim().toLowerCase();
-                if(!byVisiteur[key]) byVisiteur[key]={nom:p.nom,loge:p.loge||'',grade:p.grade||'',visites:[],agapes:0};
+                if(!byVisiteur[key]) byVisiteur[key]={nom:p.nom,loge:p.loge||'',obedience:p.obedience||'',grade:p.grade||'',visites:[],agapes:0};
                 byVisiteur[key].visites.push(p.date);
                 if(p.resteAgapes) byVisiteur[key].agapes++;
             });
@@ -1043,6 +1047,7 @@
                                 <tr>
                                     <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Visiteur</th>
                                     <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Loge</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Obédience</th>
                                     <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
                                     <th className="text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600">Visites</th>
                                     <th className="text-center px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-orange-500">Agapes</th>
@@ -1054,6 +1059,7 @@
                                     <tr key={i} className="hover:bg-amber-50 transition-colors">
                                         <td className="px-4 py-2.5 font-bold text-slate-800 font-sans">{r.nom}</td>
                                         <td className="px-4 py-2.5 text-slate-500 font-sans text-xs">{r.loge||'—'}</td>
+                                        <td className="px-4 py-2.5 text-slate-500 font-sans text-xs">{r.obedience||'—'}</td>
                                         <td className="px-4 py-2.5 text-slate-500 font-sans text-xs capitalize">{r.grade||'—'}</td>
                                         <td className="px-4 py-2.5 text-center">
                                             <span className="inline-block bg-slate-800 text-white text-xs font-bold px-2.5 py-0.5 rounded-full font-serif">{r.visites.length}</span>
