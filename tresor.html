@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trésorerie</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Square_Compass.svg/512px-Square_Compass.svg.png">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin:0; padding:0; }
+        .font-serif { font-family: 'Cinzel', serif; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div id="loading-screen" style="display:flex;justify-content:center;align-items:center;height:100vh;background-color:#0f172a;color:#f59e0b;font-family:'Cinzel',serif;flex-direction:column;text-align:center;padding:20px;">
+            <div style="font-size:1.5rem;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:1rem;">Ouverture du Trésor...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        if (!window.FB_API) {
+            const firebaseConfig = {
+                apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
+                authDomain: "site-cg51.firebaseapp.com",
+                projectId: "site-cg51",
+                storageBucket: "site-cg51.firebasestorage.app",
+                messagingSenderId: "532992433947",
+                appId: "1:532992433947:web:0ad401c53e6feeb0663dbe"
+            };
+            try {
+                const app = initializeApp(firebaseConfig);
+                window.FB_API = {
+                    db: getFirestore(app), auth: getAuth(app),
+                    collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc,
+                    signInAnonymously,
+                    appId: "site-cg51"
+                };
+            } catch(e) { console.error("Firebase fail", e); }
+        }
+    </script>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect, useMemo } = React;
+
+        const CATEGORIES_RECETTE = ['Cotisation annuelle', 'Don / Collecte', 'Agapes', 'Subvention', 'Remboursement', 'Autre recette'];
+        const CATEGORIES_DEPENSE = ['Loyer / Local', 'Fournitures', 'Agapes', 'Événement', 'Correspondance', 'Assurance', 'Autre dépense'];
+        const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'];
+        const MOIS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+        const TYPES_CHARGES = ['Obédience','Temple / Local','Assurance','Abonnement','Autre'];
+
+        const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0);
+        const GRADE_ORDER = { 'maître':0, 'maitre':0, 'compagnon':1, 'apprenti':2 };
+        const sortByGrade = arr => [...arr].sort((a,b)=>{
+            const ga = GRADE_ORDER[(a.grade||'').toLowerCase().trim()] ?? 3;
+            const gb = GRADE_ORDER[(b.grade||'').toLowerCase().trim()] ?? 3;
+            return ga !== gb ? ga - gb : (a.nom||'').localeCompare(b.nom||'','fr');
+        });
+        // Format date en ISO local (YYYY-MM-DD) sans décalage UTC
+        const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const todayISO = () => toLocalISO(new Date());
+
+        const Icon = ({ n, size = 18, cls = "" }) => {
+            const m = {
+                home: 'fa-solid fa-house', wallet: 'fa-solid fa-wallet', users: 'fa-solid fa-users',
+                settings: 'fa-solid fa-gear', plus: 'fa-solid fa-plus', trash: 'fa-regular fa-trash-can',
+                edit: 'fa-solid fa-pen', x: 'fa-solid fa-xmark', check: 'fa-solid fa-check',
+                clock: 'fa-regular fa-clock', up: 'fa-solid fa-arrow-trend-up', down: 'fa-solid fa-arrow-trend-down',
+                file: 'fa-regular fa-file-lines', chart: 'fa-solid fa-chart-bar', cal: 'fa-regular fa-calendar-days',
+                landmark: 'fa-solid fa-landmark', shield: 'fa-solid fa-shield-halved',
+                utensils: 'fa-solid fa-utensils', invoice: 'fa-solid fa-file-invoice',
+                receipt: 'fa-solid fa-receipt', building: 'fa-solid fa-building-columns',
+                scroll: 'fa-solid fa-scroll', book: 'fa-solid fa-book-open',
+            };
+            return <i className={`${m[n] || 'fa-solid fa-circle'} ${cls}`} style={{fontSize: size}}></i>;
+        };
+
+        // ==============================
+        // BILAN
+        // ==============================
+        function LogoBanner({ settings }) {
+            if (!settings?.logo) return null;
+            return (
+                <div className="flex justify-center mb-6">
+                    <img src={settings.logo} alt="Logo" className="h-20 object-contain"/>
+                </div>
+            );
+        }
+
+        function DashboardView({ transactions, cotisations, membres, agapes, charges, settings, onNav, onDeleteTx, onDeleteVersement, onDeleteAgape, onDeleteCharge }) {
+            const currentYear = new Date().getFullYear();
+            const [annee, setAnnee] = useState(String(currentYear));
+
+            const allYears = useMemo(()=>{
+                const ys = new Set();
+                transactions.forEach(t=>t.date&&ys.add(t.date.split('-')[0]));
+                cotisations.forEach(c=>c.annee&&ys.add(String(c.annee)));
+                agapes.forEach(a=>a.date&&ys.add(a.date.split('-')[0]));
+                charges.forEach(c=>c.annee&&ys.add(String(c.annee)));
+                ys.add(String(currentYear));
+                return [...ys].sort((a,b)=>b-a);
+            },[transactions,cotisations,agapes,charges]);
+
+            const yr = annee==='tout' ? null : annee;
+
+            // ── RECETTES ──────────────────────────────────────────
+            const txRecettes = transactions.filter(t=>t.type==='recette'&&(!yr||t.date?.startsWith(yr)));
+            const totalTxRecettes = txRecettes.reduce((s,t)=>s+(t.montant||0),0);
+
+            const cotisFiltered = cotisations.filter(c=>!yr||String(c.annee)===yr);
+            const totalCotisations = cotisFiltered.reduce((s,c)=>s+(c.montant||0),0);
+
+            const agapesFil = agapes.filter(a=>!yr||a.date?.startsWith(yr));
+            const totalRecettesAgapes = agapesFil.reduce((s,a)=>s+(a.recetteTotale||0),0);
+
+            const totalRecettes = totalTxRecettes + totalCotisations + totalRecettesAgapes;
+
+            // ── DÉPENSES ──────────────────────────────────────────
+            const txDepenses = transactions.filter(t=>t.type==='depense'&&(!yr||t.date?.startsWith(yr)));
+            const totalTxDepenses = txDepenses.reduce((s,t)=>s+(t.montant||0),0);
+
+            const chargesFil = charges.filter(c=>!yr||String(c.annee)===yr);
+            const totalCharges = chargesFil.reduce((s,c)=>s+(c.montant||0),0);
+
+            const totalDepensesAgapes = agapesFil.reduce((s,a)=>s+(a.coutRepas||0),0);
+
+            const totalDepenses = totalTxDepenses + totalCharges + totalDepensesAgapes;
+
+            // ── SOLDE ─────────────────────────────────────────────
+            const solde = totalRecettes - totalDepenses;
+
+            // ── COTISATIONS état ──────────────────────────────────
+            const montantCotis = settings.montantCotis || 0;
+            // membresEncaissement utilise le même filtre que cotisFiltered (yr null = toutes années)
+            const membresEncaissement = useMemo(()=>sortByGrade(membres).map(m=>{
+                const paiements = cotisFiltered.filter(c=>c.membreId===m.id);
+                const total = paiements.reduce((s,c)=>s+(c.montant||0),0);
+                return { ...m, totalPaye: total, aJour: montantCotis>0 && total>=montantCotis };
+            }),[membres,cotisFiltered,montantCotis]);
+            const membresAJour = membresEncaissement.filter(m=>m.aJour).length;
+            const totalAttendu = membres.length * montantCotis;
+            const cotisYear = yr || 'toutes les années';
+
+            // ── GRAND LIVRE : toutes opérations chronologiques ────
+            const grandLivre = useMemo(()=>{
+                const ops = [];
+                txRecettes.forEach(t=>ops.push({ id:t.id, date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:t.montant, depense:0, source:'caisse' }));
+                txDepenses.forEach(t=>ops.push({ id:t.id, date:t.date, libelle:t.libelle, categorie:t.categorie||'Transaction', recette:0, depense:t.montant, source:'caisse' }));
+                cotisFiltered.forEach(c=>{
+                    const m = membres.find(x=>x.id===c.membreId);
+                    ops.push({ id:c.id, date:c.datePaiement||`${c.annee}-${String(c.mois).padStart(2,'0')}-01`, libelle:`Cotisation — ${m?.nom||'Membre'}`, categorie:'Cotisation', recette:c.montant, depense:0, source:'cotisation' });
+                });
+                agapesFil.forEach(a=>{
+                    if(a.recetteTotale) ops.push({ id:a.id, date:a.date, libelle:`Agapes — ${a.tenue||'Tenue'}`, categorie:'Recette agapes', recette:a.recetteTotale, depense:0, source:'agapes' });
+                    if(a.coutRepas) ops.push({ id:a.id, date:a.date, libelle:`Nourriture — ${a.tenue||'Tenue'}`, categorie:'Dépense agapes', recette:0, depense:a.coutRepas, source:'agapes' });
+                });
+                chargesFil.forEach(c=>ops.push({ id:c.id, date:c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`, libelle:c.nom, categorie:`Charge — ${c.periodicite||''}`, recette:0, depense:c.montant, source:'charge' }));
+                return ops.sort((a,b)=>new Date(b.date)-new Date(a.date));
+            },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil,membres]);
+
+            const SOURCE_COLORS = { caisse:'bg-slate-100 text-slate-600', cotisation:'bg-amber-100 text-amber-700', agapes:'bg-orange-100 text-orange-700', charge:'bg-purple-100 text-purple-700' };
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+
+                    {/* En-tête avec filtre année */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Trésor de la Loge</h2>
+                            <p className="text-xs text-slate-400 font-sans mt-1">Capitation · Agapes · Obligations · Tronc</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest font-sans">Année</span>
+                            <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-white px-4 py-2 rounded-xl text-sm font-bold outline-none focus:border-amber-500 shadow-sm">
+                                <option value="tout">Toutes</option>
+                                {allYears.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Solde général */}
+                    <div className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow ${solde>=0?'bg-emerald-50 border-emerald-300':'bg-red-50 border-red-300'}`}>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 font-sans">Solde {yr||'général'}</p>
+                            <p className={`text-5xl font-bold font-serif ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</p>
+                        </div>
+                        <div className="flex gap-8 text-center">
+                            <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans mb-1">Recettes</p><p className="text-2xl font-bold font-serif text-emerald-600">{fmt(totalRecettes)}</p></div>
+                            <div className="w-px bg-slate-200"></div>
+                            <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans mb-1">Dépenses</p><p className="text-2xl font-bold font-serif text-red-500">{fmt(totalDepenses)}</p></div>
+                        </div>
+                    </div>
+
+                    {/* Détail recettes / dépenses */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Recettes */}
+                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="bg-emerald-600 px-6 py-3"><p className="text-white text-xs font-black uppercase tracking-widest font-serif">Recettes</p></div>
+                            <div className="divide-y">
+                                {[
+                                    { label:'Capitation encaissée', val:totalCotisations, sub:`${cotisFiltered.length} versement${cotisFiltered.length>1?'s':''} · ${membresAJour}/${membres.length} membres à jour`, nav:'cotisations' },
+                                    { label:'Recettes Agapes', val:totalRecettesAgapes, sub:`${agapesFil.length} tenue${agapesFil.length>1?'s':''}`, nav:'agapes' },
+                                    { label:'Autres recettes', val:totalTxRecettes, sub:`${txRecettes.length} opération${txRecettes.length>1?'s':''}`, nav:'transactions' },
+                                ].map(r=>(
+                                    <div key={r.label} onClick={()=>onNav(r.nav)} className="flex items-center justify-between px-6 py-4 hover:bg-emerald-50 cursor-pointer transition-colors">
+                                        <div><p className="font-bold text-sm text-slate-800">{r.label}</p><p className="text-[10px] text-slate-400 font-sans">{r.sub}</p></div>
+                                        <p className="font-bold font-serif text-emerald-600 text-base">{fmt(r.val)}</p>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between px-6 py-3 bg-emerald-50">
+                                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700 font-serif">Total recettes</p>
+                                    <p className="font-bold font-serif text-emerald-700 text-lg">{fmt(totalRecettes)}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dépenses */}
+                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="bg-red-500 px-6 py-3"><p className="text-white text-xs font-black uppercase tracking-widest font-serif">Dépenses</p></div>
+                            <div className="divide-y">
+                                {[
+                                    { label:'Obligations (loyer, obédience…)', val:totalCharges, sub:`${chargesFil.length} paiement${chargesFil.length>1?'s':''}`, nav:'charges' },
+                                    { label:'Coût nourriture Agapes', val:totalDepensesAgapes, sub:`${agapesFil.length} tenue${agapesFil.length>1?'s':''}`, nav:'agapes' },
+                                    { label:'Autres dépenses', val:totalTxDepenses, sub:`${txDepenses.length} opération${txDepenses.length>1?'s':''}`, nav:'transactions' },
+                                ].map(d=>(
+                                    <div key={d.label} onClick={()=>onNav(d.nav)} className="flex items-center justify-between px-6 py-4 hover:bg-red-50 cursor-pointer transition-colors">
+                                        <div><p className="font-bold text-sm text-slate-800">{d.label}</p><p className="text-[10px] text-slate-400 font-sans">{d.sub}</p></div>
+                                        <p className="font-bold font-serif text-red-500 text-base">{fmt(d.val)}</p>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between px-6 py-3 bg-red-50">
+                                    <p className="text-xs font-black uppercase tracking-widest text-red-600 font-serif">Total dépenses</p>
+                                    <p className="font-bold font-serif text-red-600 text-lg">{fmt(totalDepenses)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cotisations — détail par membre + totaux */}
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-widest text-amber-700 font-serif">Cotisations {cotisYear}</p>
+                                <p className="text-[10px] text-slate-400 font-sans mt-0.5">{membresAJour}/{membres.length} membres à jour · {montantCotis>0?`${fmt(montantCotis)} / membre`:'Montant non défini'}</p>
+                            </div>
+                            <div className="flex gap-6 text-center">
+                                <div><p className="text-[10px] text-slate-400 font-sans uppercase tracking-widest">Encaissé</p><p className="font-bold font-serif text-emerald-600 text-lg">{fmt(totalCotisations)}</p></div>
+                                <div className="w-px bg-amber-200"></div>
+                                <div><p className="text-[10px] text-slate-400 font-sans uppercase tracking-widest">Attendu</p><p className="font-bold font-serif text-slate-600 text-lg">{fmt(totalAttendu)}</p></div>
+                                <div className="w-px bg-amber-200"></div>
+                                <div><p className="text-[10px] text-slate-400 font-sans uppercase tracking-widest">Reste</p><p className={`font-bold font-serif text-lg ${totalAttendu>totalCotisations?'text-red-500':'text-emerald-600'}`}>{fmt(Math.max(0,totalAttendu-totalCotisations))}</p></div>
+                            </div>
+                        </div>
+                        {montantCotis>0 && (
+                            <div className="px-6 py-3 border-b">
+                                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-amber-500 rounded-full transition-all" style={{width:totalAttendu>0?`${Math.min(100,(totalCotisations/totalAttendu)*100)}%`:'0%'}}></div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-sans mt-1 text-right">{totalAttendu>0?Math.round((totalCotisations/totalAttendu)*100):0}% encaissé</p>
+                            </div>
+                        )}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead><tr className="border-b bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-sans">
+                                    <th className="text-left px-6 py-2 font-bold">Membre</th>
+                                    <th className="text-left px-4 py-2 font-bold">Grade</th>
+                                    <th className="text-right px-4 py-2 font-bold">Encaissé</th>
+                                    {montantCotis>0 && <th className="text-right px-6 py-2 font-bold">Statut</th>}
+                                </tr></thead>
+                                <tbody className="divide-y">
+                                    {membresEncaissement.map(m=>(
+                                        <tr key={m.id} className="hover:bg-amber-50 transition-colors">
+                                            <td className="px-6 py-2.5 font-semibold text-slate-800 font-sans">{m.nom}</td>
+                                            <td className="px-4 py-2.5 text-slate-500 font-sans text-xs capitalize">{m.grade||'—'}</td>
+                                            <td className="px-4 py-2.5 text-right font-bold font-serif text-emerald-600">{m.totalPaye>0?fmt(m.totalPaye):<span className="text-slate-300 font-normal">—</span>}</td>
+                                            {montantCotis>0 && <td className="px-6 py-2.5 text-right">
+                                                {m.aJour
+                                                    ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">À jour</span>
+                                                    : <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600">Doit {fmt(Math.max(0,montantCotis-m.totalPaye))}</span>
+                                                }
+                                            </td>}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="border-t-2 bg-amber-50">
+                                        <td colSpan={2} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-amber-700 font-serif">Total encaissé</td>
+                                        <td className="px-4 py-3 text-right font-bold font-serif text-emerald-600 text-base">{fmt(totalCotisations)}</td>
+                                        {montantCotis>0 && <td className="px-6 py-3 text-right text-xs font-bold text-slate-500 font-sans">{membresAJour}/{membres.length} à jour</td>}
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div className="px-6 py-3 border-t text-right">
+                            <button onClick={()=>onNav('cotisations')} className="text-xs text-amber-600 hover:underline font-bold font-sans">Gérer la capitation →</button>
+                        </div>
+                    </div>
+
+                    {/* Grand Livre */}
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b bg-slate-50 flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 font-serif flex items-center gap-2"><Icon n="file" size={14}/> Grand Livre — {grandLivre.length} opération{grandLivre.length>1?'s':''}</h3>
+                        </div>
+                        {grandLivre.length===0 ? (
+                            <p className="text-center py-12 text-slate-400 italic font-sans text-sm">Aucune opération pour cette période.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Date</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Libellé</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Catégorie</th>
+                                            <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-600">Recette</th>
+                                            <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500">Dépense</th>
+                                            <th className="px-2 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {grandLivre.map((op,i)=>(
+                                            <tr key={i} className="hover:bg-slate-50 transition-colors group">
+                                                <td className="px-4 py-3 text-xs text-slate-500 font-sans whitespace-nowrap">{op.date?new Date(op.date+'T12:00').toLocaleDateString('fr-FR'):''}</td>
+                                                <td className="px-4 py-3 font-bold text-slate-800 text-xs">{op.libelle}</td>
+                                                <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${SOURCE_COLORS[op.source]||'bg-slate-100 text-slate-600'}`}>{op.categorie}</span></td>
+                                                <td className="px-4 py-3 text-right font-serif font-bold text-emerald-600 whitespace-nowrap">{op.recette>0?fmt(op.recette):'—'}</td>
+                                                <td className="px-4 py-3 text-right font-serif font-bold text-red-500 whitespace-nowrap">{op.depense>0?fmt(op.depense):'—'}</td>
+                                                <td className="px-2 py-3 text-center">
+                                                    <button onClick={()=>{
+                                                        if(!confirm('Supprimer cette entrée ?')) return;
+                                                        if(op.source==='caisse') onDeleteTx?.(op.id);
+                                                        else if(op.source==='cotisation') onDeleteVersement?.(op.id);
+                                                        else if(op.source==='agapes') onDeleteAgape?.(op.id);
+                                                        else if(op.source==='charge') onDeleteCharge?.(op.id);
+                                                    }} className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-1 rounded" title="Supprimer">
+                                                        <Icon n="trash" size={12}/>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="border-t-2 bg-slate-50">
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600 font-serif">Total</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-emerald-700">{fmt(totalRecettes)}</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-red-600">{fmt(totalDepenses)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-3 text-xs font-black uppercase tracking-widest font-serif text-slate-700">Solde net</td>
+                                            <td colSpan={2} className={`px-4 py-3 text-right text-lg font-bold font-serif ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ==============================
+        // TRANSACTIONS
+        // ==============================
+        function TxForm({ initialData, onSave, onCancel }) {
+            const [f, setF] = useState(initialData || { date: todayISO(), type:'recette', libelle:'', categorie:'Cotisation annuelle', montant:'', note:'' });
+            const cats = f.type==='recette' ? CATEGORIES_RECETTE : CATEGORIES_DEPENSE;
+            useEffect(()=>{ if(!cats.includes(f.categorie)) setF(p=>({...p,categorie:cats[0]})); },[f.type]);
+            return (
+                <form onSubmit={async e=>{e.preventDefault();await onSave({...f,montant:parseFloat(f.montant)||0});}} className="space-y-5 font-sans animate-fade">
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <button type="button" onClick={()=>setF({...f,type:'recette'})} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase transition-all ${f.type==='recette'?'bg-emerald-600 text-white shadow':'text-slate-500'}`}>+ Recette</button>
+                        <button type="button" onClick={()=>setF({...f,type:'depense'})} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase transition-all ${f.type==='depense'?'bg-red-500 text-white shadow':'text-slate-500'}`}>− Dépense</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date</label><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-serif font-bold outline-none focus:border-amber-500" required /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Montant (€)</label><input type="number" step="0.01" min="0" placeholder="0,00" value={f.montant} onChange={e=>setF({...f,montant:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-serif font-bold outline-none focus:border-amber-500" required /></div>
+                    </div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Libellé</label><input type="text" placeholder="Description de l'opération..." value={f.libelle} onChange={e=>setF({...f,libelle:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Catégorie</label>
+                        <select value={f.categorie} onChange={e=>setF({...f,categorie:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                            {cats.map(c=><option key={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Note (optionnel)</label><textarea value={f.note} onChange={e=>setF({...f,note:e.target.value})} placeholder="Commentaire..." className="w-full border p-3 rounded-xl bg-slate-50 h-20 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+                    <div className="flex justify-end gap-4 pt-2">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className={`px-10 py-3 rounded-xl font-bold text-white shadow-lg text-xs uppercase tracking-widest font-serif ${f.type==='recette'?'bg-emerald-600 hover:bg-emerald-700':'bg-red-500 hover:bg-red-600'}`}>Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function TransactionsView({ transactions, settings, onAdd, onUpdate, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [filterType, setFilterType] = useState('all');
+            const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+            const years = useMemo(()=>[...new Set(transactions.map(t=>t.date?.split('-')[0]).filter(Boolean))].sort((a,b)=>b-a),[transactions]);
+            const filtered = useMemo(()=>transactions.filter(t=>{
+                if(filterType!=='all'&&t.type!==filterType) return false;
+                if(filterYear!=='all'&&t.date?.split('-')[0]!==filterYear) return false;
+                return true;
+            }).sort((a,b)=>new Date(b.date)-new Date(a.date)),[transactions,filterType,filterYear]);
+            const totalFiltered = filtered.reduce((s,t)=>t.type==='recette'?s+(t.montant||0):s-(t.montant||0),0);
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <h2 className="text-2xl font-bold font-serif text-slate-800">Livre de Caisse</h2>
+                        <div className="flex flex-wrap gap-2">
+                            <div className="flex bg-slate-100 p-1 rounded-xl">
+                                {[['all','Tout'],['recette','Recettes'],['depense','Dépenses']].map(([v,l])=>(
+                                    <button key={v} onClick={()=>setFilterType(v)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${filterType===v?'bg-white text-amber-600 shadow':'text-slate-500'}`}>{l}</button>
+                                ))}
+                            </div>
+                            <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} className="border bg-slate-50 px-3 py-1.5 rounded-xl text-xs font-bold outline-none focus:border-amber-500">
+                                <option value="all">Toutes années</option>
+                                {years.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                            <button onClick={()=>{setIsAdding(!isAdding);setEditingId(null);}} className="bg-amber-600 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2"><Icon n="plus" size={16}/> Opération</button>
+                        </div>
+                    </div>
+                    {isAdding && <div className="bg-white p-8 rounded-2xl border shadow-xl"><TxForm onSave={async d=>{await onAdd(d);setIsAdding(false);}} onCancel={()=>setIsAdding(false)} /></div>}
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest font-sans">{filtered.length} opération{filtered.length>1?'s':''}</span>
+                            <span className={`font-bold font-serif text-sm ${totalFiltered>=0?'text-emerald-600':'text-red-500'}`}>Solde filtré : {fmt(totalFiltered)}</span>
+                        </div>
+                        {filtered.length===0 ? <p className="text-center py-16 text-slate-400 italic font-sans">Aucune opération pour cette sélection.</p> : (
+                            <div className="divide-y divide-slate-50">
+                                {filtered.map(t=>editingId===t.id ? (
+                                    <div key={t.id} className="p-6"><TxForm initialData={t} onSave={async d=>{await onUpdate(t.id,d);setEditingId(null);}} onCancel={()=>setEditingId(null)} /></div>
+                                ) : (
+                                    <div key={t.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors group">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-1.5 h-10 rounded-full flex-shrink-0 ${t.type==='recette'?'bg-emerald-400':'bg-red-400'}`}></div>
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-sm">{t.libelle}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans">{t.categorie} · {new Date(t.date).toLocaleDateString('fr-FR')}</p>
+                                                {t.note && <p className="text-[10px] text-slate-400 italic mt-0.5">{t.note}</p>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`font-bold font-serif text-base ${t.type==='recette'?'text-emerald-600':'text-red-500'}`}>{t.type==='recette'?'+':'-'}{fmt(t.montant)}</span>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={()=>setEditingId(t.id)} className="p-1.5 text-slate-300 hover:text-amber-600"><Icon n="edit" size={14}/></button>
+                                                <button onClick={()=>onDelete(t.id)} className="p-1.5 text-slate-300 hover:text-red-500"><Icon n="trash" size={14}/></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ==============================
+        // COTISATIONS (versements mensuels)
+        // ==============================
+        function PayMoisModal({ membre, annee, mois, onConfirm, onCancel }) {
+            const [montant, setMontant] = useState('');
+            const [note, setNote] = useState('');
+            return (
+                <div className="fixed inset-0 bg-slate-900/80 z-[200] flex items-center justify-center p-4 animate-fade">
+                    <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl">
+                        <h2 className="text-xl font-serif font-bold mb-1">Versement reçu</h2>
+                        <p className="text-slate-500 text-sm mb-1 font-sans">{membre.nom}</p>
+                        <p className="text-amber-700 text-xs font-bold uppercase tracking-widest mb-6 font-sans">{MOIS[mois-1]} {annee}</p>
+                        <div className="space-y-4">
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Montant reçu (€)</label><input type="number" step="0.01" min="0" autoFocus placeholder="ex: 50" value={montant} onChange={e=>setMontant(e.target.value)} className="w-full border-2 p-3 rounded-xl text-base font-bold outline-none focus:border-emerald-500" /></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 font-sans">Note (optionnel)</label><input type="text" placeholder="Chèque n°, virement, espèces..." value={note} onChange={e=>setNote(e.target.value)} className="w-full border p-3 rounded-xl text-sm outline-none focus:border-emerald-500" /></div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={onCancel} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl font-sans">Annuler</button>
+                            <button onClick={()=>onConfirm(parseFloat(montant)||0,note)} className="flex-1 bg-emerald-600 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md font-serif">Confirmer</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function CotisationsView({ membres, cotisations, onAddVersement, onDeleteVersement, settings }) {
+            const [annee, setAnnee] = useState(String(new Date().getFullYear()));
+            const [payModal, setPayModal] = useState(null);
+            const [expanded, setExpanded] = useState(null);
+            const years = useMemo(()=>{
+                const ys=new Set(cotisations.map(c=>String(c.annee)));
+                ys.add(String(new Date().getFullYear()));
+                return [...ys].sort((a,b)=>b-a);
+            },[cotisations]);
+
+            const montantCotis = settings.montantCotis || 0;
+            const montantTotalAnnee = cotisations.filter(c=>String(c.annee)===annee).reduce((s,c)=>s+(c.montant||0),0);
+            const totalAttendu = membres.length * montantCotis;
+            const membresAJour = membres.filter(m=>{
+                const total = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===annee).reduce((s,c)=>s+(c.montant||0),0);
+                return total >= montantCotis && montantCotis > 0;
+            }).length;
+            const payModal_membre = payModal ? membres.find(m=>m.id===payModal.membreId) : null;
+
+            const confirmPay = (montant, note) => {
+                onAddVersement(payModal.membreId, annee, payModal.mois, montant, note);
+                setPayModal(null);
+            };
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    {payModal && payModal_membre && <PayMoisModal membre={payModal_membre} annee={annee} mois={payModal.mois} onConfirm={confirmPay} onCancel={()=>setPayModal(null)} />}
+
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Cotisations</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Versements mensuels par membre</p>
+                        </div>
+                        <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-amber-500">
+                            {years.map(y=><option key={y}>{y}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border-2 border-emerald-200 shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Membres à jour</p>
+                            <p className="text-3xl font-bold font-serif text-emerald-600">{membresAJour} <span className="text-slate-300 text-2xl">/</span> {membres.length}</p>
+                            {montantCotis>0 && <p className="text-[10px] text-slate-400 mt-1 font-sans">Soldé à {fmt(montantCotis)}</p>}
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total attendu {annee}</p>
+                            <p className="text-3xl font-bold font-serif text-slate-700">{fmt(totalAttendu)}</p>
+                            {montantCotis>0 && <p className="text-[10px] text-slate-400 mt-1 font-sans">{membres.length} × {fmt(montantCotis)}</p>}
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Encaissé {annee}</p>
+                            <p className="text-3xl font-bold font-serif text-emerald-600">{fmt(montantTotalAnnee)}</p>
+                        </div>
+                        <div className={`p-5 rounded-2xl border shadow-sm text-center ${totalAttendu>0&&montantTotalAnnee<totalAttendu?'bg-red-50 border-red-200':'bg-emerald-50 border-emerald-200'}`}>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Reste à encaisser</p>
+                            <p className={`text-3xl font-bold font-serif ${totalAttendu>0&&montantTotalAnnee<totalAttendu?'text-red-500':'text-emerald-600'}`}>{fmt(Math.max(0,totalAttendu-montantTotalAnnee))}</p>
+                        </div>
+                    </div>
+
+                    {membres.length===0 ? (
+                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucun membre. Ajoutez-en dans l'onglet Tableau.</div>
+                    ) : (
+                        <div className="space-y-3">
+                            {sortByGrade(membres).map(m=>{
+                                const versements = cotisations.filter(c=>c.membreId===m.id&&String(c.annee)===annee);
+                                const totalMembre = versements.reduce((s,c)=>s+(c.montant||0),0);
+                                const moisPaies = new Set(versements.map(c=>c.mois));
+                                const isExpanded = expanded===m.id;
+                                return (
+                                    <div key={m.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                        <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors" onClick={()=>setExpanded(isExpanded?null:m.id)}>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3">
+                                                    <p className="font-bold text-slate-800">{m.nom}</p>
+                                                    {m.role && <span className="text-[10px] text-amber-700 uppercase font-bold tracking-widest font-sans bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">{m.role}</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-2 flex-wrap">
+                                                    {MOIS.map((ml,i)=>{
+                                                        const v=versements.find(c=>c.mois===i+1);
+                                                        return <span key={i} title={v?`${ml}: ${fmt(v.montant)}${v.note?` — ${v.note}`:''}`:'Non versé'} className={`text-[9px] font-bold px-1.5 py-0.5 rounded font-sans ${v?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-400'}`}>{ml}</span>;
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 ml-4 flex-shrink-0">
+                                                <div className="text-right">
+                                                    <p className={`font-bold font-serif ${montantCotis>0&&totalMembre>=montantCotis?'text-emerald-600':'text-amber-600'}`}>{fmt(totalMembre)}{montantCotis>0?` / ${fmt(montantCotis)}`:''}</p>
+                                                    {montantCotis>0&&totalMembre>=montantCotis
+                                                        ? <p className="text-[10px] text-emerald-600 font-bold font-sans">✓ À jour</p>
+                                                        : <p className="text-[10px] text-slate-400 font-sans">{moisPaies.size} versement{moisPaies.size>1?'s':''}</p>
+                                                    }
+                                                </div>
+                                                <i className={`fa-solid fa-chevron-${isExpanded?'up':'down'} text-slate-300 text-xs`}></i>
+                                            </div>
+                                        </div>
+                                        {isExpanded && (
+                                            <div className="border-t bg-slate-50 p-4 animate-fade">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 font-sans">Cliquez sur un mois pour enregistrer ou supprimer un versement</p>
+                                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
+                                                    {MOIS.map((ml,i)=>{
+                                                        const moisNum = i+1;
+                                                        const v = versements.find(c=>c.mois===moisNum);
+                                                        return (
+                                                            <button key={i} onClick={()=>v ? onDeleteVersement(v.id) : setPayModal({membreId:m.id,mois:moisNum})}
+                                                                className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${v?'bg-emerald-50 border-emerald-300 hover:bg-red-50 hover:border-red-300':'bg-white border-slate-200 hover:border-amber-400'}`}
+                                                                title={v?`Supprimer: ${fmt(v.montant)}`:`Ajouter versement ${ml}`}>
+                                                                <span className={`text-[10px] font-bold font-sans ${v?'text-emerald-700':'text-slate-400'}`}>{ml}</span>
+                                                                {v ? (
+                                                                    <span className="text-[9px] text-emerald-600 font-bold font-serif mt-0.5">{fmt(v.montant)}</span>
+                                                                ) : (
+                                                                    <i className="fa-solid fa-plus text-slate-300 text-[10px] mt-0.5"></i>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {versements.length>0 && (
+                                                    <div className="mt-4 space-y-1">
+                                                        {versements.sort((a,b)=>a.mois-b.mois).map(v=>(
+                                                            <div key={v.id} className="flex items-center justify-between text-xs text-slate-600 bg-white rounded-lg px-3 py-2 border">
+                                                                <span className="font-bold">{MOIS[v.mois-1]}</span>
+                                                                <span className="font-serif font-bold text-emerald-600">{fmt(v.montant)}</span>
+                                                                {v.note && <span className="text-slate-400 italic hidden sm:block">{v.note}</span>}
+                                                                <span className="text-slate-300">{v.datePaiement ? new Date(v.datePaiement).toLocaleDateString('fr-FR') : ''}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==============================
+        // AGAPES
+        // ==============================
+        const PRIX_TRIANGLE = 10;
+
+        function AgapesForm({ membres, initialData, onSave, onCancel, lockDate }) {
+            const today = todayISO();
+            const [f, setF] = useState(initialData || {
+                date: today, tenue: '', selectedMembres: [], invitesNommes: [], prixCouvert: 0, coutRepas: 0,
+                intendant: '', menu: { entree: '', plat: '', dessert: '' }, note: ''
+            });
+            const [newInvite, setNewInvite] = useState('');
+
+            const toggleMembre = (id) => {
+                setF(p => ({
+                    ...p,
+                    selectedMembres: p.selectedMembres.includes(id)
+                        ? p.selectedMembres.filter(x=>x!==id)
+                        : [...p.selectedMembres, id]
+                }));
+            };
+
+            const addInvite = () => {
+                const n = newInvite.trim();
+                if (!n) return;
+                setF(p => ({ ...p, invitesNommes: [...(p.invitesNommes||[]), n] }));
+                setNewInvite('');
+            };
+            const removeInvite = (i) => setF(p => ({ ...p, invitesNommes: p.invitesNommes.filter((_,idx)=>idx!==i) }));
+
+            const nbInvites = (f.invitesNommes||[]).length;
+            const totalCouverts = f.selectedMembres.length + nbInvites;
+            const recetteMembres = f.selectedMembres.length * (parseFloat(f.prixCouvert)||0);
+            const recetteInvites = nbInvites * PRIX_TRIANGLE;
+            const recetteTotale = recetteMembres + recetteInvites;
+            const benefice = recetteTotale - (parseFloat(f.coutRepas)||0);
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                await onSave({
+                    ...f,
+                    invitesNommes: f.invitesNommes||[],
+                    nbInvites,
+                    prixCouvert: parseFloat(f.prixCouvert)||0,
+                    prixTriangle: PRIX_TRIANGLE,
+                    coutRepas: parseFloat(f.coutRepas)||0,
+                    totalCouverts, recetteMembres, recetteInvites, recetteTotale, benefice
+                });
+            };
+
+            return (
+                <form onSubmit={handleSave} className="space-y-6 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de la tenue</label>
+                            {lockDate
+                                ? <div className="w-full border p-3 rounded-xl bg-slate-200 font-bold text-slate-600 text-sm">{new Date(f.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+                                : <input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required />
+                            }
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom de la tenue</label><input type="text" placeholder="ex: 1ère Tenue 2026" value={f.tenue} onChange={e=>setF({...f,tenue:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Intendant (cuisinier de la tenue)</label><input type="text" placeholder="Nom du F∴ ou S∴ intendant" value={f.intendant} onChange={e=>setF({...f,intendant:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3">Menu de la tenue</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div><label className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Entrée</label><input type="text" value={f.menu?.entree||''} onChange={e=>setF({...f,menu:{...f.menu,entree:e.target.value}})} placeholder="ex: Salade niçoise" className="w-full border p-2.5 rounded-xl bg-white text-sm outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Plat</label><input type="text" value={f.menu?.plat||''} onChange={e=>setF({...f,menu:{...f.menu,plat:e.target.value}})} placeholder="ex: Poulet rôti" className="w-full border p-2.5 rounded-xl bg-white text-sm outline-none focus:border-amber-500" /></div>
+                            <div><label className="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Dessert</label><input type="text" value={f.menu?.dessert||''} onChange={e=>setF({...f,menu:{...f.menu,dessert:e.target.value}})} placeholder="ex: Tarte aux pommes" className="w-full border p-2.5 rounded-xl bg-white text-sm outline-none focus:border-amber-500" /></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Membres présents</label>
+                        {membres.length===0 ? (
+                            <p className="text-slate-400 italic text-sm">Aucun membre dans le Tableau.</p>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                                {sortByGrade(membres).map(m=>(
+                                    <button key={m.id} type="button" onClick={()=>toggleMembre(m.id)}
+                                        className={`text-left px-3 py-2 rounded-xl border-2 text-xs font-bold transition-all ${f.selectedMembres.includes(m.id)?'bg-orange-50 border-orange-400 text-orange-700':'bg-slate-50 border-slate-200 text-slate-600 hover:border-amber-400'}`}>
+                                        {m.nom}
+                                        {m.grade && <span className="block text-[9px] font-normal text-slate-400">{m.grade}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Invités (noms) — Prix du △ : <span className="text-orange-600">{PRIX_TRIANGLE} €</span> fixe</label>
+                        <div className="space-y-2">
+                            {(f.invitesNommes||[]).map((inv,i)=>(
+                                <div key={i} className="flex items-center gap-2 bg-slate-50 border rounded-xl px-3 py-2">
+                                    <span className="flex-1 text-sm font-bold text-slate-700">{inv}</span>
+                                    <button type="button" onClick={()=>removeInvite(i)} className="text-red-400 hover:text-red-600 transition-colors"><Icon n="x" size={13}/></button>
+                                </div>
+                            ))}
+                            <div className="flex gap-2">
+                                <input type="text" value={newInvite} onChange={e=>setNewInvite(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addInvite();}}} placeholder="Nom de l'invité…" className="flex-1 border p-2.5 rounded-xl bg-slate-50 text-sm outline-none focus:border-amber-500" />
+                                <button type="button" onClick={addInvite} className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 rounded-xl text-xs font-bold transition-colors">Ajouter</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Prix / couvert membres (€)</label><input type="number" step="0.01" min="0" value={f.prixCouvert} onChange={e=>setF({...f,prixCouvert:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Prix △ invités (€)</label><input type="number" value={PRIX_TRIANGLE} readOnly className="w-full border p-3 rounded-xl bg-slate-200 font-bold text-slate-500 cursor-not-allowed outline-none" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Coût nourriture (€)</label><input type="number" step="0.01" min="0" value={f.coutRepas} onChange={e=>setF({...f,coutRepas:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center border">
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Couverts</p><p className="text-2xl font-bold font-serif text-slate-700">{totalCouverts}</p></div>
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Recette membres</p><p className="text-xl font-bold font-serif text-emerald-600">{fmt(recetteMembres)}</p></div>
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Recette invités</p><p className="text-xl font-bold font-serif text-amber-600">{fmt(recetteInvites)}</p></div>
+                        <div><p className="text-[10px] text-slate-400 uppercase tracking-widest font-sans mb-1">Bénéfice</p><p className={`text-2xl font-bold font-serif ${benefice>=0?'text-emerald-600':'text-red-500'}`}>{fmt(benefice)}</p></div>
+                    </div>
+
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Note (optionnel)</label><textarea value={f.note} onChange={e=>setF({...f,note:e.target.value})} placeholder="Remarque…" className="w-full border p-3 rounded-xl bg-slate-50 h-16 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+
+                    <div className="flex justify-end gap-4 pt-2">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-10 py-3 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-lg text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function AgapesView({ membres, agapes, settings, onAdd, onDelete }) {
+            const today = new Date();
+            const [year, setYear] = useState(today.getFullYear());
+            const [addingDate, setAddingDate] = useState(null); // ISO date of tenue being filled
+
+            const tenues = useMemo(()=>getTenues(year),[year]);
+
+            const agapeByDate = useMemo(()=>{
+                const map = {};
+                agapes.forEach(a=>{ if(a.date) map[a.date]=a; });
+                return map;
+            },[agapes]);
+
+            const membresById = useMemo(()=>Object.fromEntries(membres.map(m=>[m.id,m])),[membres]);
+
+            // Stats de la saison
+            const agapesSaison = tenues.map(d=>agapeByDate[toLocalISO(d)]).filter(Boolean);
+            const totalCouverts = agapesSaison.reduce((s,a)=>s+(a.totalCouverts||0),0);
+            const totalBenefice = agapesSaison.reduce((s,a)=>s+(a.benefice||0),0);
+            const totalCout = agapesSaison.reduce((s,a)=>s+(a.coutRepas||0),0);
+            const totalRecettes = agapesSaison.reduce((s,a)=>s+(a.recetteTotale||0),0);
+
+            // Group tenues by month
+            const monthGroups = {};
+            tenues.forEach((d,i)=>{
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                if(!monthGroups[key]) monthGroups[key]=[];
+                monthGroups[key].push({d, numInMonth: monthGroups[key].length});
+            });
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Agapes</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Repas par tenue — 1er et 3e jeudi, septembre à juin</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={()=>setYear(y=>y-1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">‹</button>
+                            <span className="text-sm font-bold text-slate-700 font-serif px-2">{year}–{year+1}</span>
+                            <button onClick={()=>setYear(y=>y+1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">›</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Tenues avec agapes</p><p className="text-3xl font-bold font-serif text-orange-500">{agapesSaison.length} <span className="text-slate-300 text-xl">/</span> <span className="text-slate-400 text-2xl">{tenues.length}</span></p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total couverts</p><p className="text-3xl font-bold font-serif text-slate-700">{totalCouverts}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Recettes totales</p><p className="text-3xl font-bold font-serif text-emerald-600">{fmt(totalRecettes)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Bénéfice total</p><p className={`text-3xl font-bold font-serif ${totalBenefice>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBenefice)}</p></div>
+                    </div>
+
+                    {settings?.maitreDuBanquet && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center gap-3">
+                            <Icon n="utensils" cls="text-amber-600" size={18}/>
+                            <div>
+                                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Maître du Banquet {year}–{year+1}</p>
+                                <p className="font-bold font-serif text-slate-800">{settings.maitreDuBanquet}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        {Object.entries(monthGroups).map(([key, items])=>{
+                            const d0 = items[0].d;
+                            const monthName = d0.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                            return (
+                                <div key={key} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="px-6 py-3 bg-slate-800">
+                                        <p className="text-xs font-black uppercase tracking-widest text-white capitalize">{monthName}</p>
+                                    </div>
+                                    <div className="divide-y">
+                                        {items.map(({d, numInMonth})=>{
+                                            const iso = toLocalISO(d);
+                                            const agape = agapeByDate[iso];
+                                            const isPast = d < today && !(d.toDateString()===today.toDateString());
+                                            const isToday = d.toDateString()===today.toDateString();
+                                            const isAdding = addingDate===iso;
+                                            return (
+                                                <div key={iso}>
+                                                    <div className={`p-5 ${isToday?'bg-amber-50':agape?'bg-emerald-50/40':isPast?'opacity-60':''}`}>
+                                                        <div className="flex items-start gap-4">
+                                                            <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center text-white font-bold shadow-sm flex-shrink-0 ${isToday?'bg-amber-500':agape?'bg-emerald-600':isPast?'bg-slate-300':'bg-slate-700'}`}>
+                                                                <span className="text-[10px] leading-none uppercase">{d.toLocaleDateString('fr-FR',{month:'short'})}</span>
+                                                                <span className="text-2xl leading-none">{d.getDate()}</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                    <p className="font-bold text-slate-800 capitalize">{d.toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long'})}</p>
+                                                                    <span className="text-[10px] text-slate-400 font-sans">{numInMonth===0?'1ère':'2e'} tenue du mois</span>
+                                                                    {isToday && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Aujourd'hui</span>}
+                                                                </div>
+
+                                                                {agape ? (
+                                                                    <div className="space-y-2 mt-1">
+                                                                        {agape.tenue && <p className="text-xs font-bold text-slate-600 font-serif">{agape.tenue}</p>}
+                                                                        {agape.intendant && <p className="text-xs text-slate-500 font-sans">Intendant : <strong className="text-slate-700">{agape.intendant}</strong></p>}
+                                                                        {(agape.menu?.entree||agape.menu?.plat||agape.menu?.dessert) && (
+                                                                            <div className="flex flex-wrap gap-1.5">
+                                                                                {agape.menu.entree && <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-sans">🥗 {agape.menu.entree}</span>}
+                                                                                {agape.menu.plat && <span className="text-[10px] bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-sans">🍽️ {agape.menu.plat}</span>}
+                                                                                {agape.menu.dessert && <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-sans">🍮 {agape.menu.dessert}</span>}
+                                                                            </div>
+                                                                        )}
+                                                                        {((agape.selectedMembres||[]).length>0||(agape.invitesNommes||[]).length>0) && (
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {(agape.selectedMembres||[]).map(id=>membresById[id]&&(
+                                                                                    <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-sans">{membresById[id].nom}</span>
+                                                                                ))}
+                                                                                {(agape.invitesNommes||[]).map((inv,i)=>(
+                                                                                    <span key={i} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-sans">△ {inv}</span>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        {agape.note && <p className="text-[10px] text-slate-400 italic">{agape.note}</p>}
+                                                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-sans border-t border-slate-100 pt-2 mt-1">
+                                                                            <span className="text-slate-500"><strong>{agape.totalCouverts||0}</strong> couvert{(agape.totalCouverts||0)>1?'s':''}</span>
+                                                                            <span className="text-emerald-600">Recettes : <strong>{fmt(agape.recetteTotale||0)}</strong></span>
+                                                                            <span className="text-red-500">Nourriture : <strong>{fmt(agape.coutRepas||0)}</strong></span>
+                                                                            <span className={`font-bold ${(agape.benefice||0)>=0?'text-emerald-700':'text-red-600'}`}>Bénéfice : {fmt(agape.benefice||0)}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-[10px] text-slate-400 font-sans italic mt-1">{isPast ? 'Pas d\'agapes enregistrées' : 'Tenue à venir — cliquez pour saisir les agapes'}</p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                                                                {agape ? (
+                                                                    <>
+                                                                        <div className="text-right hidden sm:block">
+                                                                            <p className={`text-xl font-bold font-serif ${(agape.benefice||0)>=0?'text-emerald-600':'text-red-500'}`}>{fmt(agape.benefice||0)}</p>
+                                                                            <p className="text-[10px] text-slate-400 font-sans">bénéfice</p>
+                                                                        </div>
+                                                                        <button onClick={()=>onDelete(agape.id)} className="p-1.5 text-slate-200 hover:text-red-500 transition-colors"><Icon n="trash" size={14}/></button>
+                                                                    </>
+                                                                ) : (
+                                                                    <button onClick={()=>setAddingDate(isAdding?null:iso)}
+                                                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all font-serif shadow-sm ${isAdding?'bg-slate-200 text-slate-600':'bg-orange-500 hover:bg-orange-600 text-white'}`}>
+                                                                        <Icon n={isAdding?'x':'plus'} size={13}/>{isAdding?'Annuler':'Agapes'}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {isAdding && (
+                                                        <div className="border-t bg-orange-50/30 px-6 py-6 animate-fade">
+                                                            <h3 className="text-sm font-bold font-serif mb-4 flex items-center gap-2 text-orange-700"><Icon n="utensils" size={16}/> Saisie des agapes — {d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>
+                                                            <AgapesForm membres={membres} initialData={{date:iso, tenue:'', selectedMembres:[], invitesNommes:[], prixCouvert:0, coutRepas:0, intendant:'', menu:{entree:'',plat:'',dessert:''}, note:''}}
+                                                                onSave={async d=>{await onAdd(d);setAddingDate(null);}}
+                                                                onCancel={()=>setAddingDate(null)}
+                                                                lockDate={true}/>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // ==============================
+        // CHARGES
+        // ==============================
+        function ChargesForm({ initialData, onSave, onCancel }) {
+            const today = todayISO();
+            const [f, setF] = useState(initialData || {
+                nom: TYPES_CHARGES[0], periodicite: 'mensuel', annee: new Date().getFullYear(), mois: new Date().getMonth()+1, montant: '', datePaiement: today, note: ''
+            });
+            return (
+                <form onSubmit={async e=>{e.preventDefault();await onSave({...f,montant:parseFloat(f.montant)||0,annee:parseInt(f.annee),mois:f.periodicite==='mensuel'?parseInt(f.mois):null});}} className="space-y-5 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Type de charge</label>
+                            <select value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                {TYPES_CHARGES.map(t=><option key={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Périodicité</label>
+                            <div className="flex bg-slate-100 p-1 rounded-xl h-[50px]">
+                                <button type="button" onClick={()=>setF({...f,periodicite:'mensuel'})} className={`flex-1 rounded-lg text-xs font-bold uppercase transition-all ${f.periodicite==='mensuel'?'bg-purple-600 text-white shadow':'text-slate-500'}`}>Mensuel</button>
+                                <button type="button" onClick={()=>setF({...f,periodicite:'annuel'})} className={`flex-1 rounded-lg text-xs font-bold uppercase transition-all ${f.periodicite==='annuel'?'bg-purple-600 text-white shadow':'text-slate-500'}`}>Annuel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Année</label><input type="number" min="2000" max="2100" value={f.annee} onChange={e=>setF({...f,annee:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        {f.periodicite==='mensuel' && <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Mois</label>
+                            <select value={f.mois} onChange={e=>setF({...f,mois:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                {MOIS_FULL.map((ml,i)=><option key={i+1} value={i+1}>{ml}</option>)}
+                            </select>
+                        </div>}
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Montant (€)</label><input type="number" step="0.01" min="0" placeholder="0,00" value={f.montant} onChange={e=>setF({...f,montant:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                    </div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de paiement</label><input type="date" value={f.datePaiement} onChange={e=>setF({...f,datePaiement:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500 max-w-xs" /></div>
+                    <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Note (optionnel)</label><textarea value={f.note} onChange={e=>setF({...f,note:e.target.value})} placeholder="Référence, commentaire..." className="w-full border p-3 rounded-xl bg-slate-50 h-16 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+                    <div className="flex justify-end gap-4 pt-2">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-10 py-3 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-lg text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function ChargesView({ charges, settings, onAdd, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+            const years = useMemo(()=>{
+                const ys=new Set(charges.map(c=>String(c.annee)).filter(Boolean));
+                ys.add(String(new Date().getFullYear()));
+                return [...ys].sort((a,b)=>b-a);
+            },[charges]);
+
+            const filtered = useMemo(()=>charges.filter(c=>filterYear==='all'||String(c.annee)===filterYear).sort((a,b)=>{
+                if(a.annee!==b.annee) return b.annee-a.annee;
+                return (b.mois||0)-(a.mois||0);
+            }),[charges,filterYear]);
+
+            const totalAnnee = filtered.reduce((s,c)=>s+(c.montant||0),0);
+
+            const byType = useMemo(()=>TYPES_CHARGES.map(t=>({
+                nom:t,
+                items:filtered.filter(c=>c.nom===t),
+                total:filtered.filter(c=>c.nom===t).reduce((s,c)=>s+(c.montant||0),0)
+            })).filter(g=>g.items.length>0),[filtered]);
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Charges</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Paiements institutionnels récurrents</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select value={filterYear} onChange={e=>setFilterYear(e.target.value)} className="border bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-amber-500">
+                                <option value="all">Toutes années</option>
+                                {years.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                            <button onClick={()=>setIsAdding(!isAdding)} className="bg-purple-600 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2"><Icon n="plus" size={16}/> Paiement</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Total charges {filterYear==='all'?'':filterYear}</p><p className="text-3xl font-bold font-serif text-purple-600">{fmt(totalAnnee)}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Paiements</p><p className="text-3xl font-bold font-serif text-slate-700">{filtered.length}</p></div>
+                        <div className="bg-white p-5 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-sans">Types distincts</p><p className="text-3xl font-bold font-serif text-slate-700">{byType.length}</p></div>
+                    </div>
+
+                    {isAdding && (
+                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
+                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="invoice" cls="text-purple-600"/> Nouveau paiement</h3>
+                            <ChargesForm onSave={async d=>{await onAdd(d);setIsAdding(false);}} onCancel={()=>setIsAdding(false)} />
+                        </div>
+                    )}
+
+                    {filtered.length===0 ? (
+                        <div className="bg-white p-12 rounded-2xl border text-center text-slate-400 italic font-sans">Aucune charge enregistrée pour cette période.</div>
+                    ) : (
+                        <div className="space-y-6">
+                            {byType.map(group=>(
+                                <div key={group.nom} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b">
+                                        <h3 className="font-bold font-serif text-slate-800 flex items-center gap-2"><Icon n="building" size={14} cls="text-purple-500"/>{group.nom}</h3>
+                                        <span className="font-bold font-serif text-purple-600">{fmt(group.total)}</span>
+                                    </div>
+                                    <div className="divide-y">
+                                        {group.items.map(c=>(
+                                            <div key={c.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors group">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full font-sans ${c.periodicite==='mensuel'?'bg-blue-50 text-blue-600 border border-blue-200':'bg-purple-50 text-purple-600 border border-purple-200'}`}>{c.periodicite==='mensuel'?`${MOIS_FULL[(c.mois||1)-1]} ${c.annee}`:`Annuel ${c.annee}`}</span>
+                                                        {c.note && <span className="text-xs text-slate-400 italic">{c.note}</span>}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-sans mt-1">{c.datePaiement ? `Payé le ${new Date(c.datePaiement).toLocaleDateString('fr-FR')}` : ''}</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold font-serif text-slate-800">{fmt(c.montant)}</span>
+                                                    <button onClick={()=>onDelete(c.id)} className="p-1.5 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Icon n="trash" size={14}/></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==============================
+        // PARAMÈTRES / TABLEAU
+        // ==============================
+        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'' };
+
+        function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
+            const [f, setF] = useState(initial || EMPTY_MEMBRE);
+            return (
+                <div className="bg-slate-50 p-6 rounded-2xl border animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoComplete="off" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" autoComplete="off" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                        <button onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
+                        <button onClick={()=>{ if(!f.nom.trim()) return; onSave(f); }} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm font-serif">Enregistrer</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ParametresView({ settings, membres, onSaveSettings, onAddMembre, onUpdateMembre, onDeleteMembre, onResetAll }) {
+            const [sf, setSf] = useState({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'', maitreDuBanquet: settings.maitreDuBanquet||'', logo: settings.logo||'' });
+            const [saving, setSaving] = useState(false);
+            const [isAddingM, setIsAddingM] = useState(false);
+            const [editingMId, setEditingMId] = useState(null);
+
+            useEffect(()=>{
+                setSf({ logeName: settings.logeName||'', orient: settings.orient||'', montantCotis: settings.montantCotis||'', maitreDuBanquet: settings.maitreDuBanquet||'', logo: settings.logo||'' });
+            },[settings]);
+
+            const handleLogo = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => setSf(p => ({ ...p, logo: ev.target.result }));
+                reader.readAsDataURL(file);
+            };
+
+            const saveSettings = async () => {
+                setSaving(true);
+                await onSaveSettings({ ...sf, montantCotis: parseFloat(sf.montantCotis)||0 });
+                setSaving(false);
+            };
+
+            const fmtDN = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+
+                    {/* Informations de la Loge — cadre compact orange */}
+                    <div className="border-2 border-amber-400 bg-amber-50 rounded-2xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 font-serif"><Icon n="landmark" cls="text-amber-600" size={14}/> Informations de la Loge</h3>
+                            <button onClick={saveSettings} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-1.5 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow font-serif transition-all disabled:opacity-50">
+                                {saving ? 'Sauvegarde…' : 'Enregistrer'}
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div><label className="text-[9px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Nom de la Loge</label><input type="text" value={sf.logeName} onChange={e=>setSf({...sf,logeName:e.target.value})} placeholder="R∴L∴ Comte Guifré n°51" className="w-full border border-amber-300 p-2 rounded-xl bg-white font-bold text-sm outline-none focus:border-amber-600" /></div>
+                            <div><label className="text-[9px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Orient</label><input type="text" value={sf.orient} onChange={e=>setSf({...sf,orient:e.target.value})} placeholder="ex: Perpignan" className="w-full border border-amber-300 p-2 rounded-xl bg-white text-sm outline-none focus:border-amber-600" /></div>
+                            <div><label className="text-[9px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Cotisation annuelle (€)</label><input type="number" step="0.01" min="0" value={sf.montantCotis} onChange={e=>setSf({...sf,montantCotis:e.target.value})} placeholder="ex: 200" className="w-full border border-amber-300 p-2 rounded-xl bg-white font-bold text-sm outline-none focus:border-amber-600" /></div>
+                            <div><label className="text-[9px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Maître du Banquet</label><input type="text" value={sf.maitreDuBanquet} onChange={e=>setSf({...sf,maitreDuBanquet:e.target.value})} placeholder="ex: F∴ Dupont" className="w-full border border-amber-300 p-2 rounded-xl bg-white text-sm outline-none focus:border-amber-600" /></div>
+                            <div className="flex items-end gap-3">
+                                {sf.logo && <img src={sf.logo} alt="Logo" className="h-10 w-10 object-contain rounded-lg border border-amber-300 bg-white p-0.5 flex-shrink-0"/>}
+                                <div className="flex flex-col gap-1 flex-1">
+                                    <label className="text-[9px] font-bold text-amber-700 uppercase tracking-widest">Logo</label>
+                                    <label className="cursor-pointer bg-white border border-amber-300 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors inline-block text-center">
+                                        {sf.logo ? 'Changer' : 'Choisir'}
+                                        <input type="file" accept="image/*" onChange={handleLogo} className="hidden"/>
+                                    </label>
+                                    {sf.logo && <button type="button" onClick={()=>setSf(p=>({...p,logo:''}))} className="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase">Supprimer</button>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <div className="flex justify-between items-center px-8 py-5 border-b">
+                            <h3 className="text-lg font-bold font-serif flex items-center gap-3"><Icon n="users" cls="text-amber-600"/> Membres de l'Atelier ({membres.length})</h3>
+                            <button onClick={()=>{setIsAddingM(!isAddingM);setEditingMId(null);}} className="bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase shadow-sm flex items-center gap-2 font-serif"><Icon n={isAddingM?'x':'plus'} size={14}/>{isAddingM?'Annuler':'Nouveau membre'}</button>
+                        </div>
+
+                        {isAddingM && (
+                            <div className="px-8 py-5 border-b">
+                                <MembreForm autoFocusNom onSave={async f=>{await onAddMembre(f);setIsAddingM(false);}} onCancel={()=>setIsAddingM(false)} />
+                            </div>
+                        )}
+
+                        {membres.length===0 ? (
+                            <p className="text-slate-400 italic text-center py-12 font-sans">Aucun membre. Cliquez sur "Nouveau membre" pour commencer.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
+                                            <th className="px-4 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {sortByGrade(membres).map(m=>(
+                                            <React.Fragment key={m.id}>
+                                                <tr className="hover:bg-amber-50 transition-colors group">
+                                                    <td className="px-6 py-4 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
+                                                    <td className="px-4 py-4">
+                                                        {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
+                                                    <td className="px-4 py-4">
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
+                                                            <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {editingMId===m.id && (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-6 py-4 bg-amber-50 border-b">
+                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
+                                                                onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
+                                                                onCancel={()=>setEditingMId(null)} />
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+
+                </div>
+            );
+        }
+
+        // ==============================
+        // ==============================
+        // PLANNING
+        // ==============================
+        function getTenues(year) {
+            // 1st and 3rd Thursday of each month, September (8) to June (5)
+            const months = [8,9,10,11,0,1,2,3,4,5]; // Sept=8 ... June=5 (crossing year boundary)
+            const tenues = [];
+            months.forEach(m => {
+                const y = m >= 8 ? year : year + 1;
+                // Find 1st Thursday
+                let d = new Date(y, m, 1);
+                while(d.getDay() !== 4) d = new Date(y, m, d.getDate()+1);
+                const t1 = new Date(d);
+                // Find 3rd Thursday (= 1st + 14 days)
+                const t3 = new Date(y, m, d.getDate()+14);
+                tenues.push(t1, t3);
+            });
+            return tenues.sort((a,b)=>a-b);
+        }
+
+        function PlanningView({ agapes, membres, settings }) {
+            const today = new Date();
+            // Default to current year so Sept 2026 shows the 2026-2027 season
+            const [year, setYear] = useState(today.getFullYear());
+            const tenues = useMemo(()=>getTenues(year),[year]);
+
+            const agapeByDate = useMemo(()=>{
+                const map = {};
+                agapes.forEach(a=>{ if(a.date) map[a.date]=a; });
+                return map;
+            },[agapes]);
+
+            const membresById = useMemo(()=>Object.fromEntries(membres.map(m=>[m.id,m])),[membres]);
+
+            const monthGroups = {};
+            tenues.forEach(d=>{
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                if(!monthGroups[key]) monthGroups[key]=[];
+                monthGroups[key].push(d);
+            });
+
+            // Stats de la saison
+            const agapesSaison = agapes.filter(a=>{
+                if(!a.date) return false;
+                const y = parseInt(a.date.split('-')[0]);
+                const m = parseInt(a.date.split('-')[1]);
+                return (y===year && m>=9) || (y===year+1 && m<=6);
+            });
+            const totalCouvertsSaison = agapesSaison.reduce((s,a)=>s+(a.totalCouverts||0),0);
+            const totalBeneficeSaison = agapesSaison.reduce((s,a)=>s+(a.benefice||0),0);
+            const totalCoutSaison = agapesSaison.reduce((s,a)=>s+(a.coutRepas||0),0);
+            const totalRecettesSaison = agapesSaison.reduce((s,a)=>s+(a.recetteTotale||0),0);
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Planning des Tenues</h2>
+                            <p className="text-xs text-slate-400 font-sans mt-1">1er et 3e jeudi du mois — Septembre à Juin</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={()=>setYear(y=>y-1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">‹</button>
+                            <span className="text-sm font-bold text-slate-700 font-serif px-2">{year}–{year+1}</span>
+                            <button onClick={()=>setYear(y=>y+1)} className="p-2 rounded-lg bg-white border hover:bg-amber-50 text-slate-600 font-bold">›</button>
+                        </div>
+                    </div>
+
+                    {agapesSaison.length>0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="bg-white p-4 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-sans">Tenues avec agapes</p><p className="text-2xl font-bold font-serif text-orange-500">{agapesSaison.length}</p></div>
+                            <div className="bg-white p-4 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-sans">Total couverts</p><p className="text-2xl font-bold font-serif text-slate-700">{totalCouvertsSaison}</p></div>
+                            <div className="bg-white p-4 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-sans">Recettes agapes</p><p className="text-2xl font-bold font-serif text-emerald-600">{fmt(totalRecettesSaison)}</p></div>
+                            <div className="bg-white p-4 rounded-2xl border shadow-sm text-center"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-sans">Bénéfice total</p><p className={`text-2xl font-bold font-serif ${totalBeneficeSaison>=0?'text-emerald-600':'text-red-500'}`}>{fmt(totalBeneficeSaison)}</p></div>
+                        </div>
+                    )}
+
+                    {settings?.maitreDuBanquet && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center gap-3">
+                            <Icon n="utensils" cls="text-amber-600" size={18}/>
+                            <div>
+                                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Maître du Banquet {year}–{year+1}</p>
+                                <p className="font-bold font-serif text-slate-800">{settings.maitreDuBanquet}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        {Object.entries(monthGroups).map(([key, dates])=>{
+                            const d0 = dates[0];
+                            const monthName = d0.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                            return (
+                                <div key={key} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className="px-6 py-3 bg-slate-800 flex items-center justify-between">
+                                        <p className="text-xs font-black uppercase tracking-widest text-white capitalize">{monthName}</p>
+                                    </div>
+                                    <div className="divide-y">
+                                        {dates.map((d,i)=>{
+                                            const iso = toLocalISO(d);
+                                            const agape = agapeByDate[iso];
+                                            const isPast = d < today && !(d.toDateString()===today.toDateString());
+                                            const isToday = d.toDateString()===today.toDateString();
+                                            return (
+                                                <div key={i} className={`p-5 transition-all ${isToday?'bg-amber-50':agape?'bg-emerald-50/40':isPast?'opacity-70':''}`}>
+                                                    <div className="flex items-start gap-4">
+                                                        <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center text-white font-bold shadow-sm flex-shrink-0 ${isToday?'bg-amber-500':agape?'bg-emerald-600':isPast?'bg-slate-300':'bg-slate-700'}`}>
+                                                            <span className="text-[10px] leading-none uppercase">{d.toLocaleDateString('fr-FR',{month:'short'})}</span>
+                                                            <span className="text-2xl leading-none">{d.getDate()}</span>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                <p className="font-bold text-slate-800 capitalize">{d.toLocaleDateString('fr-FR',{weekday:'long'})}</p>
+                                                                <span className="text-[10px] text-slate-400 font-sans">{i===0?'1ère':'2e'} tenue du mois</span>
+                                                                {isToday && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Aujourd'hui</span>}
+                                                                {agape?.tenue && <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-sans">{agape.tenue}</span>}
+                                                            </div>
+
+                                                            {agape ? (
+                                                                <div className="space-y-2 mt-2">
+                                                                    {agape.intendant && (
+                                                                        <p className="text-xs text-slate-500 font-sans">Intendant : <strong className="text-slate-700">{agape.intendant}</strong></p>
+                                                                    )}
+                                                                    {(agape.menu?.entree||agape.menu?.plat||agape.menu?.dessert) && (
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {agape.menu.entree && <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-lg font-sans">🥗 {agape.menu.entree}</span>}
+                                                                            {agape.menu.plat && <span className="text-[10px] bg-orange-50 text-orange-700 border border-orange-200 px-2 py-1 rounded-lg font-sans">🍽️ {agape.menu.plat}</span>}
+                                                                            {agape.menu.dessert && <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-lg font-sans">🍮 {agape.menu.dessert}</span>}
+                                                                        </div>
+                                                                    )}
+                                                                    {((agape.selectedMembres||[]).length>0||(agape.invitesNommes||[]).length>0) && (
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {(agape.selectedMembres||[]).map(id=>membresById[id]&&(
+                                                                                <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-sans">{membresById[id].nom}</span>
+                                                                            ))}
+                                                                            {(agape.invitesNommes||[]).map((inv,j)=>(
+                                                                                <span key={j} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-sans">△ {inv}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-sans pt-2 border-t border-slate-100">
+                                                                        <span className="text-slate-500"><strong>{agape.totalCouverts||0}</strong> couvert{(agape.totalCouverts||0)>1?'s':''}</span>
+                                                                        <span className="text-emerald-600">Recettes : <strong>{fmt(agape.recetteTotale||0)}</strong></span>
+                                                                        <span className="text-red-500">Nourriture : <strong>{fmt(agape.coutRepas||0)}</strong></span>
+                                                                        <span className={`font-bold ${(agape.benefice||0)>=0?'text-emerald-700':'text-red-600'}`}>Bénéfice : {fmt(agape.benefice||0)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-[10px] text-slate-400 font-sans mt-1 italic">{isPast ? 'Pas d\'agapes enregistrées' : 'Tenue à venir'}</p>
+                                                            )}
+                                                        </div>
+
+                                                        {agape && (
+                                                            <div className="flex-shrink-0 text-right hidden sm:block">
+                                                                <p className={`text-xl font-bold font-serif ${(agape.benefice||0)>=0?'text-emerald-600':'text-red-500'}`}>{fmt(agape.benefice||0)}</p>
+                                                                <p className="text-[10px] text-slate-400 font-sans">bénéfice</p>
+                                                                <p className="text-[10px] text-slate-500 font-sans mt-1">{agape.totalCouverts||0} cvt.</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-[10px] font-bold text-slate-500 font-sans">
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-600 inline-block"></span>Agapes enregistrées</span>
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-500 inline-block"></span>Aujourd'hui</span>
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-slate-300 inline-block"></span>Passée</span>
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-100 inline-block border border-amber-200"></span>△ Invités</span>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==============================
+        // PLANCHES
+        // ==============================
+        const GRADES_PLANCHES = [
+            { grade: 'Maître',     color: 'slate',  icon: '🔨' },
+            { grade: 'Compagnon',  color: 'blue',   icon: '⚙️' },
+            { grade: 'Apprenti',   color: 'emerald', icon: '🌱' },
+        ];
+
+        function PlancheForm({ membres, initialGrade, onSave, onCancel }) {
+            const [f, setF] = useState({ titre:'', auteur:'', grade: initialGrade||'Maître', date: todayISO(), resume:'', fichier:'', fichierNom:'' });
+            const [pdfErr, setPdfErr] = useState('');
+            const auteursMembres = sortByGrade(membres);
+
+            const handlePDF = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 900000) { setPdfErr('Fichier trop grand (max 900 Ko). Compressez le PDF avant de l\'importer.'); return; }
+                setPdfErr('');
+                const reader = new FileReader();
+                reader.onload = ev => setF(p=>({...p, fichier: ev.target.result, fichierNom: file.name}));
+                reader.readAsDataURL(file);
+            };
+
+            return (
+                <form onSubmit={async e=>{e.preventDefault();await onSave(f);}} className="space-y-4 font-sans animate-fade">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Titre de la Planche *</label><input type="text" value={f.titre} onChange={e=>setF({...f,titre:e.target.value})} placeholder="ex: De l'usage du compas…" className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" required /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Auteur</label>
+                            <select value={f.auteur} onChange={e=>setF({...f,auteur:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500">
+                                <option value="">— Sélectionner —</option>
+                                {auteursMembres.map(m=><option key={m.id} value={m.nom}>{m.nom}{m.grade?` (${m.grade})`:''}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de présentation</label><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} className="w-full border p-3 rounded-xl bg-slate-50 font-bold outline-none focus:border-amber-500" /></div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade concerné</label>
+                            <div className="flex gap-2">
+                                {GRADES_PLANCHES.map(g=>(
+                                    <button key={g.grade} type="button" onClick={()=>setF({...f,grade:g.grade})}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase border-2 transition-all ${f.grade===g.grade?'border-amber-500 bg-amber-50 text-amber-700':'border-slate-200 bg-white text-slate-500 hover:border-amber-300'}`}>
+                                        {g.icon} {g.grade}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="md:col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Résumé / contenu</label><textarea value={f.resume} onChange={e=>setF({...f,resume:e.target.value})} placeholder="Description, thème, extrait…" className="w-full border p-3 rounded-xl bg-slate-50 h-20 outline-none focus:border-amber-500 text-sm resize-none"></textarea></div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Document PDF (optionnel)</label>
+                            <div className="flex items-center gap-3 bg-slate-50 border rounded-xl p-3">
+                                <label className="cursor-pointer bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors flex-shrink-0">
+                                    {f.fichier ? 'Changer le PDF' : 'Choisir un PDF'}
+                                    <input type="file" accept="application/pdf" onChange={handlePDF} className="hidden"/>
+                                </label>
+                                {f.fichier
+                                    ? <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <i className="fa-solid fa-file-pdf text-red-500"></i>
+                                        <span className="text-xs font-bold text-slate-700 truncate">{f.fichierNom}</span>
+                                        <button type="button" onClick={()=>setF(p=>({...p,fichier:'',fichierNom:''}))} className="text-red-400 hover:text-red-600 ml-auto flex-shrink-0"><Icon n="x" size={13}/></button>
+                                      </div>
+                                    : <span className="text-[10px] text-slate-400 font-sans">PDF max 900 Ko — stocké dans la base</span>
+                                }
+                            </div>
+                            {pdfErr && <p className="text-red-500 text-xs mt-1 font-sans">{pdfErr}</p>}
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-4 pt-1">
+                        <button type="button" onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase tracking-widest">Annuler</button>
+                        <button type="submit" className="px-8 py-3 rounded-xl font-bold text-white bg-slate-700 hover:bg-slate-800 shadow text-xs uppercase tracking-widest font-serif">Enregistrer</button>
+                    </div>
+                </form>
+            );
+        }
+
+        function PlanchesView({ planches, membres, settings, onAdd, onDelete }) {
+            const [isAdding, setIsAdding] = useState(false);
+            const [addingGrade, setAddingGrade] = useState('Maître');
+
+            const GRADE_COLORS = {
+                'Maître':    { bg:'bg-slate-800', light:'bg-slate-50', border:'border-slate-300', text:'text-slate-700', badge:'bg-slate-100 text-slate-700 border-slate-300' },
+                'Compagnon': { bg:'bg-blue-700',  light:'bg-blue-50',  border:'border-blue-200',  text:'text-blue-700',  badge:'bg-blue-50 text-blue-700 border-blue-200' },
+                'Apprenti':  { bg:'bg-emerald-700',light:'bg-emerald-50',border:'border-emerald-200',text:'text-emerald-700',badge:'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            };
+
+            return (
+                <div className="space-y-6 animate-fade">
+                    <LogoBanner settings={settings}/>
+                    <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                        <div>
+                            <h2 className="text-2xl font-bold font-serif text-slate-800">Planches</h2>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Travaux présentés en Loge — par grade</p>
+                        </div>
+                        <button onClick={()=>setIsAdding(!isAdding)} className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow-md font-serif flex items-center gap-2">
+                            <Icon n={isAdding?'x':'plus'} size={14}/> {isAdding?'Annuler':'Nouvelle Planche'}
+                        </button>
+                    </div>
+
+                    {isAdding && (
+                        <div className="bg-white p-8 rounded-2xl border shadow-xl">
+                            <h3 className="text-lg font-bold font-serif mb-6 border-b pb-4 flex items-center gap-3"><Icon n="scroll" cls="text-slate-600"/> Nouvelle Planche</h3>
+                            <PlancheForm membres={membres} initialGrade={addingGrade}
+                                onSave={async d=>{await onAdd(d);setIsAdding(false);}}
+                                onCancel={()=>setIsAdding(false)}/>
+                        </div>
+                    )}
+
+                    <div className="space-y-8">
+                        {GRADES_PLANCHES.map(({grade, icon})=>{
+                            const c = GRADE_COLORS[grade];
+                            const items = planches.filter(p=>p.grade===grade).sort((a,b)=>new Date(b.date)-new Date(a.date));
+                            return (
+                                <div key={grade} className="rounded-2xl border shadow-sm overflow-hidden">
+                                    <div className={`${c.bg} px-6 py-4 flex items-center justify-between`}>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">{icon}</span>
+                                            <div>
+                                                <h3 className="text-white font-bold font-serif uppercase tracking-widest text-sm">{grade}s</h3>
+                                                <p className="text-white/60 text-[10px] font-sans">{items.length} planche{items.length>1?'s':''}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={()=>{setAddingGrade(grade);setIsAdding(true);window.scrollTo({top:0,behavior:'smooth'});}}
+                                            className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5">
+                                            <Icon n="plus" size={11}/> Ajouter
+                                        </button>
+                                    </div>
+                                    {items.length===0 ? (
+                                        <div className={`${c.light} px-6 py-10 text-center`}>
+                                            <p className={`${c.text} text-xs font-sans italic opacity-60`}>Aucune planche enregistrée pour les {grade}s.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y bg-white">
+                                            {items.map(p=>(
+                                                <div key={p.id} className="px-6 py-5 hover:bg-slate-50 transition-colors group flex items-start gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                            <p className="font-bold text-slate-800 font-serif">{p.titre}</p>
+                                                            {p.auteur && p.auteur!=='__libre__' && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${c.badge} font-sans`}>{p.auteur}</span>}
+                                                        </div>
+                                                        {p.date && <p className="text-[10px] text-slate-400 font-sans mb-1.5">Présentée le {new Date(p.date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>}
+                                                        {p.resume && <p className="text-xs text-slate-500 leading-relaxed mb-2">{p.resume}</p>}
+                                                        {p.fichier && (
+                                                            <a href={p.fichier} download={p.fichierNom||`${p.titre}.pdf`} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg transition-colors">
+                                                                <i className="fa-solid fa-file-pdf"></i> Télécharger le PDF
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                    <button onClick={()=>onDelete(p.id)} className="p-1.5 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"><Icon n="trash" size={14}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // APP
+        // ==============================
+        function App() {
+            const api = window.FB_API;
+            const [ready, setReady] = useState(false);
+            const [activeView, setActiveView] = useState('dashboard');
+            const [transactions, setTransactions] = useState([]);
+            const [cotisations, setCotisations] = useState([]);
+            const [membres, setMembres] = useState([]);
+            const [agapes, setAgapes] = useState([]);
+            const [charges, setCharges] = useState([]);
+            const [planches, setPlanches] = useState([]);
+            const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
+
+            const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
+
+            useEffect(()=>{
+                if(!api) return;
+                api.signInAnonymously(api.auth).then(()=>setReady(true)).catch(console.error);
+            },[api]);
+
+            useEffect(()=>{
+                if(!api||!ready) return;
+                const unsubTx = api.onSnapshot(path('tresor_transactions'),s=>setTransactions(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubCot = api.onSnapshot(path('tresor_cotisations'),s=>setCotisations(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubM = api.onSnapshot(path('tresor_membres'),s=>setMembres(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubAg = api.onSnapshot(path('tresor_agapes'),s=>setAgapes(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubCh = api.onSnapshot(path('tresor_charges'),s=>setCharges(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubPl = api.onSnapshot(path('tresor_planches'),s=>setPlanches(s.docs.map(d=>({id:d.id,...d.data()}))));
+                const unsubS = api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d=>{if(d.exists()) setSettings(d.data());});
+                return ()=>{unsubTx();unsubCot();unsubM();unsubAg();unsubCh();unsubPl();unsubS();};
+            },[api,ready]);
+
+            const logeName = settings.logeName || 'Trésorerie';
+            const orient = settings.orient || '';
+
+            const addTx = async d => await api.addDoc(path('tresor_transactions'),d);
+            const updateTx = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id),d);
+            const deleteTx = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id));
+
+            const addVersement = async (membreId,annee,mois,montant,note) => {
+                await api.addDoc(path('tresor_cotisations'),{
+                    membreId, annee:parseInt(annee), mois, montant, note,
+                    datePaiement: todayISO()
+                });
+            };
+            const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
+
+            const addMembre = async d => await api.addDoc(path('tresor_membres'),d);
+            const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id),d);
+            const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id));
+
+
+            const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
+            const deleteAgape = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_agapes',id));
+
+            const addCharge = async d => await api.addDoc(path('tresor_charges'),d);
+            const deleteCharge = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_charges',id));
+
+            const addPlanche = async d => await api.addDoc(path('tresor_planches'),d);
+            const deletePlanche = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_planches',id));
+
+            const saveSettings = async d => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d);
+
+            const resetAllData = async () => {
+                if(!confirm('⚠️ Remettre à zéro TOUTES les données ?\n\nCela supprimera :\n• Toutes les cotisations\n• Toutes les transactions\n• Toutes les agapes\n• Toutes les charges\n• Toutes les planches\n\nLes membres et paramètres seront conservés.\n\nCette action est IRRÉVERSIBLE.')) return;
+                if(!confirm('Confirmez-vous la remise à zéro ?')) return;
+                const deleteAll = async (items, col) => {
+                    for(const item of items) {
+                        await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data',col,item.id));
+                    }
+                };
+                await Promise.all([
+                    deleteAll(cotisations, 'tresor_cotisations'),
+                    deleteAll(transactions, 'tresor_transactions'),
+                    deleteAll(agapes, 'tresor_agapes'),
+                    deleteAll(charges, 'tresor_charges'),
+                    deleteAll(planches, 'tresor_planches'),
+                ]);
+                alert('Remise à zéro effectuée.');
+            };
+
+            if(!ready) return null;
+            const loader = document.getElementById('loading-screen');
+            if(loader) loader.style.display='none';
+
+            const navItems = [
+                {id:'dashboard',icon:'home',label:'Trésor'},
+                {id:'transactions',icon:'file',label:'Tronc'},
+                {id:'cotisations',icon:'users',label:'Capitation'},
+                {id:'agapes',icon:'utensils',label:'Agapes'},
+                {id:'charges',icon:'invoice',label:'Obligations'},
+                {id:'planning',icon:'cal',label:'Cahier'},
+                {id:'planches',icon:'scroll',label:'Planches'},
+                {id:'parametres',icon:'settings',label:'Tableau'},
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans">
+                    <nav className="bg-slate-900 text-white shadow-xl sticky top-0 z-50 p-3">
+                        <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
+                            <div className="flex items-center space-x-3 cursor-pointer" onClick={()=>setActiveView('dashboard')}>
+                                {settings.logo
+                                    ? <img src={settings.logo} alt="Logo" className="h-10 w-10 object-contain rounded-lg bg-white/10 p-0.5 flex-shrink-0"/>
+                                    : <Icon n="wallet" size={24} cls="text-amber-500"/>
+                                }
+                                <div className="hidden md:block">
+                                    <span className="text-base font-bold font-serif text-white tracking-widest uppercase">{logeName}</span>
+                                    {orient && <span className="block text-[9px] text-slate-400 font-sans uppercase tracking-widest">Orient de {orient}</span>}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {navItems.map(item=>(
+                                    <button key={item.id} onClick={()=>setActiveView(item.id)} className={`flex items-center space-x-1.5 px-2.5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${activeView===item.id?'bg-amber-600 text-white shadow-lg':'text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}>
+                                        <Icon n={item.icon} size={13}/><span className="hidden sm:inline font-sans">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+                    <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+                        {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView} onDeleteTx={deleteTx} onDeleteVersement={deleteVersement} onDeleteAgape={deleteAgape} onDeleteCharge={deleteCharge}/>}
+                        {activeView==='transactions' && <TransactionsView transactions={transactions} settings={settings} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
+                        {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
+                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} settings={settings} onAdd={addAgape} onDelete={deleteAgape}/>}
+                        {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
+                        {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
+                        {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
+                        {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre} onResetAll={resetAllData}/>}
+                    </main>
+                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
+                </div>
+            );
+        }
+
+        const rootElement = document.getElementById('root');
+        if(rootElement && !rootElement._reactRoot){
+            const root = ReactDOM.createRoot(rootElement);
+            rootElement._reactRoot = root;
+            root.render(<App/>);
+        }
+    </script>
+</body>
+</html>
