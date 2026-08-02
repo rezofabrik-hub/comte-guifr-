@@ -1083,7 +1083,114 @@
             );
         }
 
-        function AgapesView({ membres, agapes, presences, settings, onAdd, onDelete, onAddPresence, onDeletePresence }) {
+        function PlancheMiniSection({ planches, membres, date, onAdd, onDelete }) {
+            const [adding, setAdding] = useState(false);
+            const [f, setF] = useState({titre:'', auteurId:'', grade:'Maître'});
+            const [photo, setPhoto] = useState(null);
+            const [photoPreview, setPhotoPreview] = useState(null);
+            const [viewPhoto, setViewPhoto] = useState(null);
+            const datePlanches = planches.filter(p=>p.date===date);
+
+            const handlePhoto = e => {
+                const file = e.target.files[0];
+                if(!file) return;
+                compressPhoto(file, b64=>{ setPhoto(b64); setPhotoPreview(b64); });
+            };
+
+            const handleAuteur = id => {
+                const m = membres.find(x=>x.id===id);
+                setF(p=>({...p, auteurId:id, grade:m?.grade||'Maître'}));
+            };
+
+            const handleSave = async () => {
+                const m = membres.find(x=>x.id===f.auteurId);
+                if(!m && !f.titre.trim()) return;
+                await onAdd({
+                    date,
+                    auteur: m ? m.nom : f.titre,
+                    grade: m ? (m.grade||'Maître') : f.grade,
+                    titre: f.titre || `Planche du ${new Date(date+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}`,
+                    fichier: photo||'',
+                    fichierNom: photo ? `planche_${date}.jpg` : '',
+                    resume: '',
+                });
+                setAdding(false); setF({titre:'',auteurId:'',grade:'Maître'}); setPhoto(null); setPhotoPreview(null);
+            };
+
+            return (
+                <div className="mt-2 border-t border-slate-100 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-sans">
+                            Planches ({datePlanches.length})
+                        </p>
+                        <button onClick={()=>setAdding(a=>!a)}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-sans">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            {adding ? 'Annuler' : 'Ajouter planche'}
+                        </button>
+                    </div>
+
+                    {adding && (
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3 mb-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700 font-serif">Planche lue à cette tenue</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select value={f.auteurId} onChange={e=>handleAuteur(e.target.value)}
+                                    className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400 font-sans bg-white">
+                                    <option value="">— Choisir un frère / une sœur —</option>
+                                    {sortByGrade(membres).map(m=><option key={m.id} value={m.id}>{m.nom} ({m.grade||'?'})</option>)}
+                                </select>
+                                <input placeholder="Titre de la planche (optionnel)" value={f.titre} onChange={e=>setF(p=>({...p,titre:e.target.value}))}
+                                    className="border rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400 font-sans" autoComplete="off"/>
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-500 font-sans border rounded-lg px-3 py-1.5 bg-white hover:bg-slate-50">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    {photoPreview ? 'Changer photo' : 'Photographier la planche'}
+                                    <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden"/>
+                                </label>
+                                {photoPreview && <img src={photoPreview} alt="preview" className="h-10 rounded border object-cover"/>}
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={handleSave} className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-700 font-sans">Enregistrer</button>
+                                <button onClick={()=>setAdding(false)} className="text-xs px-4 py-2 rounded-lg border hover:bg-slate-50 font-sans">Annuler</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {datePlanches.length > 0 && (
+                        <div className="space-y-1.5">
+                            {datePlanches.map(p=>(
+                                <div key={p.id} className="flex items-center gap-3 group py-1.5 px-2 rounded-lg hover:bg-slate-50">
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-slate-800 truncate">{p.titre||'Planche'}</p>
+                                        <p className="text-[10px] text-slate-500 font-sans">{p.auteur} · <span className="capitalize">{p.grade}</span></p>
+                                    </div>
+                                    {p.fichier && (
+                                        <button onClick={()=>setViewPhoto(p.fichier)} className="text-indigo-300 hover:text-indigo-600 transition-colors" title="Voir la planche">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                        </button>
+                                    )}
+                                    <button onClick={()=>onDelete(p.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {viewPhoto && (
+                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={()=>setViewPhoto(null)}>
+                            <img src={viewPhoto} alt="Planche" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"/>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function AgapesView({ membres, agapes, presences, settings, onAdd, onDelete, onAddPresence, onDeletePresence, onAddPlanche, onDeletePlanche, planches }) {
             const today = new Date();
             const [year, setYear] = useState(today.getFullYear());
             const [addingDate, setAddingDate] = useState(null); // ISO date of tenue being filled
@@ -1230,8 +1337,9 @@
                                                         </div>
                                                     </div>
 
-                                                    <div className="border-t px-6 pb-4 pt-1">
+                                                    <div className="border-t px-6 pb-4 pt-1 space-y-0">
                                                         <VisiteursMiniTable presences={presences} date={iso} onAdd={onAddPresence} onDelete={onDeletePresence}/>
+                                                        <PlancheMiniSection planches={planches} membres={membres} date={iso} onAdd={onAddPlanche} onDelete={onDeletePlanche}/>
                                                     </div>
 
                                                     {isAdding && (
@@ -2005,7 +2113,7 @@
                         {activeView==='dashboard' && <DashboardView transactions={transactions} cotisations={cotisations} membres={membres} agapes={agapes} charges={charges} settings={settings} onNav={setActiveView} onDeleteTx={deleteTx} onDeleteVersement={deleteVersement} onDeleteAgape={deleteAgape} onDeleteCharge={deleteCharge}/>}
                         {activeView==='transactions' && <TransactionsView transactions={transactions} settings={settings} onAdd={addTx} onUpdate={updateTx} onDelete={deleteTx}/>}
                         {activeView==='cotisations' && <CotisationsView membres={membres} cotisations={cotisations} onAddVersement={addVersement} onDeleteVersement={deleteVersement} settings={settings}/>}
-                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} presences={presences} settings={settings} onAdd={addAgape} onDelete={deleteAgape} onAddPresence={addPresence} onDeletePresence={deletePresence}/>}
+                        {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} presences={presences} planches={planches} settings={settings} onAdd={addAgape} onDelete={deleteAgape} onAddPresence={addPresence} onDeletePresence={deletePresence} onAddPlanche={addPlanche} onDeletePlanche={deletePlanche}/>}
                         {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
                         {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
