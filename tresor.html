@@ -1723,7 +1723,7 @@
             return tenues.sort((a,b)=>a-b);
         }
 
-        function PlanningView({ agapes, membres, settings }) {
+        function PlanningView({ agapes, membres, settings, presences, planches, onAddPresence, onDeletePresence, onAddPlanche, onDeletePlanche }) {
             const today = new Date();
             // Default to current year so Sept 2026 shows the 2026-2027 season
             const [year, setYear] = useState(today.getFullYear());
@@ -1861,6 +1861,10 @@
                                                                 <p className="text-[10px] text-slate-500 font-sans mt-1">{agape.totalCouverts||0} cvt.</p>
                                                             </div>
                                                         )}
+                                                    </div>
+                                                    <div className="border-t px-6 pb-4 pt-1">
+                                                        <VisiteursMiniTable presences={presences} date={iso} onAdd={onAddPresence} onDelete={onDeletePresence}/>
+                                                        <PlancheMiniSection planches={planches} membres={membres} date={iso} onAdd={onAddPlanche} onDelete={onDeletePlanche}/>
                                                     </div>
                                                 </div>
                                             );
@@ -2171,7 +2175,7 @@
                         {activeView==='agapes' && <AgapesView membres={membres} agapes={agapes} presences={presences} planches={planches} settings={settings} onAdd={addAgape} onDelete={deleteAgape} onAddPresence={addPresence} onDeletePresence={deletePresence} onAddPlanche={addPlanche} onDeletePlanche={deletePlanche}/>}
                         {activeView==='charges' && <ChargesView charges={charges} settings={settings} onAdd={addCharge} onDelete={deleteCharge}/>}
                         {activeView==='planches' && <PlanchesView planches={planches} membres={membres} settings={settings} onAdd={addPlanche} onDelete={deletePlanche}/>}
-                        {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings}/>}
+                        {activeView==='planning' && <PlanningView agapes={agapes} membres={membres} settings={settings} presences={presences} planches={planches} onAddPresence={addPresence} onDeletePresence={deletePresence} onAddPlanche={addPlanche} onDeletePlanche={deletePlanche}/>}
                         {activeView==='parametres' && <ParametresView settings={settings} membres={membres} onSaveSettings={saveSettings} onAddMembre={addMembre} onUpdateMembre={updateMembre} onDeleteMembre={deleteMembre} onResetAll={resetAllData}/>}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
