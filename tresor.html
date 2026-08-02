@@ -165,6 +165,31 @@
             const totalAttendu = membres.length * montantCotis;
             const cotisYear = yr || 'toutes les années';
 
+            // ── SYNTHÈSE MENSUELLE ─────────────────────────────────
+            const monthlyBreakdown = useMemo(()=>{
+                const map = {};
+                const addOp = (date, recette, depense) => {
+                    if(!date) return;
+                    const key = date.substring(0,7); // YYYY-MM
+                    if(!map[key]) map[key]={recette:0,depense:0};
+                    map[key].recette += recette||0;
+                    map[key].depense += depense||0;
+                };
+                txRecettes.forEach(t=>addOp(t.date,t.montant,0));
+                txDepenses.forEach(t=>addOp(t.date,0,t.montant));
+                cotisFiltered.forEach(c=>addOp(c.datePaiement||`${c.annee}-${String(c.mois||1).padStart(2,'0')}-01`,c.montant,0));
+                agapesFil.forEach(a=>{
+                    addOp(a.date, a.recetteTotale||0, a.coutRepas||0);
+                });
+                chargesFil.forEach(c=>addOp(c.datePaiement||`${c.annee}-${c.mois?String(c.mois).padStart(2,'0'):'01'}-01`,0,c.montant));
+                const rows = Object.entries(map).sort(([a],[b])=>a.localeCompare(b));
+                let cumul = 0;
+                return rows.map(([key,v])=>{
+                    cumul += v.recette - v.depense;
+                    return { key, recette:v.recette, depense:v.depense, solde:v.recette-v.depense, cumul };
+                });
+            },[txRecettes,txDepenses,cotisFiltered,agapesFil,chargesFil]);
+
             // ── GRAND LIVRE : toutes opérations chronologiques ────
             const grandLivre = useMemo(()=>{
                 const ops = [];
@@ -260,6 +285,51 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* Synthèse mensuelle */}
+                    {monthlyBreakdown.length > 0 && (
+                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="px-6 py-3 bg-slate-800 flex items-center gap-2">
+                                <p className="text-xs font-black uppercase tracking-widest text-white font-serif">Synthèse par mois</p>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Mois</th>
+                                            <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-emerald-600">Recettes</th>
+                                            <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500">Dépenses</th>
+                                            <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500">Solde mois</th>
+                                            <th className="text-right px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-700">Solde cumulé</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {monthlyBreakdown.map(row=>{
+                                            const [yyyy,mm] = row.key.split('-');
+                                            const label = new Date(parseInt(yyyy),parseInt(mm)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+                                            return (
+                                                <tr key={row.key} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="px-4 py-2.5 font-semibold text-slate-700 font-sans capitalize text-xs">{label}</td>
+                                                    <td className="px-4 py-2.5 text-right font-serif font-bold text-emerald-600 text-xs">{row.recette>0?fmt(row.recette):<span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-2.5 text-right font-serif font-bold text-red-500 text-xs">{row.depense>0?fmt(row.depense):<span className="text-slate-300">—</span>}</td>
+                                                    <td className={`px-4 py-2.5 text-right font-serif font-bold text-xs ${row.solde>=0?'text-emerald-600':'text-red-500'}`}>{fmt(row.solde)}</td>
+                                                    <td className={`px-6 py-2.5 text-right font-serif font-bold text-sm ${row.cumul>=0?'text-slate-800':'text-red-600'}`}>{fmt(row.cumul)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                    <tfoot className="border-t-2 bg-slate-50">
+                                        <tr>
+                                            <td className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 font-serif">Total</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-emerald-700">{fmt(totalRecettes)}</td>
+                                            <td className="px-4 py-3 text-right font-bold font-serif text-red-600">{fmt(totalDepenses)}</td>
+                                            <td colSpan={2} className={`px-4 py-3 text-right font-bold font-serif text-base ${solde>=0?'text-emerald-700':'text-red-600'}`}>{fmt(solde)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Cotisations — détail par membre + totaux */}
                     <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
