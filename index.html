@@ -1230,20 +1230,23 @@
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
+                const userEmail = fbUser?.email;
+                const canInitMembers = userEmail && ['maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'].includes(userEmail);
                 const unsubMembers = api.onSnapshot(path('members'), async (s) => {
-                    if (s.empty) {
+                    if (s.empty && canInitMembers) {
                         const batch = api.writeBatch(api.db);
-                        LOGE_MEMBERS_INIT.forEach(m => batch.set(api.doc(path('members')), { ...m, phone:'', email:'', profession:'', photoData:'' }));
+                        LOGE_MEMBERS_INIT.forEach(m => batch.set(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'members', m.name.replace(/\s+/g,'_')), { ...m, phone:'', email:'', profession:'', photoData:'' }));
                         await batch.commit();
                     } else { setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
                 });
                 const unsubAgenda = api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubPlanches = api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubBiblio = api.onSnapshot(path('bibliotheque'), s => setBooks(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                const canInitLiens = userEmail && ['architecte@cg51-virtuel.fr'].includes(userEmail);
                 const unsubLiens = api.onSnapshot(path('liens'), async (s) => {
-                    if (s.empty) {
+                    if (s.empty && canInitLiens) {
                         const batch = api.writeBatch(api.db);
-                        LIENS_INIT.forEach(l => batch.set(api.doc(path('liens')), l));
+                        LIENS_INIT.forEach((l, i) => batch.set(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'liens', String(i)), l));
                         await batch.commit();
                     } else { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
                 });

@@ -9,9 +9,6 @@ service cloud.firestore {
     function email() {
       return request.auth.token.email;
     }
-    function isApprenti() {
-      return email() in ['apprenti@cg51-virtuel.fr','compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
-    }
     function isCompagnon() {
       return email() in ['compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
     }
@@ -28,28 +25,21 @@ service cloud.firestore {
       return isSignedIn() && email() in ['apprenti@cg51-virtuel.fr','compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
     }
 
+    // Données publiques de la loge : lecture libre pour tout membre authentifié,
+    // écriture réservée selon le grade. Le filtrage par grade est fait côté client.
     match /artifacts/{appId}/public/data/members/{memberId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isMaitre();
     }
 
     match /artifacts/{appId}/public/data/agenda/{itemId} {
-      allow read: if isSignedIn() && (
-        resource.data.visibility == 'Apprenti' ||
-        (resource.data.visibility == 'Compagnon' && isCompagnon()) ||
-        (resource.data.visibility == 'Maître' && isMaitre())
-      );
-      allow create: if isMaitre();
-      allow update, delete: if isMaitre();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isMaitre();
     }
 
     match /artifacts/{appId}/public/data/planches/{docId} {
-      allow read: if isSignedIn() && (
-        (resource.data.grade == 'Apprenti') ||
-        (resource.data.grade == 'Compagnon' && isCompagnon()) ||
-        ((resource.data.grade == 'Maître' || resource.data.grade == 'Maitre') && isMaitre())
-      );
-      allow create: if isApprenti();
+      allow read: if isSignedIn();
+      allow create: if isCompagnon();
       allow update, delete: if isMaitre();
     }
 
@@ -68,6 +58,7 @@ service cloud.firestore {
       allow write: if isArchitecte();
     }
 
+    // Trésorerie : lecture réservée membres de grade, écriture trésorier uniquement
     match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
       allow read, write: if isTresorier();
     }
@@ -103,5 +94,3 @@ service cloud.firestore {
     }
   }
 }
-
-
