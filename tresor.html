@@ -1092,6 +1092,7 @@
 
         function PlancheMiniSection({ planches, membres, date, onAdd, onDelete }) {
             const readOnly = React.useContext(ReadOnlyCtx);
+            const visibleGrades = React.useContext(VisibleGradesCtx);
             const [adding, setAdding] = useState(false);
             const [f, setF] = useState({titre:'', auteurId:''});
             const [fichier, setFichier] = useState(null);   // base64
@@ -1099,7 +1100,7 @@
             const [fichierType, setFichierType] = useState(''); // 'pdf' | 'image'
             const [loading, setLoading] = useState(false);
             const [viewFichier, setViewFichier] = useState(null); // {data, type}
-            const datePlanches = planches.filter(p=>p.date===date);
+            const datePlanches = planches.filter(p=>p.date===date && visibleGrades.includes(p.grade));
 
             const handleFile = e => {
                 const file = e.target.files[0];
@@ -1964,6 +1965,7 @@
 
         function PlanchesView({ planches, membres, settings, onAdd, onDelete }) {
             const readOnly = React.useContext(ReadOnlyCtx);
+            const visibleGrades = React.useContext(VisibleGradesCtx);
             const [isAdding, setIsAdding] = useState(false);
             const [addingGrade, setAddingGrade] = useState('Maître');
 
@@ -1996,7 +1998,7 @@
                     )}
 
                     <div className="space-y-8">
-                        {GRADES_PLANCHES.map(({grade, icon})=>{
+                        {GRADES_PLANCHES.filter(({grade})=>visibleGrades.includes(grade)).map(({grade, icon})=>{
                             const c = GRADE_COLORS[grade];
                             const items = planches.filter(p=>p.grade===grade).sort((a,b)=>new Date(b.date)-new Date(a.date));
                             return (
@@ -2056,6 +2058,14 @@
         ];
         const TRESOR_EMAILS = ['tresorier@cg51-virtuel.fr', 'vm@cg51-virtuel.fr', 'architecte@cg51-virtuel.fr'];
         const ReadOnlyCtx = React.createContext(false);
+        const VisibleGradesCtx = React.createContext(['Apprenti','Compagnon','Maître']);
+
+        function getVisibleGrades(email) {
+            if (!email) return [];
+            if (email === 'apprenti@cg51-virtuel.fr') return ['Apprenti'];
+            if (email === 'compagnon@cg51-virtuel.fr') return ['Apprenti','Compagnon'];
+            return ['Apprenti','Compagnon','Maître'];
+        }
 
         function LoginScreen({ onLogin, error, loading }) {
             const [email, setEmail] = useState('');
@@ -2148,6 +2158,7 @@
 
             const handleLogout = () => api.signOut(api.auth);
             const isTresorUser = user ? TRESOR_EMAILS.includes(user.email) : false;
+            const visibleGrades = user ? getVisibleGrades(user.email) : [];
 
             useEffect(()=>{
                 if(!api||!ready) return;
@@ -2240,6 +2251,7 @@
 
             return (
                 <ReadOnlyCtx.Provider value={!isTresorUser}>
+                <VisibleGradesCtx.Provider value={visibleGrades}>
                 <div className="min-h-screen flex flex-col font-sans">
                     <nav className="bg-slate-900 text-white shadow-xl sticky top-0 z-50 p-3">
                         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
@@ -2277,6 +2289,7 @@
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeName}{orient?` — Orient de ${orient}`:''} — Trésorerie</footer>
                 </div>
+                </VisibleGradesCtx.Provider>
                 </ReadOnlyCtx.Provider>
             );
         }
