@@ -1332,7 +1332,8 @@
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
-                                
+                                {(isArchitect || isVM) && <NavTab active={false} onClick={()=>window.open('/tresor','_blank')} icon="landmark" label="Trésorerie" />}
+
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
                                     <button onClick={() => setShowGradesMenu(!showGradesMenu)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${['apprenti','compagnon','maitre','read','write'].includes(activeView) ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>Travaux Couverts</button>
