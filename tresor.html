@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trésorerie · R∴L∴ Comte Guifré n°51 · v2</title>
+    <title>Trésorerie · R∴L∴ Comte Guifré n°51</title>
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,7 +34,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         if (!window.FB_API) {
@@ -51,7 +51,7 @@
                 window.FB_API = {
                     db: getFirestore(app), auth: getAuth(app),
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc,
-                    signInAnonymously,
+                    signInWithEmailAndPassword, signOut, onAuthStateChanged,
                     appId: "site-cg51"
                 };
             } catch(e) { console.error("Firebase fail", e); }
@@ -74,57 +74,6 @@
             const gb = GRADE_ORDER[(b.grade||'').toLowerCase().trim()] ?? 3;
             return ga !== gb ? ga - gb : (a.nom||'').localeCompare(b.nom||'','fr');
         });
-
-        // ── Tableau de Loge : tri hiérarchique ──────────────────────────────
-        const LUM1_K=['vénérable','venerable'];
-        const LUM2_K=['1er surveil','premier surveil'];
-        const LUM3_K=['2ème surveil','2e surveil','deuxième surveil','second surveil','2nd surveil'];
-        const OFF_K=['orateur','secrétaire','secretaire','trésorier','tresorier','hospitalier','expert','cérémonie','ceremonie','couvreur','terrible','architecte','bibliothéc','porte-drap'];
-        function getRoleGroup(role){
-            const r=(role||'').toLowerCase();
-            if(LUM1_K.some(k=>r.includes(k))) return 0;
-            if(LUM2_K.some(k=>r.includes(k))) return 1;
-            if(LUM3_K.some(k=>r.includes(k))) return 2;
-            if(OFF_K.some(k=>r.includes(k))) return 3;
-            return 4;
-        }
-        const GRADE_NUM={'maître':0,'maitre':0,'compagnon':1,'apprenti':2};
-        const GROUP_SORT={lumieres:0,officiers:1,maitres:2,compagnons:3,apprentis:4,membres:5};
-        const sortMembres = arr => [...arr].sort((a,b)=>{
-            const ga=GROUP_SORT[getDisplayGroup(a)]??6, gb=GROUP_SORT[getDisplayGroup(b)]??6;
-            if(ga!==gb) return ga-gb;
-            return (a.nom||'').localeCompare(b.nom||'','fr');
-        });
-        const CAT_TO_KEY={'Les 3 Lumières':'lumieres','Officiers':'officiers','Maîtres':'maitres','Compagnons':'compagnons','Apprentis':'apprentis','Membres':'membres'};
-        function getDisplayGroup(m){
-            if(m.categorie && CAT_TO_KEY[m.categorie]) return CAT_TO_KEY[m.categorie];
-            const g=getRoleGroup(m.role);
-            if(g<=2) return 'lumieres';
-            if(g===3) return 'officiers';
-            const gr=(m.grade||'').toLowerCase();
-            if(gr.includes('maît')||gr.includes('mait')) return 'maitres';
-            if(gr.includes('compagnon')) return 'compagnons';
-            if(gr.includes('apprenti')) return 'apprentis';
-            return 'membres';
-        }
-        const GROUP_DISPLAY={lumieres:'Les 3 Lumières',officiers:'Officiers',maitres:'Maîtres',compagnons:'Compagnons',apprentis:'Apprentis',membres:'Membres'};
-
-        function SautoirIcon({role}){
-            const r=(role||'').toLowerCase();
-            const c='#b45309';
-            const sv=(children,title)=><svg title={title||role} viewBox="0 0 40 40" width="32" height="32">{children}</svg>;
-            if(LUM1_K.some(k=>r.includes(k))) return sv(<path d="M8 8 L8 32 L32 32" stroke={c} strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>,'Vénérable — Équerre');
-            if(LUM2_K.some(k=>r.includes(k))) return sv(<><line x1="4" y1="14" x2="36" y2="14" stroke={c} strokeWidth="4" strokeLinecap="round"/><line x1="20" y1="14" x2="20" y2="24" stroke={c} strokeWidth="3"/><polygon points="14,32 20,22 26,32" fill={c}/></>,'1er Surveillant — Niveau');
-            if(LUM3_K.some(k=>r.includes(k))) return sv(<><line x1="20" y1="4" x2="20" y2="24" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><ellipse cx="20" cy="32" rx="9" ry="6" fill={c}/></>,'2ème Surveillant — Fil à plomb');
-            if(r.includes('orateur')) return sv(<><polygon points="20,4 17,14 23,14" fill={c}/><line x1="20" y1="4" x2="20" y2="34" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="10" y1="26" x2="30" y2="26" stroke={c} strokeWidth="3" strokeLinecap="round"/></>,'Orateur — Épée');
-            if(r.includes('secret')) return sv(<><path d="M30 5 Q8 14 10 36" stroke={c} strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M30 5 Q22 22 10 36 Q16 24 30 5" fill={c} opacity="0.45"/><line x1="10" y1="36" x2="18" y2="34" stroke={c} strokeWidth="2.5" strokeLinecap="round"/></>,'Secrétaire — Plume');
-            if(r.includes('trésor')||r.includes('tresor')) return sv(<><circle cx="13" cy="13" r="7" stroke={c} strokeWidth="3" fill="none"/><line x1="18" y1="18" x2="34" y2="34" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="27" y1="28" x2="25" y2="34" stroke={c} strokeWidth="2.5" strokeLinecap="round"/><line x1="32" y1="30" x2="30" y2="36" stroke={c} strokeWidth="2.5" strokeLinecap="round"/></>,'Trésorier — Clés');
-            if(r.includes('hospital')) return sv(<><line x1="20" y1="4" x2="20" y2="36" stroke={c} strokeWidth="3" strokeLinecap="round"/><path d="M12 14 Q7 20 12 26 Q20 22 28 26 Q33 20 28 14 Q20 10 12 14" stroke={c} strokeWidth="2.5" fill="none"/></>,'Hospitalier — Caducée');
-            if(r.includes('expert')) return sv(<><line x1="20" y1="5" x2="7" y2="34" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><line x1="20" y1="5" x2="33" y2="34" stroke={c} strokeWidth="3.5" strokeLinecap="round"/><path d="M10 22 Q20 27 30 22" stroke={c} strokeWidth="2.5" fill="none"/></>,'Expert — Compas');
-            if(r.includes('cérémonie')||r.includes('ceremonie')) return sv(<><line x1="7" y1="33" x2="33" y2="7" stroke={c} strokeWidth="3" strokeLinecap="round"/><circle cx="33" cy="7" r="5" fill={c}/></>,'Maître des Cérémonies — Baguette');
-            if(r.includes('couvreur')||r.includes('terrible')) return sv(<><polygon points="20,36 17,26 23,26" fill={c}/><line x1="20" y1="36" x2="20" y2="8" stroke={c} strokeWidth="3" strokeLinecap="round"/><line x1="12" y1="18" x2="28" y2="18" stroke={c} strokeWidth="3" strokeLinecap="round"/></>,'Couvreur — Épée pointée');
-            return <span className="text-slate-200 text-base select-none">◆</span>;
-        }
         // Format date en ISO local (YYYY-MM-DD) sans décalage UTC
         const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         const todayISO = () => toLocalISO(new Date());
@@ -1603,48 +1552,19 @@
         // ==============================
         // PARAMÈTRES / TABLEAU
         // ==============================
-        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'', photo:'', categorie:'' };
-        const CATEGORIES_MEMBRE = ['Les 3 Lumières','Officiers','Maîtres','Compagnons','Apprentis','Membres'];
+        const EMPTY_MEMBRE = { nom:'', role:'', grade:'', telephone:'', email:'', dateNaissance:'' };
 
         function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
             const [f, setF] = useState(initial || EMPTY_MEMBRE);
-            const handlePhoto = e => {
-                const file = e.target.files?.[0];
-                if(!file) return;
-                compressPhoto(file, b64 => setF(p=>({...p, photo:b64})));
-            };
             return (
                 <div className="bg-slate-50 p-6 rounded-2xl border animate-fade">
-                    <div className="flex gap-5 items-start mb-4">
-                        {/* Photo */}
-                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                            <div className="w-20 h-20 rounded-full border-2 border-amber-300 overflow-hidden bg-slate-200 flex items-center justify-center">
-                                {f.photo
-                                    ? <img src={f.photo} alt="photo" className="w-full h-full object-cover"/>
-                                    : <i className="fa-solid fa-user text-slate-400 text-2xl"/>}
-                            </div>
-                            <label className="cursor-pointer text-[10px] font-bold text-amber-700 uppercase tracking-widest bg-white border border-amber-300 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors">
-                                {f.photo ? 'Changer' : 'Photo'}
-                                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden"/>
-                            </label>
-                            {f.photo && <button type="button" onClick={()=>setF(p=>({...p,photo:''}))} className="text-[9px] text-red-400 hover:text-red-600 font-bold uppercase">Supprimer</button>}
-                        </div>
-                        {/* Champs */}
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoComplete="off" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Catégorie</label>
-                                <select value={f.categorie||''} onChange={e=>setF({...f,categorie:e.target.value})} className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500 text-sm">
-                                    <option value="">— Auto (selon grade/fonction) —</option>
-                                    {CATEGORIES_MEMBRE.map(c=><option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" autoComplete="off" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Nom complet *</label><input type="text" autoComplete="off" autoFocus={autoFocusNom} value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Frère / Sœur..." className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Grade maçonnique</label><input type="text" value={f.grade||''} onChange={e=>setF({...f,grade:e.target.value})} placeholder="ex: Apprenti, Compagnon, Maître..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Fonction dans la Loge</label><input type="text" autoComplete="off" value={f.role} onChange={e=>setF({...f,role:e.target.value})} placeholder="ex: Vénérable, Trésorier, Secrétaire..." className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Téléphone</label><input type="tel" value={f.telephone||''} onChange={e=>setF({...f,telephone:e.target.value})} placeholder="ex: 06 01 02 03 04" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
                     </div>
                     <div className="flex gap-3 justify-end">
                         <button onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
@@ -1725,81 +1645,56 @@
 
                         {membres.length===0 ? (
                             <p className="text-slate-400 italic text-center py-12 font-sans">Aucun membre. Cliquez sur "Nouveau membre" pour commencer.</p>
-                        ) : (()=>{
-                            const sorted = sortMembres(membres);
-                            let lastGroup = null;
-                            const rows = [];
-                            sorted.forEach(m=>{
-                                const grp = getDisplayGroup(m);
-                                if(grp !== lastGroup){
-                                    lastGroup = grp;
-                                    rows.push(
-                                        <tr key={`grp-${grp}`} className="bg-slate-800">
-                                            <td colSpan={8} className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-amber-400 font-serif">
-                                                {GROUP_DISPLAY[grp]}
-                                            </td>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
+                                            <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
+                                            <th className="px-4 py-3"></th>
                                         </tr>
-                                    );
-                                }
-                                rows.push(
-                                    <React.Fragment key={m.id}>
-                                        <tr className="hover:bg-amber-50 transition-colors group">
-                                            <td className="px-3 py-3">
-                                                <div className="w-9 h-9 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                                    {m.photo
-                                                        ? <img src={m.photo} alt={m.nom} className="w-full h-full object-cover"/>
-                                                        : <i className="fa-solid fa-user text-slate-300 text-sm"/>}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
-                                            <td className="px-3 py-3">
-                                                {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
-                                            <td className="px-3 py-3 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
-                                            <td className="px-3 py-3 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
-                                            <td className="px-3 py-3">
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
-                                                    <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {editingMId===m.id && (
-                                            <tr>
-                                                <td colSpan={8} className="px-6 py-4 bg-amber-50 border-b">
-                                                    <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||'',photo:m.photo||'',categorie:m.categorie||''}}
-                                                        onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
-                                                        onCancel={()=>setEditingMId(null)} />
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            });
-                            return (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-slate-50 border-b">
-                                            <tr>
-                                                <th className="px-3 py-3 w-12"></th>
-                                                <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Nom</th>
-                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade</th>
-                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Fonction</th>
-                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Tél.</th>
-                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Email</th>
-                                                <th className="text-left px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Naissance</th>
-                                                <th className="px-3 py-3"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">{rows}</tbody>
-                                    </table>
-                                </div>
-                            );
-                        })()}
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {sortByGrade(membres).map(m=>(
+                                            <React.Fragment key={m.id}>
+                                                <tr className="hover:bg-amber-50 transition-colors group">
+                                                    <td className="px-6 py-4 font-bold text-slate-800 whitespace-nowrap">{m.nom}</td>
+                                                    <td className="px-4 py-4">
+                                                        {m.grade ? <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-full">{m.grade}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        {m.role ? <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-full border border-amber-200 uppercase tracking-widest whitespace-nowrap">{m.role}</span> : <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{m.telephone || <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-xs whitespace-nowrap">{m.email ? <a href={`mailto:${m.email}`} className="text-blue-600 hover:underline">{m.email}</a> : <span className="text-slate-300">—</span>}</td>
+                                                    <td className="px-4 py-4 text-slate-600 text-xs whitespace-nowrap">{fmtDN(m.dateNaissance)}</td>
+                                                    <td className="px-4 py-4">
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={()=>setEditingMId(editingMId===m.id?null:m.id)} className="p-1.5 text-slate-300 hover:text-amber-600 rounded-lg"><Icon n="edit" size={14}/></button>
+                                                            <button onClick={()=>onDeleteMembre(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Icon n="trash" size={14}/></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {editingMId===m.id && (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-6 py-4 bg-amber-50 border-b">
+                                                            <MembreForm initial={{nom:m.nom,role:m.role||'',grade:m.grade||'',telephone:m.telephone||'',email:m.email||'',dateNaissance:m.dateNaissance||''}}
+                                                                onSave={async f=>{await onUpdateMembre(m.id,f);setEditingMId(null);}}
+                                                                onCancel={()=>setEditingMId(null)} />
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
 
 
@@ -2148,10 +2043,56 @@
             );
         }
 
+        // ÉCRAN DE CONNEXION TRÉSORERIE
+        // ==============================
+        const AUTHORIZED_EMAILS = ['tresorier@cg51-virtuel.fr', 'vm@cg51-virtuel.fr', 'architecte@cg51-virtuel.fr'];
+
+        function LoginScreen({ onLogin, error, loading }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            return (
+                <div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#0f172a',padding:'20px'}}>
+                    <div style={{width:'100%',maxWidth:'400px'}}>
+                        <div style={{textAlign:'center',marginBottom:'2rem'}}>
+                            <i className="fa-solid fa-shield-halved" style={{fontSize:'3rem',color:'#f59e0b',marginBottom:'1rem',display:'block'}}></i>
+                            <h1 className="font-serif" style={{color:'#f59e0b',fontSize:'1.4rem',textTransform:'uppercase',letterSpacing:'0.2em',marginBottom:'0.3rem'}}>Trésorerie</h1>
+                            <p style={{color:'#64748b',fontSize:'0.75rem',textTransform:'uppercase',letterSpacing:'0.1em'}}>R∴L∴ Comte Guifré n°51 — Accès restreint</p>
+                        </div>
+                        <form onSubmit={e=>{e.preventDefault();onLogin(email,password);}} style={{background:'#1e293b',borderRadius:'1rem',padding:'2rem',boxShadow:'0 25px 50px rgba(0,0,0,0.5)'}}>
+                            <div style={{marginBottom:'1.25rem'}}>
+                                <label style={{display:'block',color:'#94a3b8',fontSize:'0.7rem',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:'0.5rem',fontWeight:'bold'}}>Adresse email</label>
+                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)}
+                                    placeholder="votre@email.fr"
+                                    style={{width:'100%',background:'#0f172a',border:'1px solid #334155',borderRadius:'0.75rem',padding:'0.9rem 1rem',color:'white',fontSize:'1rem',outline:'none',boxSizing:'border-box'}}
+                                />
+                            </div>
+                            <div style={{marginBottom:'1.5rem'}}>
+                                <label style={{display:'block',color:'#94a3b8',fontSize:'0.7rem',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:'0.5rem',fontWeight:'bold'}}>Mot de passe</label>
+                                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    style={{width:'100%',background:'#0f172a',border:'1px solid #334155',borderRadius:'0.75rem',padding:'0.9rem 1rem',color:'white',fontSize:'1rem',outline:'none',boxSizing:'border-box'}}
+                                />
+                            </div>
+                            {error && <div style={{background:'#7f1d1d',border:'1px solid #dc2626',borderRadius:'0.5rem',padding:'0.75rem',marginBottom:'1rem',color:'#fca5a5',fontSize:'0.85rem',textAlign:'center'}}>{error}</div>}
+                            <button type="submit" disabled={loading}
+                                style={{width:'100%',background:loading?'#78350f':'#d97706',color:'white',border:'none',borderRadius:'0.75rem',padding:'1rem',fontSize:'1rem',fontWeight:'bold',cursor:loading?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'0.1em',transition:'background 0.2s'}}>
+                                {loading ? 'Connexion...' : 'Entrer dans le Temple'}
+                            </button>
+                        </form>
+                        <p style={{textAlign:'center',color:'#475569',fontSize:'0.7rem',marginTop:'1.5rem'}}>Accès réservé au Vénérable Maître et au Trésorier</p>
+                    </div>
+                </div>
+            );
+        }
+
         // APP
         // ==============================
         function App() {
             const api = window.FB_API;
+            const [user, setUser] = useState(null);
+            const [authChecked, setAuthChecked] = useState(false);
+            const [loginError, setLoginError] = useState('');
+            const [loginLoading, setLoginLoading] = useState(false);
             const [ready, setReady] = useState(false);
             const [activeView, setActiveView] = useState('dashboard');
             const [transactions, setTransactions] = useState([]);
@@ -2167,8 +2108,35 @@
 
             useEffect(()=>{
                 if(!api) return;
-                api.signInAnonymously(api.auth).then(()=>setReady(true)).catch(console.error);
+                const unsub = api.onAuthStateChanged(api.auth, u => {
+                    if(u && AUTHORIZED_EMAILS.includes(u.email)) {
+                        setUser(u);
+                        setReady(true);
+                    } else {
+                        setUser(null);
+                        setReady(false);
+                    }
+                    setAuthChecked(true);
+                });
+                return ()=>unsub();
             },[api]);
+
+            const handleLogin = async (email, password) => {
+                setLoginError('');
+                setLoginLoading(true);
+                try {
+                    const cred = await api.signInWithEmailAndPassword(api.auth, email, password);
+                    if(!AUTHORIZED_EMAILS.includes(cred.user.email)) {
+                        await api.signOut(api.auth);
+                        setLoginError('Accès non autorisé pour ce compte.');
+                    }
+                } catch(e) {
+                    setLoginError('Identifiants incorrects. Vérifiez votre email et mot de passe.');
+                }
+                setLoginLoading(false);
+            };
+
+            const handleLogout = () => api.signOut(api.auth);
 
             useEffect(()=>{
                 if(!api||!ready) return;
@@ -2235,9 +2203,13 @@
                 alert('Remise à zéro effectuée.');
             };
 
-            if(!ready) return null;
+            if(!authChecked) return null;
             const loader = document.getElementById('loading-screen');
             if(loader) loader.style.display='none';
+
+            if(!user) return <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading}/>;
+
+            if(!ready) return null;
 
             const navItems = [
                 {id:'parametres',icon:'settings',label:'Tableau'},
@@ -2270,6 +2242,9 @@
                                         <Icon n={item.icon} size={13}/><span className="hidden sm:inline font-sans">{item.label}</span>
                                     </button>
                                 ))}
+                                <button onClick={handleLogout} title="Déconnexion" className="flex items-center space-x-1.5 px-2.5 py-2 rounded-xl text-[10px] font-bold uppercase transition-all text-slate-400 hover:bg-red-900 hover:text-red-300 ml-1 border border-slate-700">
+                                    <i className="fa-solid fa-right-from-bracket" style={{fontSize:13}}></i><span className="hidden sm:inline font-sans">Sortir</span>
+                                </button>
                             </div>
                         </div>
                     </nav>

@@ -20,6 +20,9 @@ service cloud.firestore {
     function isArchitecte() {
       return email() == 'architecte@cg51-virtuel.fr';
     }
+    function isTresorier() {
+      return isSignedIn() && email() in ['tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+    }
 
     match /artifacts/{appId}/public/data/members/{memberId} {
       allow read: if isSignedIn();
@@ -59,6 +62,31 @@ service cloud.firestore {
     match /artifacts/{appId}/public/data/settings/{docId} {
       allow read: if isSignedIn();
       allow write: if isArchitecte();
+    }
+
+    match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_cotisations/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_membres/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_agapes/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_charges/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_planches/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_presences/{docId} {
+      allow read, write: if isTresorier();
+    }
+    match /artifacts/{appId}/public/data/tresor_settings/{docId} {
+      allow read, write: if isTresorier();
     }
 
     match /{document=**} {
