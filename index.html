@@ -206,6 +206,30 @@
             );
         }
 
+        const TOUS_LES_RITES = [
+            'Rite Français','Rite Écossais Ancien et Accepté','Rite Écossais Rectifié',
+            'Rite de Memphis-Misraïm','Rite de Misraïm',"Rite d'York","Rite d'Émulation",
+            'Rite Français de Philalèthes','Rite de Schröder','Rite National Français',
+            'Rite de Swedenborg','Rite Primitif','Rite Opératif de Salomon','Rite Hermétique',
+            'Rite Américain','Rite Brasileño','Rite de Perfection (25 degrés)','Autre',
+        ];
+        const OBED_RITES = {
+            'Grand Orient de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm',"Rite d'York",'Rite Français de Philalèthes','Rite National Français'],
+            'Grande Loge de France': ['Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm','Rite Français'],
+            'Grande Loge Nationale Française': ['Rite Écossais Ancien et Accepté',"Rite d'York","Rite d'Émulation",'Rite Français','Rite Écossais Rectifié','Rite de Schröder','Rite de Swedenborg'],
+            'Grande Loge Féminine de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
+            'Droit Humain': ['Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
+            'Grande Loge Mixte de France': ['Rite Écossais Ancien et Accepté','Rite Français'],
+            'Grande Loge Mixte Nationale': ['Rite Écossais Ancien et Accepté','Rite Français','Rite de Memphis-Misraïm'],
+            'Grande Loge Mixte Universelle': ['Rite Écossais Ancien et Accepté'],
+            'Grande Loge Traditionnelle et Symbolique - Opéra': ['Rite Écossais Ancien et Accepté'],
+            "Grande Loge de l'Alliance Maçonnique Française": ['Rite Écossais Ancien et Accepté','Rite Français'],
+            'Loge Nationale Française': ['Rite Écossais Ancien et Accepté'],
+            'Grande Loge Féminine Memphis-Misraïm': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
+            'Grande Loge Symbolique de France': ['Rite Écossais Ancien et Accepté'],
+            'Grande Loge de Memphis-Misraïm de France': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
+        };
+
         function GradeAuthScreen({ grade, onValidate, onCancel, logo }) {
             const [p, s] = useState(''); const [e, sE] = useState(false);
             return (
@@ -409,43 +433,6 @@
                 localStorage.setItem(storageKey, String((idx + 1) % pool.length));
                 return quote;
             }, [activeGradeLevel, logeIdentity?.rite]);
-
-            const TOUS_LES_RITES = [
-                'Rite Français',
-                'Rite Écossais Ancien et Accepté',
-                'Rite Écossais Rectifié',
-                'Rite de Memphis-Misraïm',
-                'Rite de Misraïm',
-                "Rite d'York",
-                "Rite d'Émulation",
-                'Rite Français de Philalèthes',
-                'Rite de Schröder',
-                'Rite National Français',
-                'Rite de Swedenborg',
-                'Rite Primitif',
-                'Rite Opératif de Salomon',
-                'Rite Hermétique',
-                'Rite Américain',
-                'Rite Brasileño',
-                'Rite de Perfection (25 degrés)',
-                'Autre',
-            ];
-            const OBED_RITES = {
-                'Grand Orient de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm',"Rite d'York",'Rite Français de Philalèthes','Rite National Français'],
-                'Grande Loge de France': ['Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm','Rite Français'],
-                'Grande Loge Nationale Française': ['Rite Écossais Ancien et Accepté',"Rite d'York","Rite d'Émulation",'Rite Français','Rite Écossais Rectifié','Rite de Schröder','Rite de Swedenborg'],
-                'Grande Loge Féminine de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
-                'Droit Humain': ['Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
-                'Grande Loge Mixte de France': ['Rite Écossais Ancien et Accepté','Rite Français'],
-                'Grande Loge Mixte Nationale': ['Rite Écossais Ancien et Accepté','Rite Français','Rite de Memphis-Misraïm'],
-                'Grande Loge Mixte Universelle': ['Rite Écossais Ancien et Accepté'],
-                'Grande Loge Traditionnelle et Symbolique - Opéra': ['Rite Écossais Ancien et Accepté'],
-                "Grande Loge de l'Alliance Maçonnique Française": ['Rite Écossais Ancien et Accepté','Rite Français'],
-                'Loge Nationale Française': ['Rite Écossais Ancien et Accepté'],
-                'Grande Loge Féminine Memphis-Misraïm': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
-                'Grande Loge Symbolique de France': ['Rite Écossais Ancien et Accepté'],
-                'Grande Loge de Memphis-Misraïm de France': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
-            };
 
             const [isEditingId, setIsEditingId] = useState(false);
             const [idForm, setIdForm] = useState({ name: '', rite: '', obedience: '' });
@@ -1704,8 +1691,8 @@
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div><label className={label}>Nom de la Loge</label><input className={input} value={identity.name||''} onChange={e=>setIdentity(p=>({...p,name:e.target.value}))} placeholder="R∴L∴ Nom n°XX" /></div>
                             <div><label className={label}>Numéro</label><input className={input} value={identity.number||''} onChange={e=>setIdentity(p=>({...p,number:e.target.value}))} placeholder="51" /></div>
-                            <div><label className={label}>Obédience</label><input list="cfg-obed-list" className={input} value={identity.obedience||''} onChange={e=>setIdentity(p=>({...p,obedience:e.target.value,rite:''}))} placeholder="Grand Orient de France…" /><datalist id="cfg-obed-list">{'Grand Orient de France,Grande Loge de France,Grande Loge Nationale Française,Grande Loge Féminine de France,Droit Humain,Grande Loge Mixte de France,Grande Loge Mixte Nationale,Grande Loge Mixte Universelle,Grande Loge Traditionnelle et Symbolique - Opéra,Grande Loge de l\'Alliance Maçonnique Française,Loge Nationale Française,Grande Loge Féminine Memphis-Misraïm,Grande Loge Symbolique de France,Grande Loge de Memphis-Misraïm de France'.split(',').map(o=><option key={o} value={o}/>)}</datalist></div>
-                            <div><label className={label}>Rite</label><input list="cfg-rite-list" className={input} value={identity.rite||''} onChange={e=>setIdentity(p=>({...p,rite:e.target.value}))} placeholder="Rite Écossais Rectifié…" /><datalist id="cfg-rite-list">{'Rite Français,Rite Écossais Ancien et Accepté,Rite Écossais Rectifié,Rite de Memphis-Misraïm,Rite de Misraïm,Rite d\'York,Rite d\'Émulation,Rite Français de Philalèthes,Rite de Schröder,Rite National Français,Rite de Swedenborg,Rite Primitif,Rite Opératif de Salomon,Rite Hermétique,Rite Américain,Rite Brasileño,Rite de Perfection (25 degrés),Autre'.split(',').map(r=><option key={r} value={r}/>)}</datalist></div>
+                            <div><label className={label}>Obédience</label><input list="cfg-obed-list" className={input} value={identity.obedience||''} onChange={e=>setIdentity(p=>({...p,obedience:e.target.value,rite:''}))} placeholder="Grand Orient de France…" /><datalist id="cfg-obed-list">{Object.keys(OBED_RITES).map(o=><option key={o} value={o}/>)}</datalist></div>
+                            <div><label className={label}>Rite</label><input list="cfg-rite-list" className={input} value={identity.rite||''} onChange={e=>setIdentity(p=>({...p,rite:e.target.value}))} placeholder="Rite Écossais Rectifié…" /><datalist id="cfg-rite-list">{(OBED_RITES[identity.obedience]?[...OBED_RITES[identity.obedience],'Autre']:TOUS_LES_RITES).map(r=><option key={r} value={r}/>)}</datalist></div>
                             <div><label className={label}>Orient (Ville)</label><input className={input} value={identity.orient||''} onChange={e=>setIdentity(p=>({...p,orient:e.target.value}))} placeholder="Paris, Lyon..." /></div>
                             <div><label className={label}>Email contact</label><input className={input} value={identity.email||''} onChange={e=>setIdentity(p=>({...p,email:e.target.value}))} placeholder="contact@loge.fr" /></div>
                         </div>
