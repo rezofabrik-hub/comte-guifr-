@@ -80,8 +80,9 @@
     <script type="text/babel" data-type="module">
         const { useState, useEffect, useMemo, useCallback } = React;
 
-        const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr' };
+        const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr', tresorier: 'tresorier@cg51-virtuel.fr', vm: 'vm@cg51-virtuel.fr' };
         const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
+        const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
         const analyzeODJWithAI = async (file, apiKey) => {
             const ab = await file.arrayBuffer();
@@ -186,6 +187,8 @@
                                         <option value="apprenti">Apprenti</option>
                                         <option value="compagnon">Compagnon</option>
                                         <option value="maitre">Maître</option>
+                                        <option value="tresorier">Trésorier</option>
+                                        <option value="vm">Vénérable Maître</option>
                                     </select>
                                 </div>
                                 <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Clé de Grade</label><input type="password" required placeholder="Mot de passe..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={p} onChange={e=>sP(e.target.value)} /></div>
@@ -1203,12 +1206,15 @@
             const [apiKeyInput, setApiKeyInput] = useState('');
             const [selectedPlanche, setSelectedPlanche] = useState(null);
             const [isArchitect, setIsArchitect] = useState(false);
+            const [isTresorier, setIsTresorier] = useState(false);
+            const [loginGradeKey, setLoginGradeKey] = useState('');
             const [pendingNameMatch, setPendingNameMatch] = useState('');
 
             // canEdit définit les droits administrateur : ouvert aux Maîtres OU à l'Architecte
             const canEdit = unlockedGrades.maitre || isArchitect;
-            
-            const isVM = (memberRole || '').toLowerCase().includes('vénérable') || (memberRole || '').toLowerCase().includes('venerable');
+
+            const isVM = loginGradeKey === 'vm' || (memberRole || '').toLowerCase().includes('vénérable') || (memberRole || '').toLowerCase().includes('venerable');
+            const hasTresorAccess = isTresorier || isVM || isArchitect;
 
             // 1. Initialisation de l'authentification Firebase
             useEffect(() => {
@@ -1262,11 +1268,14 @@
                 }
                 const grades = gradeKey === 'maitre' ? { apprenti:true, compagnon:true, maitre:true }
                     : gradeKey === 'compagnon' ? { apprenti:true, compagnon:true, maitre:false }
+                    : gradeKey === 'tresorier' || gradeKey === 'vm' ? { apprenti:true, compagnon:true, maitre:true }
                     : { apprenti:true, compagnon:false, maitre:false };
                 setUnlockedGrades(grades);
                 setIsArchitect(false);
+                setIsTresorier(gradeKey === 'tresorier');
+                setLoginGradeKey(gradeKey);
                 setMemberName(n.trim());
-                setMemberRole('');
+                setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : '');
                 setPendingNameMatch(n.trim());
                 setIsLogged(true); setFbError(null);
             };
@@ -1332,7 +1341,7 @@
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
-                                {(isArchitect || isVM) && <NavTab active={false} onClick={()=>window.open('/tresor','_blank')} icon="landmark" label="Trésorerie" />}
+                                {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="landmark" label="Trésorerie" />}
 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
@@ -1373,6 +1382,11 @@
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
+                        {activeView === 'tresorerie' && hasTresorAccess && (
+                            <div style={{height:'calc(100vh - 80px)', width:'100%'}}>
+                                <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
+                            </div>
+                        )}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
                         {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} />}
