@@ -1567,7 +1567,7 @@
                 api.getDocs(api.collection(api.db,'artifacts',api.appId,'public','data','settings')).then(snap => {
                     snap.forEach(d => {
                         if (d.id === 'capitation') setCapitation(p => ({...p, ...d.data()}));
-                        if (d.id === 'welcome') setWelcome(d.data().text || '');
+                        if (d.id === 'welcome') setWelcome(d.data().text || "Bienvenue, mes Très Chères Sœurs et mes Très Chers Frères,\n\nCe temple virtuel est le vôtre — un espace de partage et de lumière au service de notre Loge. Vous y trouverez des Planches à lire et à méditer, ainsi que notre Chaîne d'Union, reflet des liens fraternels qui nous unissent.\n\nPuisse chaque visite enrichir votre chemin initiatique.\n\nFraternellement.");
                         if (d.id === 'gradesPasswords') setSavedPwds(d.data());
                         if (d.id === 'tenueRythme') setRythme(p => ({...p, ...d.data()}));
                     });
@@ -1937,7 +1937,8 @@
                 
                 const unsubLogo = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'branding'), d => d.exists() && setLogeLogo(d.data().logoData));
                 const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' }));
-                const unsubWelcome = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'welcome'), d => d.exists() ? setWelcomeText(d.data().text || '') : setWelcomeText(''));
+                const DEFAULT_WELCOME = "Bienvenue, mes Très Chères Sœurs et mes Très Chers Frères,\n\nCe temple virtuel est le vôtre — un espace de partage et de lumière au service de notre Loge. Vous y trouverez des Planches à lire et à méditer, ainsi que notre Chaîne d'Union, reflet des liens fraternels qui nous unissent.\n\nPuisse chaque visite enrichir votre chemin initiatique.\n\nFraternellement.";
+                const unsubWelcome = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'welcome'), d => d.exists() ? setWelcomeText(d.data().text || DEFAULT_WELCOME) : setWelcomeText(DEFAULT_WELCOME));
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
