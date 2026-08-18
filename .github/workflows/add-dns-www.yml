@@ -1,0 +1,39 @@
+name: Add DNS CNAME www.lcg51.fr
+
+on:
+  workflow_dispatch:
+
+jobs:
+  add-dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add CNAME www → lcg51.fr
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          # Get Zone ID for lcg51.fr
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=lcg51.fr" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d['result'][0]['id'])")
+          echo "Zone ID: $ZONE_ID"
+
+          # Add CNAME www → lcg51.fr
+          RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"type":"CNAME","name":"www","content":"lcg51.fr","ttl":1,"proxied":true}')
+          echo "Result: $RESULT"
+
+          # Check success
+          python3 -c "
+          import sys, json
+          d = json.loads('$RESULT'.replace(\"'\", '\"'))
+          " 2>/dev/null || echo "Raw result: $RESULT"
+
+          SUCCESS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('success', False))")
+          if [ "$SUCCESS" = "True" ]; then
+            echo "✅ CNAME www.lcg51.fr → lcg51.fr créé avec succès"
+          else
+            echo "⚠️ Résultat: $RESULT"
+          fi
