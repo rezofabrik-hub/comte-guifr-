@@ -1584,32 +1584,38 @@
                 return null;
             };
 
-            // Calcule les dates proposées (1er+3e jeudi, sept→juin, 2 saisons)
-            const calcDatesProposes = () => {
+            // Calcule les dates proposées en prenant le rythme courant en paramètre (évite les problèmes de closure)
+            const calcDatesProposes = (r) => {
                 const today = new Date(); today.setHours(0,0,0,0);
                 const sy = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
                 const dates = [];
                 for (let offset = 0; offset <= 1; offset++) {
                     const s = sy + offset, e = s + 1;
-                    for (let m = 8; m <= 11; m++) for (const sem of rythme.semaines) { const d = nthWeekday(s, m, rythme.jourSemaine, sem); if (d) dates.push(d.toISOString().split('T')[0]); }
-                    for (let m = 0; m <= 5; m++) for (const sem of rythme.semaines) { const d = nthWeekday(e, m, rythme.jourSemaine, sem); if (d) dates.push(d.toISOString().split('T')[0]); }
+                    // nthWeekday retourne une date locale — on formate en YYYY-MM-DD sans passer par UTC
+                    const fmt = (d) => { const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; };
+                    for (let m = 8; m <= 11; m++) for (const sem of r.semaines) { const d = nthWeekday(s, m, r.jourSemaine, sem); if (d) dates.push(fmt(d)); }
+                    for (let m = 0; m <= 5; m++) for (const sem of r.semaines) { const d = nthWeekday(e, m, r.jourSemaine, sem); if (d) dates.push(fmt(d)); }
                 }
                 return dates.sort();
             };
 
             const [datesProposes, setDatesProposes] = useState([]);
-            const [datesSelectionnees, setDatesSelectionnees] = useState(new Set());
+            const [datesSelectionnees, setDatesSelectionnees] = useState([]);
             const [showDatePicker, setShowDatePicker] = useState(false);
 
             const ouvrirSelecteur = async () => {
                 const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
                 const snap = await api.getDocs(col);
                 const existing = new Set(snap.docs.map(d => d.data().date));
-                const proposees = calcDatesProposes();
+                const proposees = calcDatesProposes(rythme);
                 setDatesProposes(proposees);
-                // Pré-cocher les dates non encore enregistrées
-                setDatesSelectionnees(new Set(proposees.filter(d => !existing.has(d))));
+                // Pré-cocher uniquement les dates pas encore en base
+                setDatesSelectionnees(proposees.filter(d => !existing.has(d)));
                 setShowDatePicker(true);
+            };
+
+            const toggleDate = (d) => {
+                setDatesSelectionnees(prev => prev.includes(d) ? prev.filter(x=>x!==d) : [...prev, d]);
             };
 
             const ajouterDatesSelectionnees = async () => {
@@ -1816,26 +1822,25 @@
                             <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50">
                                 <p className="text-xs font-bold text-amber-800 mb-3 uppercase tracking-widest">Cochez les dates à ajouter dans l'Ordre des Travaux :</p>
                                 <div className="flex gap-2 mb-3">
-                                    <button onClick={()=>setDatesSelectionnees(new Set(datesProposes))} className="text-[10px] font-bold text-amber-700 underline">Tout cocher</button>
+                                    <button onClick={()=>setDatesSelectionnees([...datesProposes])} className="text-[10px] font-bold text-amber-700 underline">Tout cocher</button>
                                     <span className="text-slate-300">|</span>
-                                    <button onClick={()=>setDatesSelectionnees(new Set())} className="text-[10px] font-bold text-slate-400 underline">Tout décocher</button>
+                                    <button onClick={()=>setDatesSelectionnees([])} className="text-[10px] font-bold text-slate-400 underline">Tout décocher</button>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
                                     {datesProposes.map(d => {
-                                        const checked = datesSelectionnees.has(d);
+                                        const checked = datesSelectionnees.includes(d);
                                         const dt = new Date(d + 'T12:00:00');
                                         const label2 = dt.toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'long', year:'numeric'});
                                         return (
-                                            <label key={d} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-[11px] font-bold border transition-all ${checked ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'}`}>
-                                                <input type="checkbox" checked={checked} onChange={e=>{ const s=new Set(datesSelectionnees); e.target.checked?s.add(d):s.delete(d); setDatesSelectionnees(s); }} className="hidden"/>
+                                            <div key={d} onClick={()=>toggleDate(d)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-[11px] font-bold border transition-all ${checked ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'}`}>
                                                 {label2}
-                                            </label>
+                                            </div>
                                         );
                                     })}
                                 </div>
                                 <div className="flex gap-3 mt-4">
-                                    <button onClick={ajouterDatesSelectionnees} disabled={saving==='tenues' || datesSelectionnees.size===0} className={btn}>
-                                        {saving==='tenues' ? 'Ajout...' : `✓ Ajouter ${datesSelectionnees.size} date(s)`}
+                                    <button onClick={ajouterDatesSelectionnees} disabled={saving==='tenues' || datesSelectionnees.length===0} className={btn}>
+                                        {saving==='tenues' ? 'Ajout...' : `✓ Ajouter ${datesSelectionnees.length} date(s)`}
                                     </button>
                                     <button onClick={()=>setShowDatePicker(false)} className="text-slate-400 font-bold text-xs uppercase hover:text-slate-600">Annuler</button>
                                 </div>
