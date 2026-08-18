@@ -278,10 +278,9 @@
                 const today = new Date(); today.setHours(0,0,0,0);
                 return [...agendaItems]
                     .filter(t => new Date(t.date) >= today)
-                    .filter(t => canSee(t.visibility))
                     .sort((a,b) => new Date(a.date) - new Date(b.date))
                     .slice(0, 3);
-            }, [agendaItems, canSee]);
+            }, [agendaItems]);
 
             const nextTenue = upcomingTenues[0] || null;
 
