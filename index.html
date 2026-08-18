@@ -1586,25 +1586,38 @@
                 try {
                     await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','tenueRythme'), rythme, {merge:true});
                     const today = new Date(); today.setHours(0,0,0,0);
+                    // Saison maçonnique : septembre → juin de l'année suivante
+                    // Si on est déjà en septembre ou après → saison courante commence cette année
+                    // Sinon → saison courante a commencé l'année précédente
+                    const seasonStartYear = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
                     const dates = [];
-                    for (let i = 0; i < 18; i++) {
-                        const m = (today.getMonth() + i) % 12;
-                        const y = today.getFullYear() + Math.floor((today.getMonth() + i) / 12);
-                        if (m === 6 || m === 7) continue; // skip July(6) and August(7)
-                        for (const sem of rythme.semaines) {
-                            const d = nthWeekday(y, m, rythme.jourSemaine, sem);
-                            if (d && d >= today) dates.push(d.toISOString().split('T')[0]);
+                    // Générer saison courante + saison suivante (pour avoir toujours une année d'avance)
+                    for (let offset = 0; offset <= 1; offset++) {
+                        const sy = seasonStartYear + offset; // année de septembre
+                        const ey = sy + 1;                   // année de juin
+                        // Septembre (8) à Décembre (11) de sy
+                        for (let m = 8; m <= 11; m++) {
+                            for (const sem of rythme.semaines) {
+                                const d = nthWeekday(sy, m, rythme.jourSemaine, sem);
+                                if (d) dates.push(d.toISOString().split('T')[0]);
+                            }
+                        }
+                        // Janvier (0) à Juin (5) de ey
+                        for (let m = 0; m <= 5; m++) {
+                            for (const sem of rythme.semaines) {
+                                const d = nthWeekday(ey, m, rythme.jourSemaine, sem);
+                                if (d) dates.push(d.toISOString().split('T')[0]);
+                            }
                         }
                     }
                     dates.sort();
-                    const futures = dates.slice(0, 20);
                     const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
                     const snap = await api.getDocs(col);
                     const existing = new Set(snap.docs.map(d => d.data().date));
                     let added = 0;
-                    for (const date of futures) {
+                    for (const date of dates) {
                         if (!existing.has(date)) {
-                            await api.addDoc(col, { date, type:'Tenue régulière', visibility:'maitre', odj:'', agapes:'' });
+                            await api.addDoc(col, { date, type:'Tenue régulière', visibility:'Maître', odj:'', agapes:'' });
                             added++;
                         }
                     }
@@ -1753,7 +1766,7 @@
                             <strong>Aperçu :</strong> Tenues le {rythme.semaines.map(s=>SEMAINES.find(x=>x.v===s)?.l).join(' et ')} {JOURS[rythme.jourSemaine]} de chaque mois.
                         </div>
                         <button onClick={genererTenues} disabled={saving==='tenues' || rythme.semaines.length===0} className={btn}>
-                            {saving==='tenues' ? 'Génération...' : '📅 Générer les prochaines tenues (12 mois)'}
+                            {saving==='tenues' ? 'Génération...' : '📅 Générer les tenues (saison sept.→juin)'}
                         </button>
                     </div>
 
