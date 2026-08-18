@@ -75,6 +75,25 @@ jobs:
             });
           }
 
+          async function getAccessTokenViaFirebaseTools() {
+            try {
+              const authModule = require(FB + '/lib/auth');
+              const exports_ = Object.keys(authModule);
+              console.log('firebase-tools auth exports:', exports_);
+              if (authModule.getAccessToken) {
+                const result = await authModule.getAccessToken(refreshToken, []);
+                return result.access_token || result;
+              }
+              if (authModule.refreshAccessToken) {
+                const result = await authModule.refreshAccessToken(refreshToken);
+                return result.access_token || result;
+              }
+            } catch(e) {
+              console.log('Direct auth module failed:', e.message);
+            }
+            return null;
+          }
+
           function toFirestoreDoc(tenue) {
             const str = v => ({ stringValue: v || '' });
             const planches = (tenue.planches || []).map(p => ({
@@ -120,14 +139,20 @@ jobs:
           ];
 
           async function main() {
-            const creds = findOAuthCreds();
-            if (!creds) { console.error('OAuth creds not found'); process.exit(1); }
-            const tokenResp = await postForm('oauth2.googleapis.com', '/token', {
-              grant_type: 'refresh_token', refresh_token: refreshToken,
-              client_id: creds.clientId, client_secret: creds.clientSecret
-            });
-            if (!tokenResp.access_token) { console.error('Token error:', JSON.stringify(tokenResp)); process.exit(1); }
-            const token = tokenResp.access_token;
+            let token = null;
+            // Strategy 1: use firebase-tools internal auth
+            token = await getAccessTokenViaFirebaseTools();
+            // Strategy 2: extract OAuth creds from firebase-tools and exchange manually
+            if (!token) {
+              const creds = findOAuthCreds();
+              if (!creds) { console.error('OAuth creds not found'); process.exit(1); }
+              const tokenResp = await postForm('oauth2.googleapis.com', '/token', {
+                grant_type: 'refresh_token', refresh_token: refreshToken,
+                client_id: creds.clientId, client_secret: creds.clientSecret
+              });
+              if (!tokenResp.access_token) { console.error('Token error:', JSON.stringify(tokenResp)); process.exit(1); }
+              token = tokenResp.access_token;
+            }
             console.log('Access token OK');
 
             const base = `/v1/projects/${projectId}/databases/(default)/documents/artifacts/${appId}/public/data/agenda`;
