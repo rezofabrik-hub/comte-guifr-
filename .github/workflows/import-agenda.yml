@@ -1,6 +1,10 @@
 name: Import Agenda Comte Guifré
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-agenda.yml'
   workflow_dispatch:
 
 jobs:
