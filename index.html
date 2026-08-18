@@ -522,17 +522,33 @@
                             
                             <div className="mt-5 min-h-[40px] font-sans">
                                 {isEditingId ? (
-                                    <div className="flex flex-col space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border w-full max-w-md animate-fade">
-                                        <input type="text" placeholder="Nom de la Loge" value={idForm.name} onChange={e=>setIdForm({...idForm, name:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500" />
-                                        <div className="relative">
-                                            <input list="obed-list" type="text" placeholder="Obédience (tapez pour filtrer…)" value={idForm.obedience} onChange={e=>setIdForm({...idForm, obedience:e.target.value, rite:''})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500 w-full"/>
-                                            <datalist id="obed-list">{Object.keys(OBED_RITES).map(o=><option key={o} value={o}/>)}</datalist>
+                                    <div className="flex flex-col gap-4 mt-2 bg-slate-50 p-4 rounded-2xl border w-full animate-fade">
+                                        <input type="text" placeholder="Nom de la Loge" value={idForm.name} onChange={e=>setIdForm({...idForm, name:e.target.value})} className="border p-2 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-amber-500 bg-white" />
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">1 — Choisir l'Obédience</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {Object.keys(OBED_RITES).map(o=>(
+                                                    <button key={o} onClick={()=>setIdForm({...idForm, obedience:o, rite:''})}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${idForm.obedience===o ? 'bg-slate-800 text-white border-slate-800 shadow' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400 hover:text-amber-700'}`}>
+                                                        {o}
+                                                    </button>
+                                                ))}
+                                                <button onClick={()=>setIdForm({...idForm, obedience:'Autre', rite:''})}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${idForm.obedience==='Autre' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-400 border-dashed border-slate-300 hover:border-amber-400'}`}>
+                                                    Autre
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="relative">
-                                            <input list="rite-list" type="text" placeholder="Rite (tapez pour filtrer…)" value={idForm.rite} onChange={e=>setIdForm({...idForm, rite:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500 w-full"/>
-                                            <datalist id="rite-list">
-                                                {(OBED_RITES[idForm.obedience] ? [...OBED_RITES[idForm.obedience], 'Autre'] : TOUS_LES_RITES).map(r=><option key={r} value={r}/>)}
-                                            </datalist>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">2 — Choisir le Rite</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(OBED_RITES[idForm.obedience] ? [...OBED_RITES[idForm.obedience], 'Autre'] : TOUS_LES_RITES).map(r=>(
+                                                    <button key={r} onClick={()=>setIdForm({...idForm, rite:r})}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${idForm.rite===r ? 'bg-amber-600 text-white border-amber-600 shadow' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400 hover:text-amber-700'}`}>
+                                                        {r}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                         {idErr && <div className="text-red-600 text-[10px] font-bold bg-red-50 p-2 rounded border border-red-200">{idErr}</div>}
                                         <div className="flex gap-2 justify-end mt-1">
