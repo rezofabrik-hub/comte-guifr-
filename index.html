@@ -1857,14 +1857,24 @@
                             </div>
                         )}
                         <div className="space-y-3">
-                            {Object.keys(GRADE_LABELS).map(g => (
-                                <div key={g} className="flex items-center gap-3">
+                            {Object.keys(GRADE_LABELS).map(g => {
+                                const [showCur, setShowCur] = React.useState(false);
+                                const [showNew, setShowNew] = React.useState(false);
+                                return (
+                                <div key={g} className="flex flex-wrap items-center gap-3">
                                     <span className="w-36 text-xs font-bold uppercase text-slate-500 font-sans">{GRADE_LABELS[g]}</span>
-                                    <span className="text-xs text-slate-400 font-mono w-20">{savedPwds[g] ? '••••••••' : '—'}</span>
-                                    <input className="flex-1 border border-slate-200 rounded-xl p-2 text-sm outline-none focus:border-amber-500 font-sans" type="password" placeholder="Nouveau mot de passe..." value={pwds[g]} onChange={e=>setPwds(p=>({...p,[g]:e.target.value}))} />
-                                    <button onClick={()=>changePassword(g)} disabled={saving==='pwd_'+g || !pwds[g]} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all font-sans disabled:opacity-30">{saving==='pwd_'+g?'...':'Changer'}</button>
+                                    <div className="relative flex items-center">
+                                        <input readOnly className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 text-sm font-mono text-slate-600 w-36 pr-8" type={showCur?'text':'password'} value={savedPwds[g]||''} />
+                                        <button type="button" onClick={()=>setShowCur(v=>!v)} className="absolute right-2 text-slate-400 hover:text-amber-600"><SmartIcon name={showCur?'EyeOff':'Eye'} size={14}/></button>
+                                    </div>
+                                    <div className="relative flex items-center flex-1">
+                                        <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans pr-8" type={showNew?'text':'password'} placeholder="Nouveau mot de passe..." value={pwds[g]} onChange={e=>setPwds(p=>({...p,[g]:e.target.value}))} />
+                                        <button type="button" onClick={()=>setShowNew(v=>!v)} className="absolute right-2 text-slate-400 hover:text-amber-600"><SmartIcon name={showNew?'EyeOff':'Eye'} size={14}/></button>
+                                    </div>
+                                    <button onClick={()=>changePassword(g)} disabled={saving==='pwd_'+g || !pwds[g]} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all font-sans disabled:opacity-30">{saving==='pwd_'+g?'...':'Confirmer'}</button>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
