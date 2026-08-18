@@ -2114,7 +2114,11 @@
             const [loginError, setLoginError] = useState('');
             const [loginLoading, setLoginLoading] = useState(false);
             const [ready, setReady] = useState(false);
-            const [activeView, setActiveView] = useState('dashboard');
+            const [activeView, setActiveView] = useState('parametres');
+            const activeViewRef = React.useRef(false);
+            React.useEffect(()=>{
+                if(!activeViewRef.current && isTresorUser) { setActiveView('dashboard'); activeViewRef.current = true; }
+            },[isTresorUser]);
             const [transactions, setTransactions] = useState([]);
             const [cotisations, setCotisations] = useState([]);
             const [membres, setMembres] = useState([]);

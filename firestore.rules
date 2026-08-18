@@ -22,7 +22,7 @@ service cloud.firestore {
     // Tout le contenu de la loge : lecture pour tout membre, écriture VM ou Architecte uniquement
     match /artifacts/{appId}/public/data/members/{memberId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte();
+      allow create, update, delete: if isVMouArchitecte() || isTresorier();
     }
 
     match /artifacts/{appId}/public/data/agenda/{itemId} {
