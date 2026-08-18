@@ -268,24 +268,33 @@
 
             const [isEditingId, setIsEditingId] = useState(false);
             const [idForm, setIdForm] = useState({ name: '', rite: '', obedience: '' });
+            const [idErr, setIdErr] = useState('');
 
             const openIdEdit = () => {
-                setIdForm({ 
-                    name: logeIdentity?.name || 'R∴L∴ Comte Guifré n°51', 
-                    rite: logeIdentity?.rite || '', 
-                    obedience: logeIdentity?.obedience || '' 
+                setIdForm({
+                    name: logeIdentity?.name || 'R∴L∴ Comte Guifré n°51',
+                    rite: logeIdentity?.rite || '',
+                    obedience: logeIdentity?.obedience || ''
                 });
+                setIdErr('');
                 setIsEditingId(true);
             };
 
             const saveId = async () => {
-                await onSaveIdentity(idForm);
-                setIsEditingId(false);
+                try {
+                    await onSaveIdentity(idForm);
+                    setIsEditingId(false);
+                    setIdErr('');
+                } catch(e) {
+                    setIdErr('Erreur : ' + (e.message || 'impossible de sauvegarder'));
+                }
             };
 
             const clearId = async () => {
-                await onSaveIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
-                setIsEditingId(false);
+                try {
+                    await onSaveIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+                    setIsEditingId(false);
+                } catch(e) { setIdErr('Erreur : ' + (e.message || '')); }
             };
 
             const canEditIdentity = isVM || isArchitect;
@@ -321,6 +330,7 @@
                                         <input type="text" placeholder="Nom de la Loge" value={idForm.name} onChange={e=>setIdForm({...idForm, name:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500" />
                                         <input type="text" placeholder="Rite (ex: Rite Écossais Ancien et Accepté)" value={idForm.rite} onChange={e=>setIdForm({...idForm, rite:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500" />
                                         <input type="text" placeholder="Obédience (ex: Grand Orient de France)" value={idForm.obedience} onChange={e=>setIdForm({...idForm, obedience:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500" />
+                                        {idErr && <div className="text-red-600 text-[10px] font-bold bg-red-50 p-2 rounded border border-red-200">{idErr}</div>}
                                         <div className="flex gap-2 justify-end mt-1">
                                             <button onClick={clearId} className="text-red-500 text-[10px] font-bold uppercase mr-auto hover:underline">Réinitialiser</button>
                                             <button onClick={()=>setIsEditingId(false)} className="text-slate-400 text-[10px] font-bold uppercase hover:text-slate-600">Annuler</button>
@@ -1145,9 +1155,10 @@
             );
         }
 
-        function PlanchesView({ activeGrade, planches, onRead, onWrite }) {
+        function PlanchesView({ activeGrade, planches, onRead, onWrite, loginGradeKey, isArchitect }) {
             const [f, sF] = useState('planche');
             const filtered = planches.filter(p => f === 'planche' ? (!p.docType || p.docType === 'planche') : p.docType === 'tracee');
+            const canDepose = isArchitect || loginGradeKey === activeGrade;
             return (
                 <div className="space-y-6 animate-fade">
                     <div className="flex justify-center mb-4"><div className="bg-slate-200 p-1 rounded-lg inline-flex">
@@ -1156,7 +1167,7 @@
                     </div></div>
                     <div className="flex justify-between items-center bg-white p-6 rounded-2xl border shadow-sm">
                         <h2 className="text-2xl font-serif uppercase tracking-widest">{f==='planche'?'Archives':'Tracés'} {activeGrade}</h2>
-                        <button onClick={onWrite} className="bg-amber-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center"><SmartIcon name="PenTool" size={16} className="mr-2"/> DÉPOSER</button>
+                        {canDepose && <button onClick={onWrite} className="bg-amber-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center"><SmartIcon name="PenTool" size={16} className="mr-2"/> DÉPOSER</button>}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filtered.length === 0 ? <p className="col-span-full text-center py-10 text-slate-400 italic">Aucun document pour le moment.</p> : filtered.map(p => (
@@ -1172,8 +1183,10 @@
             );
         }
 
-        function ReadPlancheView({ planche, onBack, onDelete, currentUser, isArchitect }) {
-            const isA = currentUser === planche.submittedBy || currentUser === planche.author || isArchitect;
+        function ReadPlancheView({ planche, onBack, onDelete, currentUser, isArchitect, loginGradeKey }) {
+            const plancheGrade = (planche.grade||'').toLowerCase().replace('î','i').replace('é','e').replace('è','e');
+            const isOwnGrade = loginGradeKey && plancheGrade.startsWith(loginGradeKey);
+            const isA = isArchitect || (isOwnGrade && (currentUser === planche.submittedBy || currentUser === planche.author));
             const [s, sS] = useState(false);
             return (
                 <div className="max-w-4xl mx-auto space-y-6 animate-fade">
@@ -1192,8 +1205,9 @@
             );
         }
 
-        function WritePlancheView({ onBack, onSubmit, defaultGrade, currentUser }) {
-            const [f, sF] = useState({ title:'', author:currentUser||'', date:new Date().toISOString().split('T')[0], grade:defaultGrade==='apprenti'?'Apprenti':defaultGrade==='compagnon'?'Compagnon':'Maître', content:'', docType:'planche', pdfFile:null });
+        function WritePlancheView({ onBack, onSubmit, defaultGrade, currentUser, isArchitect }) {
+            const gradeLabel = defaultGrade==='apprenti'?'Apprenti':defaultGrade==='compagnon'?'Compagnon':'Maître';
+            const [f, sF] = useState({ title:'', author:currentUser||'', date:new Date().toISOString().split('T')[0], grade:gradeLabel, content:'', docType:'planche', pdfFile:null });
             const [err, sE] = useState(''); const [sub, sS] = useState(false);
             const hp = async (e) => {
                 const file=e.target.files[0]; if(!file)return;
@@ -1212,7 +1226,7 @@
                         <form onSubmit={async(e)=>{e.preventDefault(); sS(true); await onSubmit(f); sS(false);}} className="space-y-6">
                             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200"><label className="text-[10px] font-bold text-amber-800 uppercase block mb-1">Type de document</label><select value={f.docType} onChange={e=>sF({...f,docType:e.target.value})} className="w-full bg-white border p-3 rounded text-sm"><option value="planche">Morceau d'Architecture</option><option value="tracee">Planche Tracée (Procès-Verbal)</option></select></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" placeholder="Titre" value={f.title} onChange={e=>sF({...f,title:e.target.value})} className="border p-3 rounded text-sm" required /><input type="text" placeholder="Auteur" value={f.author} onChange={e=>sF({...f,author:e.target.value})} className="border p-3 rounded text-sm" required /></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="date" value={f.date} onChange={e=>sF({...f,date:e.target.value})} className="border p-3 rounded text-sm" required /><select value={f.grade} onChange={e=>sF({...f,grade:e.target.value})} className="border p-3 rounded text-sm"><option>Apprenti</option><option>Compagnon</option><option>Maître</option></select></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="date" value={f.date} onChange={e=>sF({...f,date:e.target.value})} className="border p-3 rounded text-sm" required />{isArchitect ? (<select value={f.grade} onChange={e=>sF({...f,grade:e.target.value})} className="border p-3 rounded text-sm"><option>Apprenti</option><option>Compagnon</option><option>Maître</option></select>) : (<input type="text" value={f.grade} readOnly className="border p-3 rounded text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />)}</div>
                             <div className="bg-slate-50 p-6 rounded-xl border space-y-4">
                                 <label className="text-xs font-bold text-slate-500 uppercase block">Joindre le document PDF (Max 10 Mo)</label><input type="file" accept=".pdf" onChange={hp} className="text-xs" />
                                 <div className="relative py-4"><div className="border-t"></div><span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-50 px-4 text-[10px] text-slate-400 font-bold uppercase">Ou coller le texte</span></div>
@@ -1599,9 +1613,9 @@
                         {activeView === 'configuration' && isArchitect && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
-                        {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} />}
-                        {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} />}
-                        {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView('home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade="apprenti" currentUser={memberName} />}
+                        {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} />}
+                        {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} loginGradeKey={loginGradeKey} />}
+                        {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView(loginGradeKey||'home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade={loginGradeKey||'apprenti'} currentUser={memberName} isArchitect={isArchitect} />}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>
                 </div>
