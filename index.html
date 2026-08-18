@@ -964,9 +964,9 @@
                         <input type="date" value={f.date} onChange={e=>s({...f,date:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold font-serif" required />
                         <input type="text" placeholder="Nature" value={f.type} onChange={e=>s({...f,type:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold font-serif" required />
                         <select value={f.visibility} onChange={e=>s({...f,visibility:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold text-amber-700 font-serif">
-                            <option value="Apprenti">Apprenti (Visible tous)</option>
-                            <option value="Compagnon">Compagnon (Compagnon+Maitre)</option>
-                            <option value="Maître">Maître (Maitre seul)</option>
+                            <option value="Maître">Maître (Tous les grades)</option>
+                            <option value="Compagnon">Compagnon (Compagnons & Apprentis)</option>
+                            <option value="Apprenti">Apprenti (Apprentis seulement)</option>
                         </select>
                     </div>
                     
