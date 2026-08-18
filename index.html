@@ -1629,6 +1629,32 @@
                 setSaving('');
             };
 
+            const nettoyerTenues = async () => {
+                if (!window.confirm('Supprimer les tenues vides dont le jour ne correspond pas au rythme configuré (1er et 3e jeudi) ? Les tenues avec un sujet ou des informations saisies ne seront PAS supprimées.')) return;
+                setSaving('nettoyage');
+                try {
+                    const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
+                    const snap = await api.getDocs(col);
+                    let deleted = 0;
+                    for (const docSnap of snap.docs) {
+                        const d = docSnap.data();
+                        const dateObj = new Date(d.date + 'T12:00:00');
+                        const jourSemaine = dateObj.getDay(); // 0=dim,1=lun,...,4=jeu
+                        const matchesRythme = rythme.semaines.some(sem => {
+                            const correct = nthWeekday(dateObj.getFullYear(), dateObj.getMonth(), rythme.jourSemaine, sem);
+                            return correct && correct.toISOString().split('T')[0] === d.date;
+                        });
+                        const isEmpty = !d.sujet && !d.odj && !(d.planches && d.planches.length) && !d.agapes && !d.entree && !d.plat && !d.dessert && !d.odjFile;
+                        if (!matchesRythme && isEmpty) {
+                            await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',docSnap.id));
+                            deleted++;
+                        }
+                    }
+                    flash(`${deleted} tenue(s) incorrecte(s) supprimée(s) ✓`);
+                } catch(e) { flash('Erreur : ' + (e.message || e)); }
+                setSaving('');
+            };
+
             const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3000); };
 
             const saveIdentity = async () => {
@@ -1792,9 +1818,15 @@
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-800">
                             <strong>Aperçu :</strong> Tenues le {rythme.semaines.map(s=>SEMAINES.find(x=>x.v===s)?.l).join(' et ')} {JOURS[rythme.jourSemaine]} de chaque mois.
                         </div>
-                        <button onClick={genererTenues} disabled={saving==='tenues' || rythme.semaines.length===0} className={btn}>
-                            {saving==='tenues' ? 'Génération...' : '📅 Générer les tenues (saison sept.→juin)'}
-                        </button>
+                        <div className="flex gap-3 flex-wrap">
+                            <button onClick={genererTenues} disabled={saving==='tenues' || rythme.semaines.length===0} className={btn}>
+                                {saving==='tenues' ? 'Génération...' : '📅 Générer les tenues (saison sept.→juin)'}
+                            </button>
+                            <button onClick={nettoyerTenues} disabled={saving==='nettoyage'} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow transition-all font-sans">
+                                {saving==='nettoyage' ? 'Nettoyage...' : '🗑 Supprimer les tenues incorrectes'}
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-2">Le nettoyage ne supprime que les tenues vides dont le jour ne correspond pas au rythme configuré.</p>
                     </div>
 
                     <div className={section}>
