@@ -2016,6 +2016,28 @@
                 if (!api) return;
                 const unsubAuth = api.onAuthStateChanged(api.auth, u => {
                     setFbUser(u);
+                    if (!u) { setIsLogged(false); return; }
+                    // Restauration automatique de session (ouverture app / refresh)
+                    const email = u.email || '';
+                    if (email === ARCHITECT_ACCOUNT) {
+                        setIsArchitect(true); setIsLogged(true);
+                        setUnlockedGrades({ apprenti:true, compagnon:true, maitre:true });
+                        setLoginGradeKey('architecte');
+                        return;
+                    }
+                    const gradeByEmail = Object.entries(GRADE_ACCOUNTS).find(([,e]) => e === email);
+                    if (gradeByEmail) {
+                        const [gradeKey] = gradeByEmail;
+                        const grades = gradeKey === 'maitre' ? { apprenti:true, compagnon:true, maitre:true }
+                            : gradeKey === 'compagnon' ? { apprenti:true, compagnon:true, maitre:false }
+                            : gradeKey === 'tresorier' || gradeKey === 'vm' ? { apprenti:true, compagnon:true, maitre:true }
+                            : { apprenti:true, compagnon:false, maitre:false };
+                        setUnlockedGrades(grades);
+                        setLoginGradeKey(gradeKey);
+                        setIsTresorier(gradeKey === 'tresorier');
+                        setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : '');
+                        if (!isLogged) setIsLogged(true);
+                    }
                 });
                 return () => unsubAuth();
             }, [api]);
