@@ -502,7 +502,7 @@
                 <div className="space-y-8 animate-fade font-sans text-slate-900">
                     <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border flex flex-col md:flex-row justify-between items-center gap-8">
                         <div className="text-center md:text-left flex-grow font-serif">
-                            <h2 className="text-4xl font-bold text-slate-800 leading-tight">Bienvenue, {memberName}</h2>
+                            <h2 className="text-4xl font-bold text-slate-800 leading-tight">{(() => { const n = memberName || ''; const isSoeur = /s[oœ]eur/i.test(n); const titre = isSoeur ? 'ma Sœur' : 'mon Frère'; const prenom = n.replace(/^(fr[eè]re|s[oœ]eur|v∴m∴|v\.m\.|frere|soeur)\s*/i,'').trim(); return `Bienvenue, ${titre} ${prenom}`; })()}</h2>
                             <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Loge Comte Guifré n°51'}.</p>
                             {isEditingWelcome ? (
                                 <div className="mt-3 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 w-full max-w-md animate-fade">
@@ -1252,7 +1252,8 @@
             );
         }
 
-        function BibliothequeView({ books, onAdd, onUpdate, onDelete, unlockedGrades, currentUser, reglementFile, onSaveReglement, isArchitect }) {
+        function BibliothequeView({ books, onAdd, onUpdate, onDelete, unlockedGrades, currentUser, reglementFile, onSaveReglement, isArchitect, isVM }) {
+            const canEditBiblio = isArchitect || isVM;
             const [isA, sA] = useState(false);
             const [editingId, setEditingId] = useState(null);
             const list = books.filter(b => {
@@ -1267,7 +1268,7 @@
                 <div className="space-y-6 animate-fade">
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4">
                         <div><h2 className="text-2xl font-serif flex items-center"><SmartIcon name="Library" className="mr-3 text-amber-600" size={24}/>Les Archives</h2><p className="text-slate-500 text-sm font-medium">Partagez vos lectures et documents par grade.</p></div>
-                        {(isArchitect || unlockedGrades.maitre) && (
+                        {canEditBiblio && (
                             <button onClick={()=>sA(!isA)} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
                                 <SmartIcon name={isA?"X":"Plus"} size={18}/><span>Ajouter un Document</span>
                             </button>
@@ -1302,7 +1303,7 @@
                                 ) : (
                                     <p className="text-slate-500 text-xs italic">Document en cours de dépôt...</p>
                                 )}
-                                {isArchitect && (
+                                {canEditBiblio && (
                                     <ReglementUploadForm reglementFile={reglementFile} onSaveReglement={onSaveReglement} />
                                 )}
                             </div>
@@ -1340,7 +1341,7 @@
 
                                                 <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
                                                     <span>Par {b.sharedBy}{b.modifiedAt ? ` · ${new Date(b.modifiedAt).toLocaleDateString('fr-FR')}` : ''}</span>
-                                                    {isArchitect && (
+                                                    {canEditBiblio && (
                                                         <div className="flex space-x-2">
                                                             <button onClick={()=>setEditingId(b.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
                                                             <button onClick={()=>onDelete(b.id)} className="p-1.5 text-slate-400 hover:text-red-500"><SmartIcon name="Trash2" size={14}/></button>
@@ -1442,10 +1443,10 @@
             );
         }
 
-        function PlanchesView({ activeGrade, planches, onRead, onWrite, loginGradeKey, isArchitect }) {
+        function PlanchesView({ activeGrade, planches, onRead, onWrite, loginGradeKey, isArchitect, isVM }) {
             const [f, sF] = useState('planche');
             const filtered = planches.filter(p => f === 'planche' ? (!p.docType || p.docType === 'planche') : p.docType === 'tracee');
-            const canDepose = isArchitect || loginGradeKey === activeGrade;
+            const canDepose = isArchitect || isVM;
             const col = GRADE_COLORS[activeGrade] || GRADE_COLORS.maitre;
             return (
                 <div className="space-y-6 animate-fade">
@@ -1478,10 +1479,8 @@
             );
         }
 
-        function ReadPlancheView({ planche, onBack, onDelete, currentUser, isArchitect, loginGradeKey }) {
-            const plancheGrade = (planche.grade||'').toLowerCase().replace('î','i').replace('é','e').replace('è','e');
-            const isOwnGrade = loginGradeKey && plancheGrade.startsWith(loginGradeKey);
-            const isA = isArchitect || (isOwnGrade && (currentUser === planche.submittedBy || currentUser === planche.author));
+        function ReadPlancheView({ planche, onBack, onDelete, currentUser, isArchitect, loginGradeKey, isVM }) {
+            const isA = isArchitect || isVM;
             const [s, sS] = useState(false);
             return (
                 <div className="max-w-4xl mx-auto space-y-6 animate-fade">
@@ -1904,10 +1903,10 @@
             const [loginGradeKey, setLoginGradeKey] = useState('');
             const [pendingNameMatch, setPendingNameMatch] = useState('');
 
-            // canEdit définit les droits administrateur : ouvert aux Maîtres OU à l'Architecte
-            const canEdit = unlockedGrades.maitre || isArchitect;
-
             const isVM = loginGradeKey === 'vm' || (memberRole || '').toLowerCase().includes('vénérable') || (memberRole || '').toLowerCase().includes('venerable');
+
+            // canEdit : écriture réservée au Vénérable Maître et à l'Architecte uniquement
+            const canEdit = isVM || isArchitect;
             const hasTresorAccess = isTresorier || isVM || isArchitect;
 
             // 1. Initialisation de l'authentification Firebase
@@ -2026,7 +2025,7 @@
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
                                 {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="landmark" label="Trésorerie" />}
-                                {isArchitect && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="Settings" label="Configuration" />}
+                                {(isVM || isArchitect) && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="Settings" label="Configuration" />}
 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
@@ -2073,8 +2072,8 @@
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
                         {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
-                        {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} />}
-                        {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
+                        {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
+                        {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
                         {activeView === 'tresorerie' && hasTresorAccess && (
                             <div style={{height:'calc(100vh - 80px)', width:'100%'}}>
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
@@ -2083,8 +2082,8 @@
                         {activeView === 'configuration' && isArchitect && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
-                        {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} />}
-                        {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} loginGradeKey={loginGradeKey} />}
+                        {['apprenti','compagnon','maitre'].includes(activeView) && <PlanchesView activeGrade={activeView} planches={planches.filter(p=>normalizeGrade(p.grade)===activeView)} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} />}
+                        {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} isVM={isVM} loginGradeKey={loginGradeKey} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView(loginGradeKey||'home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade={loginGradeKey||'apprenti'} currentUser={memberName} isArchitect={isArchitect} />}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>

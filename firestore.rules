@@ -9,15 +9,6 @@ service cloud.firestore {
     function email() {
       return request.auth.token.email;
     }
-    function isCompagnon() {
-      return email() in ['compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
-    }
-    function isMaitre() {
-      return email() in ['maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
-    }
-    function isArchitecte() {
-      return email() == 'architecte@cg51-virtuel.fr';
-    }
     function isVMouArchitecte() {
       return email() in ['vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
     }
@@ -28,32 +19,30 @@ service cloud.firestore {
       return isSignedIn() && email() in ['apprenti@cg51-virtuel.fr','compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
     }
 
-    // Données publiques de la loge : lecture libre pour tout membre authentifié,
-    // écriture réservée selon le grade. Le filtrage par grade est fait côté client.
+    // Tout le contenu de la loge : lecture pour tout membre, écriture VM ou Architecte uniquement
     match /artifacts/{appId}/public/data/members/{memberId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isMaitre();
+      allow create, update, delete: if isVMouArchitecte();
     }
 
     match /artifacts/{appId}/public/data/agenda/{itemId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isMaitre();
+      allow create, update, delete: if isVMouArchitecte();
     }
 
     match /artifacts/{appId}/public/data/planches/{docId} {
       allow read: if isSignedIn();
-      allow create: if isCompagnon();
-      allow update, delete: if isMaitre();
+      allow create, update, delete: if isVMouArchitecte();
     }
 
     match /artifacts/{appId}/public/data/bibliotheque/{docId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isArchitecte();
+      allow create, update, delete: if isVMouArchitecte();
     }
 
     match /artifacts/{appId}/public/data/liens/{docId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isArchitecte();
+      allow create, update, delete: if isVMouArchitecte();
     }
 
     match /artifacts/{appId}/public/data/settings/{docId} {
@@ -61,7 +50,7 @@ service cloud.firestore {
       allow write: if isVMouArchitecte();
     }
 
-    // Trésorerie : lecture réservée membres de grade, écriture trésorier uniquement
+    // Trésorerie : lecture membres de grade, écriture trésorier uniquement
     match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
       allow read, write: if isTresorier();
     }
