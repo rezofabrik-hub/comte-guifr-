@@ -1,5 +1,5 @@
 // Service Worker — Temple Virtuel CG51
-const CACHE_NAME = 'temple-cg51-v9';
+const CACHE_NAME = 'temple-cg51-v10';
 
 // Ressources mises en cache pour le mode hors-ligne
 const STATIC_ASSETS = [
