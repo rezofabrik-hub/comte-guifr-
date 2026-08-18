@@ -1,0 +1,150 @@
+name: Import Agenda Comte Guifré
+
+on:
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      - name: Import 20 tenues Sept 2026 → Juin 2027
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          node << 'EOF'
+          const https = require('https');
+          const fs = require('fs');
+          const { execSync } = require('child_process');
+
+          const FB = '/usr/local/lib/node_modules/firebase-tools';
+          const refreshToken = process.env.FIREBASE_TOKEN;
+          const projectId = 'site-cg51';
+          const appId = 'site-cg51';
+
+          function findOAuthCreds() {
+            let files;
+            try {
+              files = execSync(`grep -rl "googleusercontent.com" "${FB}/lib/" 2>/dev/null`, { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+            } catch(e) { files = []; }
+            for (const f of files) {
+              const src = fs.readFileSync(f, 'utf8');
+              const patterns = [
+                /client_id["'\s:,{(]+([0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com)/,
+                /["']([0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com)["']/,
+              ];
+              let clientId = null;
+              for (const p of patterns) { const m = src.match(p); if (m) { clientId = m[1]; break; } }
+              if (!clientId) continue;
+              const cidIdx = src.indexOf(clientId);
+              const window = src.slice(Math.max(0, cidIdx - 500), cidIdx + 500);
+              const csMatch = window.match(/client.secret["'\s:,]+["']([A-Za-z0-9_\-]{20,})["']/);
+              if (!csMatch) continue;
+              return { clientId, clientSecret: csMatch[1] };
+            }
+            return null;
+          }
+
+          function postForm(hostname, path, params) {
+            const body = new URLSearchParams(params).toString();
+            return new Promise((resolve, reject) => {
+              const req = https.request({ hostname, path, method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } }, res => {
+                let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error(d)); } });
+              });
+              req.on('error', reject); req.write(body); req.end();
+            });
+          }
+
+          function firestorePost(path, body, token) {
+            return new Promise((resolve, reject) => {
+              const data = JSON.stringify(body);
+              const req = https.request({
+                hostname: 'firestore.googleapis.com',
+                path, method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Authorization': 'Bearer ' + token }
+              }, res => {
+                let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error(d)); } });
+              });
+              req.on('error', reject); req.write(data); req.end();
+            });
+          }
+
+          function toFirestoreDoc(tenue) {
+            const str = v => ({ stringValue: v || '' });
+            const planches = (tenue.planches || []).map(p => ({
+              mapValue: { fields: { title: str(p.title), author: str(p.author), grade: str(p.grade) } }
+            }));
+            return {
+              fields: {
+                date:          str(tenue.date),
+                type:          str(tenue.type),
+                visibility:    str(tenue.visibility),
+                sujet:         str(tenue.sujet),
+                agapes:        str(tenue.agapes),
+                entree:        str(tenue.entree || ''),
+                plat:          str(tenue.plat || ''),
+                dessert:       str(tenue.dessert || ''),
+                lienFramadate: str(tenue.lienFramadate || ''),
+                planches:      { arrayValue: { values: planches } },
+              }
+            };
+          }
+
+          const tenues = [
+            { date:'2026-09-03', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Lecture des enquêtes de Mme Trotel\n1er Ordre : Planche de NTCS Lydie Hervé\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Nathalie Ramon', planches:[{title:'Lecture des enquêtes de Mme Trotel',author:'',grade:'Maître'},{title:'Planche de NTCS',author:'Lydie Hervé',grade:'Maître'}] },
+            { date:'2026-09-17', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Passage sous le bandeau de la Profane Mme Trotel (si vote positif)\n2ème Ordre : Planche de NTCF Jean-Patrick Deconinck — "Le 5ème Élément"\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Basile Franchet', planches:[{title:'Passage sous le bandeau — Mme Trotel',author:'',grade:'Maître'},{title:'Le 5ème Élément',author:'Jean-Patrick Deconinck',grade:'Maître'}] },
+            { date:'2026-10-01', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche de NTCS Mathilde Caruel\n2ème Ordre : Planche de NTCS Nicole Lajarrige + Contrôle des connaissances\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Bruno Ramon', planches:[{title:'Planche de NTCS',author:'Mathilde Caruel',grade:'Maître'},{title:'Planche de NTCS + Contrôle des connaissances',author:'Nicole Lajarrige',grade:'Maître'}] },
+            { date:'2026-10-15', type:'Tenue Régulière', visibility:'Maître', sujet:'Tenue réservée — Programme à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Michel Hervé', planches:[] },
+            { date:'2026-11-05', type:'Tenue Solennelle', visibility:'Maître', sujet:'1er Ordre : Cérémonie d\'initiation de la Profane Mme Trotel (si vote positif)\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Jean-Patrick Deconinck', planches:[{title:'Cérémonie d\'initiation — Mme Trotel',author:'',grade:'Maître'}] },
+            { date:'2026-11-19', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche de NTCF Bruno Ramon\n1er Ordre : Planche de NTCS Marie Sionnet\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'David Loiret', planches:[{title:'Planche de NTCF',author:'Bruno Ramon',grade:'Maître'},{title:'Planche de NTCS',author:'Marie Sionnet',grade:'Maître'}] },
+            { date:'2026-12-03', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche de NTCS Sylvie Ribeill\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Lydie Hervé', planches:[{title:'Planche de NTCS',author:'Sylvie Ribeill',grade:'Maître'},{title:'Planche — À définir',author:'',grade:'Maître'}] },
+            { date:'2026-12-17', type:'Banquet d\'Ordre', visibility:'Maître', sujet:'Banquet d\'Ordre 2026 — R∴L∴ Comte Guifré n°51', agapes:'Tout le monde', planches:[] },
+            { date:'2027-01-07', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Sylvie Ribeill', planches:[{title:'Planche — À définir',author:'',grade:'Maître'},{title:'Planche — À définir',author:'',grade:'Maître'}] },
+            { date:'2027-01-21', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Laurent Mienville', planches:[{title:'Planche — À définir',author:'',grade:'Maître'},{title:'Planche — À définir',author:'',grade:'Maître'}] },
+            { date:'2027-02-04', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Jean-Félix Lévy', planches:[] },
+            { date:'2027-02-18', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Nicole Lajarrige', planches:[] },
+            { date:'2027-03-04', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Renée Olender', planches:[] },
+            { date:'2027-03-18', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n2ème Ordre : Planche de NTCF Bruno Ramon\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Nouvelle Apprenti', planches:[{title:'Planche — À définir',author:'',grade:'Maître'},{title:'Planche de NTCF',author:'Bruno Ramon',grade:'Maître'}] },
+            { date:'2027-04-01', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Marie Sionnet', planches:[] },
+            { date:'2027-04-15', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Nathalie Sendra', planches:[] },
+            { date:'2027-05-06', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Mathilde Caruel', planches:[] },
+            { date:'2027-05-20', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Claude Carceller', planches:[] },
+            { date:'2027-06-03', type:'Tenue Régulière', visibility:'Maître', sujet:'1er Ordre : Planche à définir\n1er Ordre : Planche à définir\n5 min de symbolisme : NTCS Hospitalier Mathilde', agapes:'Julien Duran', planches:[] },
+            { date:'2027-06-17', type:'Tenue Solennelle', visibility:'Maître', sujet:'Solstice d\'Été de la R∴L∴ Comte Guifré n°51 — 2027', agapes:'Restaurant', planches:[] },
+          ];
+
+          async function main() {
+            const creds = findOAuthCreds();
+            if (!creds) { console.error('OAuth creds not found'); process.exit(1); }
+            const tokenResp = await postForm('oauth2.googleapis.com', '/token', {
+              grant_type: 'refresh_token', refresh_token: refreshToken,
+              client_id: creds.clientId, client_secret: creds.clientSecret
+            });
+            if (!tokenResp.access_token) { console.error('Token error:', JSON.stringify(tokenResp)); process.exit(1); }
+            const token = tokenResp.access_token;
+            console.log('Access token OK');
+
+            const base = `/v1/projects/${projectId}/databases/(default)/documents/artifacts/${appId}/public/data/agenda`;
+            let ok = 0, err = 0;
+            for (const tenue of tenues) {
+              try {
+                const result = await firestorePost(base, toFirestoreDoc(tenue), token);
+                if (result.name) {
+                  console.log('✅', tenue.date, '—', tenue.type, '— Agapes:', tenue.agapes);
+                  ok++;
+                } else {
+                  console.error('❌', tenue.date, JSON.stringify(result));
+                  err++;
+                }
+              } catch(e) {
+                console.error('❌', tenue.date, e.message);
+                err++;
+              }
+            }
+            console.log(`\nImport terminé : ${ok} tenues créées, ${err} erreurs.`);
+          }
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          EOF
