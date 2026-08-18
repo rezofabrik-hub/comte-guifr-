@@ -529,17 +529,47 @@
             );
         }
 
+        const OFFICIER_ROLES = ['vénérable','venerable','1er surveillant','premier surveillant','2nd surveillant','second surveillant','deuxième surveillant','orateur','secrétaire','secretaire','trésorier','tresorier','hospitalier','hospitalière','maître des cérémonies','maitre des ceremonies','expert','experte','colonne d\'harmonie','couvreur','couvreuse','porte-glaive','architecte','chancelier'];
+        const OFFICER_RANK = r => {
+            const s = (r||'').toLowerCase();
+            if(s.includes('vénérable')||s.includes('venerable')) return 1;
+            if(s.includes('1er sur')) return 2;
+            if(s.includes('2nd sur')||s.includes('second sur')) return 3;
+            if(s.includes('orateur')) return 4;
+            if(s.includes('secrét')||s.includes('secret')) return 5;
+            if(s.includes('trésor')||s.includes('tresor')) return 6;
+            if(s.includes('hospital')) return 7;
+            if(s.includes('cérémonie')||s.includes('ceremonie')) return 8;
+            if(s.includes('expert')) return 9;
+            if(s.includes('harmonie')) return 10;
+            if(s.includes('couvreur')||s.includes('couvreuse')) return 11;
+            return 12;
+        };
+        const isOfficierRole = r => {
+            const role = (r||'').toLowerCase().trim();
+            if(!role) return false;
+            return OFFICIER_ROLES.some(o => role.includes(o));
+        };
+        const GRADE_ORDER_M = { 'maître':0,'maitre':0,'compagnon':1,'apprenti':2 };
+
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
-            const [fd, sFd] = useState(initialData || { name:'', role:'', phone:'', email:'', address:'', birthdate:'', profession:'', photoData:'' });
+            const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'' });
             const [sub, sS] = useState(false);
-            const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(v)=>sFd({...fd, photoData:r.result}); r.readAsDataURL(f); };
+            const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
             return (
-                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); await onSave(fd); sS(false);}} className="space-y-4">
+                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); await onSave({...fd, name:fd.name, nom:fd.name}); sS(false);}} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value})} className="border p-2 rounded text-sm" required />
-                        <input type="text" placeholder="Grade ou Fonction (ex: Orateur, Maître, Apprenti)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm" required />
-                        <input type="tel" placeholder="Téléphone" value={fd.phone} onChange={e=>sFd({...fd,phone:e.target.value})} className="border p-2 rounded text-sm" />
-                        <input type="email" placeholder="Email" value={fd.email} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm" />
+                        <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm" required />
+                        <select value={fd.grade||'Maître'} onChange={e=>sFd({...fd,grade:e.target.value})} className="border p-2 rounded text-sm font-bold text-amber-700">
+                            <option>Maître</option><option>Compagnon</option><option>Apprenti</option>
+                        </select>
+                        <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm" />
+                        <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
+                        <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm md:col-span-1" />
+                        <div className="flex items-center gap-3">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase">Photo sautoir</label>
+                            <input type="file" accept="image/*" onChange={hp} className="text-xs" />
+                        </div>
                     </div>
                     <div className="flex justify-between items-center pt-4 border-t">
                         {onDelete && <button type="button" onClick={onDelete} className="text-red-500 text-xs font-bold hover:underline">SUPPRIMER</button>}
@@ -549,84 +579,90 @@
             );
         }
 
-        function MemberCard({ member, view, onUpdate, onDelete, canEdit }) {
+        function MemberCard({ member, view, onUpdate, onDelete, canEdit, showGrade }) {
             const [isE, sE] = useState(false);
-            if (isE) return <div className="col-span-full bg-white p-6 rounded-xl border-2 border-amber-300 shadow-xl"><MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id, d); sE(false);}} onCancel={()=>sE(false)} onDelete={async()=>await onDelete(member.id)} /></div>;
-            return view === 'grid' ? (
-                <div className="bg-white rounded-xl border relative group h-52 animate-fade">
-                    <div className="p-4 flex flex-col items-center text-center h-full group-hover:blur-sm transition-all">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-3 border-2 border-white shadow-sm">
-                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover" /> : <SmartIcon name="User" size={30} className="text-slate-300" />}
-                        </div>
-                        <h4 className="font-bold text-xs leading-tight">{member.name}</h4>
-                        <p className="text-[9px] text-amber-600 font-bold uppercase mt-1 px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</p>
-                    </div>
-                    <div className="absolute inset-0 bg-slate-900/90 text-white p-4 flex flex-col justify-center opacity-0 group-hover:opacity-100 transition-all rounded-xl text-[10px]">
-                        <div className="border-b border-slate-700 pb-1 mb-2 font-bold text-amber-500 truncate">{member.name}</div>
-                        <div className="flex items-center space-x-2 mb-1"><SmartIcon name="Phone" size={10}/><span>{member.phone || 'Non renseigné'}</span></div>
-                        <div className="flex items-center space-x-2 mb-1"><SmartIcon name="Mail" size={10}/><span>{member.email || 'Non renseigné'}</span></div>
-                        {canEdit && <button onClick={()=>sE(true)} className="mt-auto ml-auto p-1 text-amber-400 hover:text-white"><SmartIcon name="Edit2" size={12}/></button>}
-                    </div>
+            const phone = member.telephone || member.phone || '';
+            const isOfficier = isOfficierRole(member.role);
+            const gradeClr = { 'Maître':'bg-amber-100 text-amber-800','Compagnon':'bg-emerald-100 text-emerald-800','Apprenti':'bg-blue-100 text-blue-800' };
+            const gc = gradeClr[member.grade] || 'bg-slate-100 text-slate-600';
+            if (isE) return (
+                <div className="col-span-full bg-white p-6 rounded-xl border-2 border-amber-300 shadow-xl">
+                    <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);sE(false);}} onCancel={()=>sE(false)} onDelete={async()=>await onDelete(member.id)} />
                 </div>
-            ) : (
-                <div className="bg-white p-3 rounded-lg border flex items-center justify-between text-xs hover:border-amber-300">
-                    <div className="flex items-center space-x-4"><span className="font-bold">{member.name}</span><span className="text-amber-600 font-bold uppercase ml-2 text-[9px]">{member.role}</span></div>
-                    <div className="text-slate-500 hidden md:block">{member.email}</div>
-                    {canEdit && <button onClick={()=>sE(true)} className="p-2 text-slate-300 hover:text-amber-600"><SmartIcon name="Edit2" size={16}/></button>}
+            );
+            if (view === 'list') return (
+                <div className="bg-white p-3 rounded-lg border flex items-center justify-between text-xs hover:border-amber-300 gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center border">
+                        {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={14} className="text-slate-300"/>}
+                    </div>
+                    <span className="font-bold flex-1">{member.name}</span>
+                    <div className="flex gap-1 flex-wrap">
+                        {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
+                        {isOfficier && <span className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</span>}
+                    </div>
+                    <div className="text-slate-400 hidden md:block truncate max-w-[160px]">{member.email}</div>
+                    {canEdit && <button onClick={()=>sE(true)} className="p-1 text-slate-300 hover:text-amber-600 flex-shrink-0"><SmartIcon name="Edit2" size={14}/></button>}
+                </div>
+            );
+            return (
+                <div className="bg-white rounded-xl border relative group h-56 animate-fade overflow-hidden">
+                    <div className="p-4 flex flex-col items-center text-center h-full group-hover:blur-sm transition-all">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-2 border-2 border-white shadow-sm flex-shrink-0">
+                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                        </div>
+                        <h4 className="font-bold text-xs leading-tight mb-1">{member.name}</h4>
+                        {isOfficier && <p className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100 mb-1">{member.role}</p>}
+                        {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
+                    </div>
+                    <div className="absolute inset-0 bg-slate-900/92 text-white p-4 flex flex-col justify-center opacity-0 group-hover:opacity-100 transition-all rounded-xl text-[10px]">
+                        <div className="border-b border-slate-700 pb-1 mb-2 font-bold text-amber-400 truncate">{member.name}</div>
+                        {isOfficier && <div className="text-amber-300 text-[9px] font-bold uppercase mb-2">{member.role}</div>}
+                        <div className="flex items-center space-x-2 mb-1"><SmartIcon name="Phone" size={10}/><span>{phone||'Non renseigné'}</span></div>
+                        <div className="flex items-center space-x-2 mb-1"><SmartIcon name="Mail" size={10}/><span className="truncate">{member.email||'Non renseigné'}</span></div>
+                        {canEdit && <button onClick={()=>sE(true)} className="mt-2 ml-auto p-1 text-amber-400 hover:text-white"><SmartIcon name="Edit2" size={12}/></button>}
+                    </div>
                 </div>
             );
         }
 
         function AdherentsView({ members, onAdd, onUpdate, onDelete, canEdit }) {
-            const [isAdding, sA] = useState(false); const [v, sV] = useState('grid');
-            const grp = (title, list) => list.length > 0 && (
-                <div className="mb-12 animate-fade">
-                    <h3 className="text-lg font-bold text-amber-800 border-b border-amber-100 pb-2 mb-6 flex items-center uppercase tracking-widest"><SmartIcon name="Users" size={18} className="mr-2"/> {title}</h3>
-                    <div className={v==='grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" : "space-y-2"}>
-                        {list.map(m => <MemberCard key={m.id} member={m} view={v} onUpdate={onUpdate} onDelete={onDelete} canEdit={canEdit} />)}
+            const [isAdding, sA] = useState(false);
+            const [v, sV] = useState('grid');
+
+            const officiers = members.filter(m => isOfficierRole(m.role)).sort((a,b) => OFFICER_RANK(a.role) - OFFICER_RANK(b.role));
+            const byGrade = g => {
+                const gl = g.toLowerCase().replace('î','i');
+                if(gl === 'maitre') return members.filter(m => isOfficierRole(m.role) || (m.grade||'').toLowerCase().replace('î','i').startsWith('maitre'));
+                return members.filter(m => !isOfficierRole(m.role) && (m.grade||'').toLowerCase().replace('î','i').startsWith(gl));
+            };
+
+            const Section = ({ icon, title, color, list, showGrade }) => list.length === 0 ? null : (
+                <div className="mb-10 animate-fade">
+                    <div className={`flex items-center gap-3 border-b-2 pb-3 mb-6 ${color}`}>
+                        <SmartIcon name={icon} size={20}/>
+                        <h3 className="text-base font-bold uppercase tracking-widest font-serif">{title}</h3>
+                        <span className="ml-auto text-[10px] font-bold opacity-60">{list.length} membre{list.length>1?'s':''}</span>
+                    </div>
+                    <div className={v==='grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-2"}>
+                        {list.map(m => <MemberCard key={m.id} member={m} view={v} onUpdate={onUpdate} onDelete={onDelete} canEdit={canEdit} showGrade={showGrade}/>)}
                     </div>
                 </div>
             );
-            
-            const isOfficier = (r) => {
-                const role = (r || '').toLowerCase().trim();
-                if (!role) return false;
-                if (role.includes('apprenti') || role.includes('compagnon')) return false;
-                if (role === 'maître' || role === 'maitre' || role === 'maîtres' || role === 'maitres') return false;
-                return true;
-            };
-
-            const getOfficerRank = (role) => {
-                const r = (role || '').toLowerCase();
-                if (r.includes('vénérable') || r.includes('venerable')) return 1;
-                if (r.includes('1er surveillant') || r.includes('premier surveillant')) return 2;
-                if (r.includes('2nd surveillant') || r.includes('second surveillant') || r.includes('deuxième surveillant')) return 3;
-                return 4;
-            };
-
-            const officiers = members.filter(m => isOfficier(m.role)).sort((a, b) => getOfficerRank(a.role) - getOfficerRank(b.role));
-            
-            const maitres = members.filter(m => {
-                const r = (m.role || '').toLowerCase().trim();
-                return r === 'maître' || r === 'maitre' || r === 'maîtres' || r === 'maitres';
-            });
-            const compagnons = members.filter(m => (m.role || '').toLowerCase().includes('compagnon'));
-            const apprentis = members.filter(m => (m.role || '').toLowerCase().includes('apprenti'));
 
             return (
-                <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-2xl border mb-6 shadow-sm">
-                        <div><h2 className="text-2xl font-serif">Tableau de Loge</h2><p className="text-slate-500 text-sm">Registre chronologique et hiérarchique de la Loge.</p></div>
+                <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-2xl border mb-2 shadow-sm">
+                        <div><h2 className="text-2xl font-serif">Tableau de Loge</h2><p className="text-slate-500 text-sm">{members.length} membres · Registre hiérarchique de la Loge.</p></div>
                         <div className="flex gap-2">
                             <button onClick={()=>sV(v==='grid'?'list':'grid')} className="p-2 border rounded-lg text-amber-600">{v==='grid'?<SmartIcon name="List" size={20}/>:<SmartIcon name="LayoutGrid" size={20}/>}</button>
-                            {canEdit && <button onClick={()=>sA(!isAdding)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 transition-all hover:bg-amber-700">{isAdding?<SmartIcon name="X" size={18}/>:<SmartIcon name="Plus" size={18}/>}<span>{isAdding?'Annuler':'Ajouter'}</span></button>}
+                            {canEdit && <button onClick={()=>sA(!isAdding)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 hover:bg-amber-700">{isAdding?<SmartIcon name="X" size={18}/>:<SmartIcon name="Plus" size={18}/>}<span>{isAdding?'Annuler':'Ajouter'}</span></button>}
                         </div>
                     </div>
-                    {isAdding && <div className="bg-white p-6 rounded-2xl border shadow-lg mb-8"><MemberForm onSave={async(d)=>{await onAdd(d);sA(false);}} onCancel={()=>sA(false)}/></div>}
-                    {grp("Collège des Officiers", officiers)}
-                    {grp("Maîtres", maitres)}
-                    {grp("Compagnons", compagnons)}
-                    {grp("Apprentis", apprentis)}
+                    {isAdding && <div className="bg-white p-6 rounded-2xl border shadow-lg mb-6"><MemberForm onSave={async(d)=>{await onAdd(d);sA(false);}} onCancel={()=>sA(false)}/></div>}
+                    <Section icon="Star" title="Collège des Officiers" color="text-amber-700 border-amber-300" list={officiers} showGrade={false}/>
+                    <Section icon="Shield" title="Tableau des Maîtres" color="text-slate-700 border-slate-300" list={byGrade('Maître')} showGrade={false}/>
+                    <Section icon="Users" title="Tableau des Compagnons" color="text-emerald-700 border-emerald-300" list={byGrade('Compagnon')} showGrade={false}/>
+                    <Section icon="User" title="Tableau des Apprentis" color="text-blue-700 border-blue-300" list={byGrade('Apprenti')} showGrade={false}/>
                 </div>
             );
         }
