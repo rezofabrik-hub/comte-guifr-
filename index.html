@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Temple Virtuel</title>
     
-    <!-- MODE APPLICATION MOBILE -->
+    <!-- MODE APPLICATION MOBILE (PWA) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CG51">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Square_Compass.svg/512px-Square_Compass.svg.png">
+    <meta name="application-name" content="CG51">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple.svg">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     
     <!-- Moteurs React et Tailwind -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -2195,6 +2199,17 @@
             const root = ReactDOM.createRoot(rootElement);
             rootElement._reactRoot = root;
             root.render(<App />);
+        }
+    </script>
+
+    <!-- Enregistrement Service Worker (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ SW enregistré:', reg.scope))
+                    .catch(err => console.warn('SW non enregistré:', err));
+            });
         }
     </script>
 </body>
