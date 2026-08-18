@@ -1090,11 +1090,10 @@
             
             const today = new Date(); today.setHours(0,0,0,0);
             
-            const visibleItems = items.filter(i => canSee(i.visibility)); 
-            const upcomingItems = visibleItems.filter(i => new Date(i.date) >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
-            const pastItems = visibleItems.filter(i => new Date(i.date) < today).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const upcomingItems = items.filter(i => new Date(i.date) >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
+            const pastItems = items.filter(i => new Date(i.date) < today).sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            const docs = items.filter(i => i.odjFile && canSee(i.visibility));
+            const docs = items.filter(i => i.odjFile);
 
             const handleRemoveFile = async (id) => {
                 const api = window.FB_API;
