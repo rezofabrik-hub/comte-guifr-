@@ -224,7 +224,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -313,15 +313,35 @@
                 ]
             };
 
+            const RITE_ALIASES = {
+                'reaa': 'Rite Écossais Ancien et Accepté', 'écossais ancien': 'Rite Écossais Ancien et Accepté',
+                'ecossais ancien': 'Rite Écossais Ancien et Accepté', 'rite écossais ancien': 'Rite Écossais Ancien et Accepté',
+                'rf': 'Rite Français', 'rite français': 'Rite Français', 'rite francais': 'Rite Français',
+                'rer': 'Rite Écossais Rectifié', 'rectifié': 'Rite Écossais Rectifié', 'rectifie': 'Rite Écossais Rectifié',
+                'rmm': 'Rite de Memphis-Misraïm', 'memphis': 'Rite de Memphis-Misraïm', 'misraïm': 'Rite de Memphis-Misraïm',
+                'york': "Rite d'York", 'd\'york': "Rite d'York",
+                'emulation': "Rite d'Émulation", 'émulation': "Rite d'Émulation",
+            };
+            const resolveRite = (r) => {
+                if (!r) return null;
+                if (RITE_QUOTES[r]) return r;
+                const key = r.toLowerCase().trim();
+                const alias = RITE_ALIASES[key];
+                if (alias && RITE_QUOTES[alias]) return alias;
+                // partial match
+                const found = Object.keys(RITE_QUOTES).find(k => k.toLowerCase().includes(key) || key.includes(k.toLowerCase().slice(0,6)));
+                return found || null;
+            };
+
             const randomQuote = useMemo(() => {
-                const savedRite = logeIdentity?.rite || '';
-                const riteQuotes = savedRite ? (RITE_QUOTES[savedRite] || null) : null;
                 if (activeGradeLevel !== 'maitre') {
                     const quotesForGrade = MASONIC_QUOTES[activeGradeLevel];
                     return quotesForGrade[Math.floor(Math.random() * quotesForGrade.length)];
                 }
-                const pool = riteQuotes || MASONIC_QUOTES.maitre;
-                const storageKey = 'cg51_quote_idx_' + (savedRite || 'maitre');
+                const savedRite = logeIdentity?.rite || '';
+                const resolvedRite = resolveRite(savedRite);
+                const pool = (resolvedRite && RITE_QUOTES[resolvedRite]) || MASONIC_QUOTES.maitre;
+                const storageKey = 'cg51_quote_idx_' + (resolvedRite || 'maitre');
                 let idx = parseInt(localStorage.getItem(storageKey) || '0', 10);
                 if (isNaN(idx) || idx < 0 || idx >= pool.length) idx = 0;
                 const quote = pool[idx];
@@ -462,6 +482,7 @@
                         <div className="text-center md:text-left flex-grow font-serif">
                             <h2 className="text-4xl font-bold text-slate-800 leading-tight">Bienvenue, {memberName}</h2>
                             <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Loge Comte Guifré n°51'}.</p>
+                            {welcomeText && <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 font-sans">{welcomeText}</div>}
                             
                             <div className="mt-5 min-h-[40px] font-sans">
                                 {isEditingId ? (
@@ -1521,16 +1542,17 @@
                     await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','tenueRythme'), rythme, {merge:true});
                     const today = new Date(); today.setHours(0,0,0,0);
                     const dates = [];
-                    for (let i = 0; i < 14; i++) {
+                    for (let i = 0; i < 18; i++) {
                         const m = (today.getMonth() + i) % 12;
                         const y = today.getFullYear() + Math.floor((today.getMonth() + i) / 12);
+                        if (m === 6 || m === 7) continue; // skip July(6) and August(7)
                         for (const sem of rythme.semaines) {
                             const d = nthWeekday(y, m, rythme.jourSemaine, sem);
                             if (d && d >= today) dates.push(d.toISOString().split('T')[0]);
                         }
                     }
                     dates.sort();
-                    const futures = dates.slice(0, 24);
+                    const futures = dates.slice(0, 20);
                     const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
                     const snap = await api.getDocs(col);
                     const existing = new Set(snap.docs.map(d => d.data().date));
@@ -1735,6 +1757,7 @@
             const [liens, setLiens] = useState([]);
             const [logeLogo, setLogeLogo] = useState(null);
             const [logeIdentity, setLogeIdentity] = useState({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+            const [welcomeText, setWelcomeText] = useState('');
             const [reglementFile, setReglementFile] = useState(null);
             const [claudeApiKey, setClaudeApiKey] = useState('');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -1768,6 +1791,7 @@
                 
                 const unsubLogo = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'branding'), d => d.exists() && setLogeLogo(d.data().logoData));
                 const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' }));
+                const unsubWelcome = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'welcome'), d => d.exists() ? setWelcomeText(d.data().text || '') : setWelcomeText(''));
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
@@ -1781,7 +1805,7 @@
                     setLiens(s.docs.map(d => ({ id: d.id, ...d.data() })));
                 });
                 
-                return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
+                return () => { unsubLogo(); unsubIdentity(); unsubWelcome(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
             }, [api, fbUser]);
 
             const handleLogin = async (n, gradeKey, p) => {
@@ -1911,7 +1935,7 @@
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
