@@ -2034,7 +2034,7 @@
                         setLoginGradeKey(gradeKey);
                         setIsTresorier(gradeKey === 'tresorier');
                         setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : '');
-                        if (!isLogged) setIsLogged(true);
+                        setIsLogged(true);
                     }
                 });
                 return () => unsubAuth();
@@ -2053,15 +2053,12 @@
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
-                const unsubMembers = api.onSnapshot(path('members'), (s) => {
-                    setMembers(s.docs.map(d => ({ id: d.id, ...d.data() })));
-                });
-                const unsubAgenda = api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-                const unsubPlanches = api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-                const unsubBiblio = api.onSnapshot(path('bibliotheque'), s => setBooks(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-                const unsubLiens = api.onSnapshot(path('liens'), (s) => {
-                    setLiens(s.docs.map(d => ({ id: d.id, ...d.data() })));
-                });
+                const onErr = (e) => setFbError('Erreur chargement données : ' + (e?.code || e?.message || ''));
+                const unsubMembers = api.onSnapshot(path('members'), (s) => { setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))); }, onErr);
+                const unsubAgenda = api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
+                const unsubPlanches = api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
+                const unsubBiblio = api.onSnapshot(path('bibliotheque'), s => setBooks(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
+                const unsubLiens = api.onSnapshot(path('liens'), (s) => { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }, onErr);
                 
                 return () => { unsubLogo(); unsubIdentity(); unsubWelcome(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
             }, [api, fbUser]);
@@ -2135,6 +2132,7 @@
 
             return (
                 <div className="min-h-screen flex flex-col font-sans">
+                    {fbError && <div className="bg-red-600 text-white text-xs font-bold px-4 py-2 text-center z-50">{fbError} — <button onClick={()=>setFbError(null)} className="underline ml-2">Fermer</button></div>}
                     <nav className="bg-slate-900 text-amber-500 shadow-xl sticky top-0 z-50 p-3 font-sans">
                         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4 text-white">
                             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveView('home')}>
