@@ -1216,20 +1216,29 @@
 
             const saveIdentity = async () => {
                 setSaving('identity');
-                await onSaveIdentity(identity);
-                setSaving(''); flash('Identité sauvegardée ✓');
+                try {
+                    await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), identity, {merge:true});
+                    flash('Identité sauvegardée ✓');
+                } catch(e) { flash('Erreur : ' + (e.message || e)); }
+                setSaving('');
             };
 
             const saveCapitation = async () => {
                 setSaving('cap');
-                await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','capitation'), capitation, {merge:true});
-                setSaving(''); flash('Capitation sauvegardée ✓');
+                try {
+                    await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','capitation'), capitation, {merge:true});
+                    flash('Capitation sauvegardée ✓');
+                } catch(e) { flash('Erreur : ' + (e.message || e)); }
+                setSaving('');
             };
 
             const saveWelcome = async () => {
                 setSaving('welcome');
-                await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text: welcome}, {merge:true});
-                setSaving(''); flash('Message sauvegardé ✓');
+                try {
+                    await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text: welcome}, {merge:true});
+                    flash('Message sauvegardé ✓');
+                } catch(e) { flash('Erreur : ' + (e.message || e)); }
+                setSaving('');
             };
 
             const changePassword = async (gradeKey) => {
