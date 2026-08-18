@@ -151,7 +151,29 @@ jobs:
             { date:'2027-06-17', type:'Tenue Solennelle', visibility:'Maître', sujet:'Solstice d\'Été de la R∴L∴ Comte Guifré n°51 — 2027', agapes:'Restaurant', planches:[] },
           ];
 
+          function validateTenues(tenues) {
+            const errors = [];
+            const datesSeen = new Set();
+            const validTypes = ['Tenue Régulière', 'Tenue Solennelle', 'Banquet d\'Ordre'];
+            for (const t of tenues) {
+              if (!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(t.date)) errors.push(`Date invalide : "${t.date}"`);
+              else if (datesSeen.has(t.date)) errors.push(`Date en doublon : ${t.date}`);
+              else datesSeen.add(t.date);
+              if (!t.type || !validTypes.includes(t.type)) errors.push(`Type invalide pour ${t.date} : "${t.type}"`);
+              if (!t.agapes || !t.agapes.trim()) errors.push(`Agapes vides pour ${t.date}`);
+            }
+            return errors;
+          }
+
           async function main() {
+            const validationErrors = validateTenues(tenues);
+            if (validationErrors.length > 0) {
+              console.error('❌ Validation échouée — import annulé :');
+              validationErrors.forEach(e => console.error('  •', e));
+              process.exit(1);
+            }
+            console.log(`✅ Validation OK — ${tenues.length} tenues vérifiées`);
+
             let token = null;
             // Strategy 1: use firebase-tools internal auth
             token = await getAccessTokenViaFirebaseTools();
