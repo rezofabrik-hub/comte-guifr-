@@ -224,7 +224,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -480,6 +480,19 @@
 
             const canEditIdentity = isVM || isArchitect;
 
+            const [isEditingWelcome, setIsEditingWelcome] = useState(false);
+            const [welcomeInput, setWelcomeInput] = useState(welcomeText || '');
+            const [welcomeErr, setWelcomeErr] = useState('');
+            const saveWelcomeInline = async () => {
+                try {
+                    await onSaveWelcome(welcomeInput);
+                    setIsEditingWelcome(false);
+                    setWelcomeErr('');
+                } catch(e) {
+                    setWelcomeErr('Erreur : ' + (e.message || 'impossible de sauvegarder'));
+                }
+            };
+
             const [isEditingAgapes, setIsEditingAgapes] = useState(false);
             const [agapesForm, setAgapesForm] = useState({ agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'' });
 
@@ -504,7 +517,21 @@
                         <div className="text-center md:text-left flex-grow font-serif">
                             <h2 className="text-4xl font-bold text-slate-800 leading-tight">Bienvenue, {memberName}</h2>
                             <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Loge Comte Guifré n°51'}.</p>
-                            {welcomeText && <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 font-sans">{welcomeText}</div>}
+                            {isEditingWelcome ? (
+                                <div className="mt-3 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 w-full max-w-md animate-fade">
+                                    <textarea rows={3} className="border border-amber-300 rounded-lg p-2 text-sm text-amber-900 outline-none focus:border-amber-500 resize-none bg-white w-full font-sans" value={welcomeInput} onChange={e=>setWelcomeInput(e.target.value)} placeholder="Message affiché sur le Parvis à la connexion…" autoFocus/>
+                                    {welcomeErr && <div className="text-red-600 text-[10px] font-bold bg-red-50 p-2 rounded border border-red-200">{welcomeErr}</div>}
+                                    <div className="flex gap-2 justify-end">
+                                        <button onClick={()=>setIsEditingWelcome(false)} className="text-slate-400 text-[10px] font-bold uppercase hover:text-slate-600">Annuler</button>
+                                        <button onClick={saveWelcomeInline} className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase shadow-sm transition-colors">Enregistrer</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-3">
+                                    {welcomeText && <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 font-sans">{welcomeText}</div>}
+                                    {canEditIdentity && <button onClick={()=>{setWelcomeInput(welcomeText||''); setIsEditingWelcome(true);}} className="mt-2 text-amber-600 text-[10px] font-bold uppercase hover:underline flex items-center gap-1"><SmartIcon name="Edit2" size={12}/> {welcomeText ? 'Modifier le message de bienvenue' : 'Ajouter un message de bienvenue'}</button>}
+                                </div>
+                            )}
                             
                             <div className="mt-5 min-h-[40px] font-sans">
                                 {isEditingId ? (
@@ -532,13 +559,9 @@
                                         {logeIdentity?.rite && <span className="bg-amber-50 text-amber-800 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-200 shadow-sm"><SmartIcon name="Star" size={12} className="inline mr-1.5" /> {logeIdentity.rite}</span>}
                                         {logeIdentity?.obedience && <span className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm"><SmartIcon name="Globe" size={12} className="inline mr-1.5" /> {logeIdentity.obedience}</span>}
                                         
-                                        {!logeIdentity?.rite && !logeIdentity?.obedience && canEditIdentity && !isEditingId && (
-                                            <span className="text-slate-400 text-xs italic">Rite et Obédience non définis.</span>
-                                        )}
-
                                         {canEditIdentity && (
-                                            <button onClick={openIdEdit} className="text-amber-600 hover:text-white transition-colors p-2 bg-amber-50 rounded-xl border border-amber-200 hover:bg-amber-600 ml-1 shadow-sm" title="Modifier l'Identité de la Loge">
-                                                <SmartIcon name="Edit2" size={14} />
+                                            <button onClick={openIdEdit} className="text-amber-600 hover:text-white transition-colors px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-200 hover:bg-amber-600 shadow-sm text-[10px] font-bold uppercase flex items-center gap-1.5" title="Modifier Rite & Obédience">
+                                                <SmartIcon name="Edit2" size={12} /> {logeIdentity?.rite || logeIdentity?.obedience ? 'Modifier' : 'Définir Rite & Obédience'}
                                             </button>
                                         )}
                                     </div>
@@ -1957,7 +1980,7 @@
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName.replace(/Frère |Sœur |V∴M∴ /gi, '')} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
