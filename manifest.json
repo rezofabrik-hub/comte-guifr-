@@ -10,12 +10,6 @@
   "lang": "fr",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230f172a'/%3E%3Cg transform='translate(256,256)'%3E%3Crect x='-18' y='-180' width='36' height='220' rx='10' fill='%23f59e0b'/%3E%3Crect x='-180' y='24' width='360' height='36' rx='10' fill='%23f59e0b'/%3E%3Ccircle cx='0' cy='-180' r='18' fill='%23fbbf24'/%3E%3Ccircle cx='-180' cy='60' r='14' fill='%23fbbf24'/%3E%3Ccircle cx='180' cy='60' r='14' fill='%23fbbf24'/%3E%3Cline x1='-30' y1='-60' x2='-120' y2='120' stroke='%23f59e0b' stroke-width='28' stroke-linecap='round'/%3E%3Cline x1='30' y1='-60' x2='120' y2='120' stroke='%23f59e0b' stroke-width='28' stroke-linecap='round'/%3E%3Ccircle cx='0' cy='-60' r='22' fill='%23fbbf24'/%3E%3Ctext x='0' y='10' text-anchor='middle' font-size='40' fill='%230f172a' font-family='serif' font-weight='bold'%3EG%3C/text%3E%3C/g%3E%3C/svg%3E",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -26,14 +20,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
     }
   ],
   "categories": ["productivity", "social"],
