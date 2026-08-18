@@ -61,18 +61,30 @@ jobs:
             });
           }
 
-          function firestorePost(path, body, token) {
+          function firestoreReq(path, method, body, token) {
             return new Promise((resolve, reject) => {
-              const data = JSON.stringify(body);
+              const data = body ? JSON.stringify(body) : '';
+              const headers = { 'Authorization': 'Bearer ' + token };
+              if (body) { headers['Content-Type'] = 'application/json'; headers['Content-Length'] = Buffer.byteLength(data); }
               const req = https.request({
-                hostname: 'firestore.googleapis.com',
-                path, method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Authorization': 'Bearer ' + token }
+                hostname: 'firestore.googleapis.com', path, method, headers
               }, res => {
-                let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error(d)); } });
+                let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve({}); } });
               });
-              req.on('error', reject); req.write(data); req.end();
+              req.on('error', reject); if (body) req.write(data); req.end();
             });
+          }
+
+          async function deleteAllAgenda(base, token) {
+            // List all docs then delete them
+            const list = await firestoreReq(base + '?pageSize=100', 'GET', null, token);
+            const docs = (list.documents || []);
+            for (const doc of docs) {
+              const docPath = '/' + doc.name.split('/').slice(3).join('/');
+              await firestoreReq(docPath, 'DELETE', null, token);
+              console.log('🗑️ Supprimé:', docPath.split('/').pop());
+            }
+            console.log(`Nettoyage : ${docs.length} documents supprimés.`);
           }
 
           async function getAccessTokenViaFirebaseTools() {
@@ -156,10 +168,13 @@ jobs:
             console.log('Access token OK');
 
             const base = `/v1/projects/${projectId}/databases/(default)/documents/artifacts/${appId}/public/data/agenda`;
+            await deleteAllAgenda(base, token);
             let ok = 0, err = 0;
             for (const tenue of tenues) {
               try {
-                const result = await firestorePost(base, toFirestoreDoc(tenue), token);
+                // Use PATCH with document ID = date to make import idempotent
+                const docId = tenue.date; // e.g. "2026-09-03"
+                const result = await firestoreReq(base + '/' + docId, 'PATCH', toFirestoreDoc(tenue), token);
                 if (result.name) {
                   console.log('✅', tenue.date, '—', tenue.type, '— Agapes:', tenue.agapes);
                   ok++;
