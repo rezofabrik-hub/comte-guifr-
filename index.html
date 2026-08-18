@@ -2040,28 +2040,40 @@
                 return () => unsubAuth();
             }, [api]);
 
-            // 2. Chargement des données UNE FOIS que l'utilisateur est authentifié
+            // 2. Chargement des données UNE FOIS que l'utilisateur est authentifié (fbUser = token Firebase prêt)
             useEffect(() => {
-                if (!api || !isLogged) return;
+                if (!api || !fbUser) return;
 
                 const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
-                
+
                 const unsubLogo = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'branding'), d => d.exists() && setLogeLogo(d.data().logoData));
                 const unsubIdentity = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'identity'), d => d.exists() ? setLogeIdentity(prev => ({...prev, ...d.data()})) : setLogeIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' }));
                 const DEFAULT_WELCOME = "Bienvenue, mes Très Chères Sœurs et mes Très Chers Frères,\n\nCe temple virtuel est le vôtre — un espace de partage et de lumière au service de notre Loge. Vous y trouverez des Planches à lire et à méditer, ainsi que notre Chaîne d'Union, reflet des liens fraternels qui nous unissent.\n\nPuisse chaque visite enrichir votre chemin initiatique.\n\nFraternellement.";
                 const unsubWelcome = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'welcome'), d => d.exists() ? setWelcomeText(d.data().text || DEFAULT_WELCOME) : setWelcomeText(DEFAULT_WELCOME));
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
-                
+
                 const onErr = (e) => setFbError('Erreur chargement données : ' + (e?.code || e?.message || ''));
-                const unsubMembers = api.onSnapshot(path('members'), (s) => { setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))); }, onErr);
+                const unsubMembers = api.onSnapshot(path('members'), async (s) => {
+                    if (s.empty) {
+                        const batch = api.writeBatch(api.db);
+                        LOGE_MEMBERS_INIT.forEach(m => batch.set(api.doc(path('members')), { ...m, phone:'', email:'', profession:'', photoData:'' }));
+                        await batch.commit();
+                    } else { setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
+                }, onErr);
                 const unsubAgenda = api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
                 const unsubPlanches = api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
                 const unsubBiblio = api.onSnapshot(path('bibliotheque'), s => setBooks(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr);
-                const unsubLiens = api.onSnapshot(path('liens'), (s) => { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }, onErr);
-                
+                const unsubLiens = api.onSnapshot(path('liens'), async (s) => {
+                    if (s.empty) {
+                        const batch = api.writeBatch(api.db);
+                        LIENS_INIT.forEach(l => batch.set(api.doc(path('liens')), l));
+                        await batch.commit();
+                    } else { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
+                }, onErr);
+
                 return () => { unsubLogo(); unsubIdentity(); unsubWelcome(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
-            }, [api, isLogged]);
+            }, [api, fbUser]);
 
             const handleLogin = async (n, gradeKey, p) => {
                 try {
