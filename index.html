@@ -2042,7 +2042,7 @@
 
             // 2. Chargement des données UNE FOIS que l'utilisateur est authentifié
             useEffect(() => {
-                if (!api || !fbUser) return; // FIX DE SÉCURITÉ: Ne tente pas de lire la base sans être connecté
+                if (!api || !isLogged) return;
 
                 const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
                 
@@ -2061,7 +2061,7 @@
                 const unsubLiens = api.onSnapshot(path('liens'), (s) => { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }, onErr);
                 
                 return () => { unsubLogo(); unsubIdentity(); unsubWelcome(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
-            }, [api, fbUser]);
+            }, [api, isLogged]);
 
             const handleLogin = async (n, gradeKey, p) => {
                 try {
