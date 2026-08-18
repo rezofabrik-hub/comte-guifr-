@@ -1584,73 +1584,63 @@
                 return null;
             };
 
-            const genererTenues = async () => {
+            // Calcule les dates proposées (1er+3e jeudi, sept→juin, 2 saisons)
+            const calcDatesProposes = () => {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const sy = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
+                const dates = [];
+                for (let offset = 0; offset <= 1; offset++) {
+                    const s = sy + offset, e = s + 1;
+                    for (let m = 8; m <= 11; m++) for (const sem of rythme.semaines) { const d = nthWeekday(s, m, rythme.jourSemaine, sem); if (d) dates.push(d.toISOString().split('T')[0]); }
+                    for (let m = 0; m <= 5; m++) for (const sem of rythme.semaines) { const d = nthWeekday(e, m, rythme.jourSemaine, sem); if (d) dates.push(d.toISOString().split('T')[0]); }
+                }
+                return dates.sort();
+            };
+
+            const [datesProposes, setDatesProposes] = useState([]);
+            const [datesSelectionnees, setDatesSelectionnees] = useState(new Set());
+            const [showDatePicker, setShowDatePicker] = useState(false);
+
+            const ouvrirSelecteur = async () => {
+                const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
+                const snap = await api.getDocs(col);
+                const existing = new Set(snap.docs.map(d => d.data().date));
+                const proposees = calcDatesProposes();
+                setDatesProposes(proposees);
+                // Pré-cocher les dates non encore enregistrées
+                setDatesSelectionnees(new Set(proposees.filter(d => !existing.has(d))));
+                setShowDatePicker(true);
+            };
+
+            const ajouterDatesSelectionnees = async () => {
                 setSaving('tenues');
                 try {
                     await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','tenueRythme'), rythme, {merge:true});
-                    const today = new Date(); today.setHours(0,0,0,0);
-                    // Saison maçonnique : septembre → juin de l'année suivante
-                    // Si on est déjà en septembre ou après → saison courante commence cette année
-                    // Sinon → saison courante a commencé l'année précédente
-                    const seasonStartYear = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
-                    const dates = [];
-                    // Générer saison courante + saison suivante (pour avoir toujours une année d'avance)
-                    for (let offset = 0; offset <= 1; offset++) {
-                        const sy = seasonStartYear + offset; // année de septembre
-                        const ey = sy + 1;                   // année de juin
-                        // Septembre (8) à Décembre (11) de sy
-                        for (let m = 8; m <= 11; m++) {
-                            for (const sem of rythme.semaines) {
-                                const d = nthWeekday(sy, m, rythme.jourSemaine, sem);
-                                if (d) dates.push(d.toISOString().split('T')[0]);
-                            }
-                        }
-                        // Janvier (0) à Juin (5) de ey
-                        for (let m = 0; m <= 5; m++) {
-                            for (const sem of rythme.semaines) {
-                                const d = nthWeekday(ey, m, rythme.jourSemaine, sem);
-                                if (d) dates.push(d.toISOString().split('T')[0]);
-                            }
-                        }
-                    }
-                    dates.sort();
                     const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
                     const snap = await api.getDocs(col);
                     const existing = new Set(snap.docs.map(d => d.data().date));
                     let added = 0;
-                    for (const date of dates) {
+                    for (const date of datesSelectionnees) {
                         if (!existing.has(date)) {
                             await api.addDoc(col, { date, type:'Tenue régulière', visibility:'Maître', odj:'', agapes:'' });
                             added++;
                         }
                     }
-                    flash(`${added} nouvelles tenues générées ✓`);
+                    setShowDatePicker(false);
+                    flash(`${added} tenue(s) ajoutée(s) ✓`);
                 } catch(e) { flash('Erreur : ' + (e.message || e)); }
                 setSaving('');
             };
 
-            const nettoyerTenues = async () => {
-                if (!window.confirm('Supprimer les tenues vides dont le jour ne correspond pas au rythme configuré (1er et 3e jeudi) ? Les tenues avec un sujet ou des informations saisies ne seront PAS supprimées.')) return;
-                setSaving('nettoyage');
+            const toutEffacer = async () => {
+                if (!window.confirm('ATTENTION : Supprimer TOUTES les tenues de l\'Ordre des Travaux, y compris celles avec des informations saisies ?')) return;
+                setSaving('effacer');
                 try {
                     const col = api.collection(api.db,'artifacts',api.appId,'public','data','agenda');
                     const snap = await api.getDocs(col);
-                    let deleted = 0;
-                    for (const docSnap of snap.docs) {
-                        const d = docSnap.data();
-                        const dateObj = new Date(d.date + 'T12:00:00');
-                        const jourSemaine = dateObj.getDay(); // 0=dim,1=lun,...,4=jeu
-                        const matchesRythme = rythme.semaines.some(sem => {
-                            const correct = nthWeekday(dateObj.getFullYear(), dateObj.getMonth(), rythme.jourSemaine, sem);
-                            return correct && correct.toISOString().split('T')[0] === d.date;
-                        });
-                        const isEmpty = !d.sujet && !d.odj && !(d.planches && d.planches.length) && !d.agapes && !d.entree && !d.plat && !d.dessert && !d.odjFile;
-                        if (!matchesRythme && isEmpty) {
-                            await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',docSnap.id));
-                            deleted++;
-                        }
-                    }
-                    flash(`${deleted} tenue(s) incorrecte(s) supprimée(s) ✓`);
+                    for (const d of snap.docs) await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',d.id));
+                    setShowDatePicker(false);
+                    flash(`${snap.docs.length} tenue(s) supprimée(s) ✓`);
                 } catch(e) { flash('Erreur : ' + (e.message || e)); }
                 setSaving('');
             };
@@ -1794,39 +1784,63 @@
                     </div>
 
                     <div className={section}>
-                        <h2 className="font-serif font-bold text-lg mb-4 flex items-center gap-2"><SmartIcon name="Calendar" size={18}/> Rythme des Tenues</h2>
-                        <p className="text-xs text-slate-500 mb-4">Configurez le rythme habituel des tenues. Cliquez sur "Générer" pour créer automatiquement les prochaines dates dans l'Ordre des Travaux.</p>
+                        <h2 className="font-serif font-bold text-lg mb-4 flex items-center gap-2"><SmartIcon name="Calendar" size={18}/> Tenues — Ordre des Travaux</h2>
                         <div className="mb-4">
-                            <label className={label}>Jour de la semaine</label>
+                            <label className={label}>Jour habituel</label>
                             <select className={input} value={rythme.jourSemaine} onChange={e=>setRythme(p=>({...p, jourSemaine:parseInt(e.target.value)}))}>
                                 {JOURS.map((j,i)=><option key={i} value={i}>{j}</option>)}
                             </select>
                         </div>
-                        <div className="mb-4">
+                        <div className="mb-5">
                             <label className={label}>Semaine(s) du mois</label>
                             <div className="flex gap-3 flex-wrap mt-1">
                                 {SEMAINES.map(s=>(
                                     <label key={s.v} className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={rythme.semaines.includes(s.v)} onChange={e=>{
-                                            setRythme(p=>({...p, semaines: e.target.checked ? [...p.semaines, s.v].sort() : p.semaines.filter(x=>x!==s.v)}));
-                                        }} className="w-4 h-4 accent-amber-600"/>
+                                        <input type="checkbox" checked={rythme.semaines.includes(s.v)} onChange={e=>setRythme(p=>({...p, semaines: e.target.checked ? [...p.semaines, s.v].sort() : p.semaines.filter(x=>x!==s.v)}))} className="w-4 h-4 accent-amber-600"/>
                                         <span className="text-sm font-bold text-slate-700">{s.l} {JOURS[rythme.jourSemaine]}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-800">
-                            <strong>Aperçu :</strong> Tenues le {rythme.semaines.map(s=>SEMAINES.find(x=>x.v===s)?.l).join(' et ')} {JOURS[rythme.jourSemaine]} de chaque mois.
-                        </div>
-                        <div className="flex gap-3 flex-wrap">
-                            <button onClick={genererTenues} disabled={saving==='tenues' || rythme.semaines.length===0} className={btn}>
-                                {saving==='tenues' ? 'Génération...' : '📅 Générer les tenues (saison sept.→juin)'}
-                            </button>
-                            <button onClick={nettoyerTenues} disabled={saving==='nettoyage'} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow transition-all font-sans">
-                                {saving==='nettoyage' ? 'Nettoyage...' : '🗑 Supprimer les tenues incorrectes'}
-                            </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-2">Le nettoyage ne supprime que les tenues vides dont le jour ne correspond pas au rythme configuré.</p>
+
+                        {!showDatePicker ? (
+                            <div className="flex gap-3 flex-wrap">
+                                <button onClick={ouvrirSelecteur} disabled={rythme.semaines.length===0} className={btn}>
+                                    📅 Choisir les dates à ajouter
+                                </button>
+                                <button onClick={toutEffacer} disabled={saving==='effacer'} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow transition-all font-sans">
+                                    {saving==='effacer' ? 'Suppression...' : '🗑 Tout effacer à zéro'}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50">
+                                <p className="text-xs font-bold text-amber-800 mb-3 uppercase tracking-widest">Cochez les dates à ajouter dans l'Ordre des Travaux :</p>
+                                <div className="flex gap-2 mb-3">
+                                    <button onClick={()=>setDatesSelectionnees(new Set(datesProposes))} className="text-[10px] font-bold text-amber-700 underline">Tout cocher</button>
+                                    <span className="text-slate-300">|</span>
+                                    <button onClick={()=>setDatesSelectionnees(new Set())} className="text-[10px] font-bold text-slate-400 underline">Tout décocher</button>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
+                                    {datesProposes.map(d => {
+                                        const checked = datesSelectionnees.has(d);
+                                        const dt = new Date(d + 'T12:00:00');
+                                        const label2 = dt.toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'long', year:'numeric'});
+                                        return (
+                                            <label key={d} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-[11px] font-bold border transition-all ${checked ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'}`}>
+                                                <input type="checkbox" checked={checked} onChange={e=>{ const s=new Set(datesSelectionnees); e.target.checked?s.add(d):s.delete(d); setDatesSelectionnees(s); }} className="hidden"/>
+                                                {label2}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex gap-3 mt-4">
+                                    <button onClick={ajouterDatesSelectionnees} disabled={saving==='tenues' || datesSelectionnees.size===0} className={btn}>
+                                        {saving==='tenues' ? 'Ajout...' : `✓ Ajouter ${datesSelectionnees.size} date(s)`}
+                                    </button>
+                                    <button onClick={()=>setShowDatePicker(false)} className="text-slate-400 font-bold text-xs uppercase hover:text-slate-600">Annuler</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={section}>
