@@ -34,7 +34,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         if (!window.FB_API) {
@@ -48,8 +48,10 @@
             };
             try {
                 const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                setPersistence(auth, browserSessionPersistence).catch(() => {});
                 window.FB_API = {
-                    db: getFirestore(app), auth: getAuth(app),
+                    db: getFirestore(app), auth,
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged,
                     appId: "site-cg51"
