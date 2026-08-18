@@ -68,9 +68,9 @@
             try {
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
-                // Mot de passe toujours demandé : session en mémoire uniquement (pas de persistance)
-                await setPersistence(auth, inMemoryPersistence);
                 const storage = getStorage(app);
+                // Session en mémoire uniquement — mot de passe toujours demandé (fire-and-forget, avant tout login)
+                setPersistence(auth, inMemoryPersistence).catch(() => {});
                 window.FB_API = {
                     db: getFirestore(app), auth, storage,
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
