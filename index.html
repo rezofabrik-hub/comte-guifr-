@@ -49,7 +49,7 @@
     <!-- Configuration Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -67,9 +67,12 @@
             // @@FIREBASE_CONFIG_END@@
             try {
                 const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                // Mot de passe toujours demandé : session en mémoire uniquement (pas de persistance)
+                await setPersistence(auth, inMemoryPersistence);
                 const storage = getStorage(app);
                 window.FB_API = {
-                    db: getFirestore(app), auth: getAuth(app), storage,
+                    db: getFirestore(app), auth, storage,
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
