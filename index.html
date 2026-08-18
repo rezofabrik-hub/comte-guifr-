@@ -349,20 +349,41 @@
                 return quote;
             }, [activeGradeLevel, logeIdentity?.rite]);
 
+            const TOUS_LES_RITES = [
+                'Rite Français',
+                'Rite Écossais Ancien et Accepté',
+                'Rite Écossais Rectifié',
+                'Rite de Memphis-Misraïm',
+                'Rite de Misraïm',
+                "Rite d'York",
+                "Rite d'Émulation",
+                'Rite Français de Philalèthes',
+                'Rite de Schröder',
+                'Rite National Français',
+                'Rite de Swedenborg',
+                'Rite Primitif',
+                'Rite Opératif de Salomon',
+                'Rite Hermétique',
+                'Rite Américain',
+                'Rite Brasileño',
+                'Rite de Perfection (25 degrés)',
+                'Autre',
+            ];
             const OBED_RITES = {
-                'Grand Orient de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm','Rite d\'York','Rite Français de Philalèthes'],
+                'Grand Orient de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm',"Rite d'York",'Rite Français de Philalèthes','Rite National Français'],
                 'Grande Loge de France': ['Rite Écossais Ancien et Accepté','Rite Écossais Rectifié','Rite de Memphis-Misraïm','Rite Français'],
-                'Grande Loge Nationale Française': ['Rite Écossais Ancien et Accepté','Rite d\'York','Rite d\'Émulation','Rite Français','Rite Écossais Rectifié','Rite de Schröder'],
+                'Grande Loge Nationale Française': ['Rite Écossais Ancien et Accepté',"Rite d'York","Rite d'Émulation",'Rite Français','Rite Écossais Rectifié','Rite de Schröder','Rite de Swedenborg'],
                 'Grande Loge Féminine de France': ['Rite Français','Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
                 'Droit Humain': ['Rite Écossais Ancien et Accepté','Rite de Memphis-Misraïm'],
                 'Grande Loge Mixte de France': ['Rite Écossais Ancien et Accepté','Rite Français'],
                 'Grande Loge Mixte Nationale': ['Rite Écossais Ancien et Accepté','Rite Français','Rite de Memphis-Misraïm'],
                 'Grande Loge Mixte Universelle': ['Rite Écossais Ancien et Accepté'],
                 'Grande Loge Traditionnelle et Symbolique - Opéra': ['Rite Écossais Ancien et Accepté'],
-                'Grande Loge de l\'Alliance Maçonnique Française': ['Rite Écossais Ancien et Accepté','Rite Français'],
+                "Grande Loge de l'Alliance Maçonnique Française": ['Rite Écossais Ancien et Accepté','Rite Français'],
                 'Loge Nationale Française': ['Rite Écossais Ancien et Accepté'],
-                'Grande Loge Féminine Memphis-Misraïm': ['Rite de Memphis-Misraïm'],
+                'Grande Loge Féminine Memphis-Misraïm': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
                 'Grande Loge Symbolique de France': ['Rite Écossais Ancien et Accepté'],
+                'Grande Loge de Memphis-Misraïm de France': ['Rite de Memphis-Misraïm','Rite de Misraïm'],
             };
 
             const RITE_QUOTES = {
@@ -496,7 +517,7 @@
                                         <div className="relative">
                                             <input list="rite-list" type="text" placeholder="Rite (tapez pour filtrer…)" value={idForm.rite} onChange={e=>setIdForm({...idForm, rite:e.target.value})} className="border p-2 rounded text-xs font-bold text-slate-700 outline-none focus:border-amber-500 w-full"/>
                                             <datalist id="rite-list">
-                                                {(OBED_RITES[idForm.obedience] || [...new Set(Object.values(OBED_RITES).flat())]).map(r=><option key={r} value={r}/>)}
+                                                {(OBED_RITES[idForm.obedience] ? [...OBED_RITES[idForm.obedience], 'Autre'] : TOUS_LES_RITES).map(r=><option key={r} value={r}/>)}
                                             </datalist>
                                         </div>
                                         {idErr && <div className="text-red-600 text-[10px] font-bold bg-red-50 p-2 rounded border border-red-200">{idErr}</div>}
