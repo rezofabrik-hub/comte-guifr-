@@ -50,6 +50,7 @@
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         if (!window.FB_API) {
+            // @@FIREBASE_CONFIG_START@@
             const firebaseConfig = {
                 apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
                 authDomain: "site-cg51.firebaseapp.com",
@@ -58,12 +59,14 @@
                 messagingSenderId: "532992433947",
                 appId: "1:532992433947:web:0ad401c53e6feeb0663dbe"
             };
+            const LOGE_APP_ID = "site-cg51";
+            // @@FIREBASE_CONFIG_END@@
             try {
                 const app = initializeApp(firebaseConfig);
                 const storage = getStorage(app);
-                window.FB_API = { 
+                window.FB_API = {
                     db: getFirestore(app), auth: getAuth(app), storage,
-                    collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: "site-cg51",
+                    collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
                         const path = `${folder}/${Date.now()}_${file.name}`;
@@ -80,8 +83,10 @@
     <script type="text/babel" data-type="module">
         const { useState, useEffect, useMemo, useCallback } = React;
 
+        // @@LODGE_EMAILS_START@@
         const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr', tresorier: 'tresorier@cg51-virtuel.fr', vm: 'vm@cg51-virtuel.fr' };
         const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
+        // @@LODGE_EMAILS_END@@
         const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
         const analyzeODJWithAI = async (file, apiKey) => {
@@ -1621,6 +1626,7 @@
 
         function ConfigurationView({ api, logeIdentity, onSaveIdentity, logeLogo, onSaveLogo }) {
             const FB_KEY = "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20";
+            // @@CONFIG_EMAILS_START@@
             const GRADE_EMAILS = {
                 apprenti: 'apprenti@cg51-virtuel.fr',
                 compagnon: 'compagnon@cg51-virtuel.fr',
@@ -1629,6 +1635,7 @@
                 vm: 'vm@cg51-virtuel.fr',
                 architecte: 'architecte@cg51-virtuel.fr'
             };
+            // @@CONFIG_EMAILS_END@@
             const GRADE_LABELS = { apprenti: 'Apprenti', compagnon: 'Compagnon', maitre: 'Maître', tresorier: 'Trésorier', vm: 'Vénérable Maître', architecte: 'Architecte' };
 
             const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
