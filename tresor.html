@@ -1398,7 +1398,6 @@
 
                                                     <div className="border-t px-6 pb-4 pt-1 space-y-0">
                                                         <VisiteursMiniTable presences={presences} date={iso} onAdd={onAddPresence} onDelete={onDeletePresence}/>
-                                                        <PlancheMiniSection planches={planches} membres={membres} date={iso} onAdd={onAddPlanche} onDelete={onDeletePlanche}/>
                                                     </div>
 
                                                     {isAdding && (
@@ -1869,7 +1868,6 @@
                                                     </div>
                                                     <div className="border-t px-6 pb-4 pt-1">
                                                         <VisiteursMiniTable presences={presences} date={iso} onAdd={onAddPresence} onDelete={onDeletePresence}/>
-                                                        <PlancheMiniSection planches={planches} membres={membres} date={iso} onAdd={onAddPlanche} onDelete={onDeletePlanche}/>
                                                     </div>
                                                 </div>
                                             );
@@ -2114,7 +2112,11 @@
             const [loginError, setLoginError] = useState('');
             const [loginLoading, setLoginLoading] = useState(false);
             const [ready, setReady] = useState(false);
-            const [activeView, setActiveView] = useState('dashboard');
+            const [activeView, setActiveView] = useState('parametres');
+            const activeViewRef = React.useRef(false);
+            React.useEffect(()=>{
+                if(!activeViewRef.current && isTresorUser) { setActiveView('dashboard'); activeViewRef.current = true; }
+            },[isTresorUser]);
             const [transactions, setTransactions] = useState([]);
             const [cotisations, setCotisations] = useState([]);
             const [membres, setMembres] = useState([]);
@@ -2163,7 +2165,8 @@
             useEffect(()=>{
                 if(!api||!ready) return;
                 const unsubs = [];
-                unsubs.push(api.onSnapshot(path('tresor_membres'),s=>setMembres(s.docs.map(d=>({id:d.id,...d.data()})))));
+                unsubs.push(api.onSnapshot(path('members'),s=>setMembres(s.docs.map(d=>{const dat=d.data();return {id:d.id,...dat,nom:dat.name||dat.nom||''};}))));
+
                 unsubs.push(api.onSnapshot(path('tresor_agapes'),s=>setAgapes(s.docs.map(d=>({id:d.id,...d.data()})))));
                 unsubs.push(api.onSnapshot(path('tresor_planches'),s=>setPlanches(s.docs.map(d=>({id:d.id,...d.data()})))));
                 unsubs.push(api.onSnapshot(path('tresor_presences'),s=>setPresences(s.docs.map(d=>({id:d.id,...d.data()})))));
@@ -2191,9 +2194,9 @@
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
-            const addMembre = async d => await api.addDoc(path('tresor_membres'),d);
-            const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id),d);
-            const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_membres',id));
+            const addMembre = async d => await api.addDoc(path('members'),{...d, name: d.nom||d.name||''});
+            const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),{...d, name: d.nom||d.name||''});
+            const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id));
 
 
             const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
@@ -2238,7 +2241,7 @@
 
             const navItems = [
                 {id:'parametres',icon:'settings',label:'Tableau'},
-                {id:'planning',icon:'cal',label:'Cahier'},
+                {id:'planning',icon:'cal',label:'Visite'},
                 {id:'agapes',icon:'utensils',label:'Agapes'},
                 {id:'planches',icon:'scroll',label:'Planches'},
                 ...(isTresorUser ? [

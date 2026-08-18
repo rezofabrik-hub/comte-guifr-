@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0f172a"/>
+  <!-- Équerre -->
+  <rect x="138" y="76" width="36" height="220" rx="10" fill="#f59e0b"/>
+  <rect x="76" y="280" width="220" height="36" rx="10" fill="#f59e0b"/>
+  <circle cx="156" cy="76" r="18" fill="#fbbf24"/>
+  <circle cx="76" cy="298" r="14" fill="#fbbf24"/>
+  <circle cx="296" cy="298" r="14" fill="#fbbf24"/>
+  <!-- Compas -->
+  <line x1="286" y1="116" x2="176" y2="416" stroke="#f59e0b" stroke-width="32" stroke-linecap="round"/>
+  <line x1="286" y1="116" x2="396" y2="416" stroke="#f59e0b" stroke-width="32" stroke-linecap="round"/>
+  <circle cx="286" cy="116" r="24" fill="#fbbf24"/>
+  <!-- G -->
+  <circle cx="286" cy="196" r="36" fill="#fbbf24"/>
+  <text x="286" y="210" text-anchor="middle" font-size="42" fill="#0f172a" font-family="serif" font-weight="bold">G</text>
+</svg>
