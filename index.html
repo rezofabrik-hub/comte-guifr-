@@ -1707,10 +1707,34 @@
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div><label className={label}>Nom de la Loge</label><input className={input} value={identity.name||''} onChange={e=>setIdentity(p=>({...p,name:e.target.value}))} placeholder="R∴L∴ Nom n°XX" /></div>
                             <div><label className={label}>Numéro</label><input className={input} value={identity.number||''} onChange={e=>setIdentity(p=>({...p,number:e.target.value}))} placeholder="51" /></div>
-                            <div><label className={label}>Obédience</label><input list="cfg-obed-list" className={input} value={identity.obedience||''} onChange={e=>setIdentity(p=>({...p,obedience:e.target.value,rite:''}))} placeholder="Grand Orient de France…" /><datalist id="cfg-obed-list">{Object.keys(OBED_RITES).map(o=><option key={o} value={o}/>)}</datalist></div>
-                            <div><label className={label}>Rite</label><input list="cfg-rite-list" className={input} value={identity.rite||''} onChange={e=>setIdentity(p=>({...p,rite:e.target.value}))} placeholder="Rite Écossais Rectifié…" /><datalist id="cfg-rite-list">{(OBED_RITES[identity.obedience]?[...OBED_RITES[identity.obedience],'Autre']:TOUS_LES_RITES).map(r=><option key={r} value={r}/>)}</datalist></div>
                             <div><label className={label}>Orient (Ville)</label><input className={input} value={identity.orient||''} onChange={e=>setIdentity(p=>({...p,orient:e.target.value}))} placeholder="Paris, Lyon..." /></div>
                             <div><label className={label}>Email contact</label><input className={input} value={identity.email||''} onChange={e=>setIdentity(p=>({...p,email:e.target.value}))} placeholder="contact@loge.fr" /></div>
+                        </div>
+                        <div className="mb-4">
+                            <label className={label}>Obédience</label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {Object.keys(OBED_RITES).map(o=>(
+                                    <button key={o} type="button" onClick={()=>setIdentity(p=>({...p,obedience:o,rite:''}))}
+                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${identity.obedience===o?'bg-slate-800 text-white border-slate-800 shadow':'bg-slate-50 text-slate-600 border-slate-200 hover:border-amber-400 hover:text-amber-700'}`}>
+                                        {o}
+                                    </button>
+                                ))}
+                                <button type="button" onClick={()=>setIdentity(p=>({...p,obedience:'Autre',rite:''}))}
+                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${identity.obedience==='Autre'?'bg-slate-800 text-white border-slate-800':'bg-slate-50 text-slate-400 border-dashed border-slate-300 hover:border-amber-400'}`}>
+                                    Autre
+                                </button>
+                            </div>
+                        </div>
+                        <div className="mb-6">
+                            <label className={label}>Rite {identity.obedience && <span className="text-amber-600 normal-case font-normal">— filtré pour {identity.obedience}</span>}</label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {(OBED_RITES[identity.obedience]?[...OBED_RITES[identity.obedience],'Autre']:TOUS_LES_RITES).map(r=>(
+                                    <button key={r} type="button" onClick={()=>setIdentity(p=>({...p,rite:r}))}
+                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${identity.rite===r?'bg-amber-600 text-white border-amber-600 shadow':'bg-slate-50 text-slate-600 border-slate-200 hover:border-amber-400 hover:text-amber-700'}`}>
+                                        {r}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <button onClick={saveIdentity} disabled={saving==='identity'} className={btn}>{saving==='identity'?'Sauvegarde...':'Sauvegarder l\'identité'}</button>
                     </div>
