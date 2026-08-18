@@ -18,6 +18,9 @@ service cloud.firestore {
     function isArchitecte() {
       return email() == 'architecte@cg51-virtuel.fr';
     }
+    function isVMouArchitecte() {
+      return email() in ['vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+    }
     function isTresorier() {
       return isSignedIn() && email() in ['tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
     }
@@ -55,7 +58,7 @@ service cloud.firestore {
 
     match /artifacts/{appId}/public/data/settings/{docId} {
       allow read: if isSignedIn();
-      allow write: if isArchitecte();
+      allow write: if isVMouArchitecte();
     }
 
     // Trésorerie : lecture réservée membres de grade, écriture trésorier uniquement
