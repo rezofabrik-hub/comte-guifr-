@@ -758,33 +758,46 @@
             );
         }
 
+        /* Symboles maçonniques REAA — Équerre (Apprenti), Équerre+Compas (Compagnon), Équerre+Compas+G (Maître) */
         const GRADE_LOGO = {
             apprenti: (
                 <svg viewBox="0 0 80 80" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="10" y="60" width="60" height="6" rx="3" fill="#b45309"/>
-                    <rect x="10" y="14" width="6" height="52" rx="3" fill="#b45309"/>
-                    <rect x="10" y="14" width="36" height="6" rx="3" fill="#b45309"/>
-                    <circle cx="40" cy="22" r="4" fill="#fbbf24"/>
-                    <text x="40" y="50" textAnchor="middle" fontSize="11" fill="#92400e" fontFamily="serif" fontWeight="bold">APPRENTI</text>
+                    {/* Équerre bleue — symbole de l'Apprenti */}
+                    <rect x="18" y="14" width="9" height="54" rx="3.5" fill="#1e40af"/>
+                    <rect x="18" y="59" width="46" height="9" rx="3.5" fill="#1e40af"/>
+                    <circle cx="22" cy="63" r="5" fill="#93c5fd"/>
+                    <circle cx="22" cy="14" r="3" fill="#93c5fd"/>
+                    <circle cx="64" cy="63" r="3" fill="#93c5fd"/>
                 </svg>
             ),
             compagnon: (
                 <svg viewBox="0 0 80 80" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="10" y1="40" x2="70" y2="40" stroke="#b45309" strokeWidth="6" strokeLinecap="round"/>
-                    <rect x="32" y="18" width="6" height="44" rx="3" fill="#b45309"/>
-                    <circle cx="35" cy="16" r="5" fill="none" stroke="#fbbf24" strokeWidth="3"/>
-                    <circle cx="10" cy="40" r="4" fill="#fbbf24"/>
-                    <circle cx="70" cy="40" r="4" fill="#fbbf24"/>
-                    <text x="40" y="72" textAnchor="middle" fontSize="9" fill="#92400e" fontFamily="serif" fontWeight="bold">COMPAGNON</text>
+                    {/* Équerre verte */}
+                    <rect x="10" y="46" width="8" height="28" rx="3" fill="#065f46"/>
+                    <rect x="10" y="66" width="32" height="8" rx="3" fill="#065f46"/>
+                    {/* Compas vert */}
+                    <line x1="40" y1="8" x2="16" y2="58" stroke="#065f46" strokeWidth="7" strokeLinecap="round"/>
+                    <line x1="40" y1="8" x2="64" y2="58" stroke="#065f46" strokeWidth="7" strokeLinecap="round"/>
+                    <circle cx="40" cy="8" r="5" fill="#6ee7b7"/>
+                    <path d="M26 46 Q40 40 54 46" fill="none" stroke="#6ee7b7" strokeWidth="3.5" strokeLinecap="round"/>
+                    <circle cx="16" cy="58" r="3.5" fill="#6ee7b7"/>
+                    <circle cx="64" cy="58" r="3.5" fill="#6ee7b7"/>
                 </svg>
             ),
             maitre: (
                 <svg viewBox="0 0 80 80" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="40" y1="8" x2="14" y2="66" stroke="#b45309" strokeWidth="5" strokeLinecap="round"/>
-                    <line x1="40" y1="8" x2="66" y2="66" stroke="#b45309" strokeWidth="5" strokeLinecap="round"/>
-                    <path d="M20 52 Q40 38 60 52" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round"/>
-                    <circle cx="40" cy="8" r="4" fill="#fbbf24"/>
-                    <text x="40" y="76" textAnchor="middle" fontSize="11" fill="#92400e" fontFamily="serif" fontWeight="bold">MAÎTRE</text>
+                    {/* Équerre dorée */}
+                    <rect x="8" y="48" width="8" height="28" rx="3" fill="#92400e"/>
+                    <rect x="8" y="68" width="30" height="8" rx="3" fill="#92400e"/>
+                    {/* Compas doré */}
+                    <line x1="40" y1="6" x2="16" y2="58" stroke="#92400e" strokeWidth="7" strokeLinecap="round"/>
+                    <line x1="40" y1="6" x2="64" y2="58" stroke="#92400e" strokeWidth="7" strokeLinecap="round"/>
+                    <circle cx="40" cy="6" r="5.5" fill="#fbbf24"/>
+                    <path d="M25 44 Q40 38 55 44" fill="none" stroke="#fbbf24" strokeWidth="3.5" strokeLinecap="round"/>
+                    <circle cx="16" cy="58" r="3.5" fill="#fbbf24"/>
+                    <circle cx="64" cy="58" r="3.5" fill="#fbbf24"/>
+                    {/* G — Grand Architecte de l'Univers */}
+                    <text x="40" y="40" textAnchor="middle" fontSize="22" fill="#fbbf24" fontFamily="serif" fontWeight="bold">G</text>
                 </svg>
             ),
         };
@@ -923,7 +936,13 @@
                         </div>
                     </div>
                     {isAdding && <div className="bg-white p-6 rounded-2xl border shadow-lg mb-6"><MemberForm onSave={async(d)=>{await onAdd(d);sA(false);}} onCancel={()=>sA(false)}/></div>}
-                    <Section icon="Star" title="Collège des Officiers" color="text-amber-700 border-amber-300" list={officiers} showGrade={false}/>
+                    <Section title="Collège des Officiers" color="text-amber-700 border-amber-300" list={officiers} showGrade={false} logo={
+                        <svg viewBox="0 0 80 80" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="40" cy="40" r="13" fill="#b45309"/>
+                            <circle cx="40" cy="40" r="8" fill="#fbbf24"/>
+                            {[0,30,60,90,120,150,180,210,240,270,300,330].map((a,i)=>{const r=Math.PI*a/180;return <line key={i} x1={40+18*Math.cos(r)} y1={40+18*Math.sin(r)} x2={40+26*Math.cos(r)} y2={40+26*Math.sin(r)} stroke="#b45309" strokeWidth="3.5" strokeLinecap="round"/>;})}
+                        </svg>
+                    }/>
                     <Section title="Tableau des Maîtres" color="text-amber-800 border-amber-400" list={byGrade('Maître')} showGrade={false} logo={GRADE_LOGO.maitre}/>
                     <Section title="Tableau des Compagnons" color="text-emerald-700 border-emerald-300" list={byGrade('Compagnon')} showGrade={false} logo={GRADE_LOGO.compagnon}/>
                     <Section title="Tableau des Apprentis" color="text-blue-700 border-blue-300" list={byGrade('Apprenti')} showGrade={false} logo={GRADE_LOGO.apprenti}/>
@@ -1280,7 +1299,7 @@
             return (
                 <div className="space-y-6 animate-fade">
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div><h2 className="text-2xl font-serif flex items-center"><SmartIcon name="Library" className="mr-3 text-amber-600" size={24}/>Les Archives</h2><p className="text-slate-500 text-sm font-medium">Partagez vos lectures et documents par grade.</p></div>
+                        <div><h2 className="text-2xl font-serif flex items-center"><i className="fa-solid fa-scroll mr-3 text-amber-600"></i>Les Archives</h2><p className="text-slate-500 text-sm font-medium">Planches, Tracés et Documents par degré.</p></div>
                         {canEditBiblio && (
                             <button onClick={()=>sA(!isA)} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
                                 <SmartIcon name={isA?"X":"Plus"} size={18}/><span>Ajouter un Document</span>
@@ -1328,7 +1347,19 @@
                     </div>}
                     
                     {!hasA && !isA ? (
-                        <div className="bg-slate-900 text-white p-12 rounded-2xl text-center border-4 border-double border-slate-800"><SmartIcon name="Shield" className="mx-auto mb-4 text-amber-500" size={40}/><h3 className="text-lg uppercase tracking-widest font-bold">Portes closes</h3><p className="text-slate-400 text-sm mt-2">Déverrouillez un grade pour y accéder.</p></div>
+                        <div className="bg-slate-900 text-white p-12 rounded-2xl text-center border-4 border-double border-slate-700">
+                            <svg viewBox="0 0 100 100" width="64" height="64" className="mx-auto mb-4" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="50,8 92,82 8,82" fill="none" stroke="#f59e0b" strokeWidth="3.5" strokeLinejoin="round"/>
+                                <polygon points="50,22 80,72 20,72" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round" opacity="0.4"/>
+                                <ellipse cx="50" cy="55" rx="9" ry="6" fill="none" stroke="#fbbf24" strokeWidth="2"/>
+                                <ellipse cx="50" cy="55" rx="4" ry="2.5" fill="#fbbf24"/>
+                                <line x1="41" y1="52" x2="30" y2="44" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6"/>
+                                <line x1="59" y1="52" x2="70" y2="44" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6"/>
+                                <line x1="50" y1="49" x2="50" y2="36" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6"/>
+                            </svg>
+                            <h3 className="text-lg uppercase tracking-widest font-bold font-serif">Travaux Couverts</h3>
+                            <p className="text-slate-400 text-sm mt-2 font-serif italic">Le Temple est fermé. Déverrouillez votre grade pour entrer.</p>
+                        </div>
                     ) : list.length === 0 && !isA ? (
                         <div className="text-center py-20 text-slate-400 italic font-serif">Les archives sont vides pour ce grade.</div>
                     ) : (
@@ -1394,7 +1425,7 @@
             return (
                 <div className="space-y-6 animate-fade font-sans">
                     <div className="bg-white p-6 rounded-2xl border flex justify-between items-center shadow-sm">
-                        <div className="flex items-center"><SmartIcon name="Globe" className="mr-3 text-amber-600" size={28}/><h2 className="text-2xl font-serif">La Chaîne d'Union</h2></div>
+                        <div className="flex items-center"><i className="fa-solid fa-hands-holding text-amber-600 mr-3" style={{fontSize:24}}></i><h2 className="text-2xl font-serif">La Chaîne d'Union</h2></div>
                         {canEdit && <button onClick={()=>setIsAdding(!isAdding)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2"><SmartIcon name={isAdding?"X":"Plus"} size={16}/><span>{isAdding?"Annuler":"Nouveau Lien"}</span></button>}
                     </div>
 
@@ -2043,13 +2074,13 @@
                                 <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'}</span>
                             </div>
                             <div className="flex flex-wrap justify-center items-center gap-2 font-serif text-[10px]">
-                                <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="landmark" label="Parvis" />
+                                <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="place-of-worship" label="Parvis" />
                                 <NavTab active={activeView==='adherents'} onClick={()=>setActiveView('adherents')} icon="users" label="Tableau de Loge" />
-                                <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="calendar-days" label="Ordre des Travaux" />
-                                <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book" label="Les Archives" />
-                                <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="link" label="Chaîne d'Union" />
-                                {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="landmark" label="Trésorerie" />}
-                                {(isVM || isArchitect) && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="Settings" label="Configuration" />}
+                                <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="scroll" label="Ordre des Travaux" />
+                                <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book-open" label="Les Archives" />
+                                <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="hands-holding" label="Chaîne d'Union" />
+                                {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="scale-balanced" label="Trésorerie" />}
+                                {(isVM || isArchitect) && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="compass-drafting" label="Configuration" />}
 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
