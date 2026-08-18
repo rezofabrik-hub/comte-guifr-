@@ -77,12 +77,13 @@ jobs:
 
           async function deleteAllAgenda(base, token) {
             // List all docs then delete them
-            const list = await firestoreReq(base + '?pageSize=100', 'GET', null, token);
+            const list = await firestoreReq(base + '?pageSize=200', 'GET', null, token);
             const docs = (list.documents || []);
             for (const doc of docs) {
-              const docPath = '/' + doc.name.split('/').slice(3).join('/');
-              await firestoreReq(docPath, 'DELETE', null, token);
-              console.log('🗑️ Supprimé:', docPath.split('/').pop());
+              // doc.name = "projects/site-cg51/databases/(default)/documents/..."
+              const docPath = '/v1/' + doc.name;
+              const res = await firestoreReq(docPath, 'DELETE', null, token);
+              console.log('🗑️ Supprimé:', doc.name.split('/').pop(), res);
             }
             console.log(`Nettoyage : ${docs.length} documents supprimés.`);
           }
