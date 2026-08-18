@@ -865,9 +865,10 @@
         }
 
         function ArchiveForm({ initialData, onSave, onCancel }) {
-            const [f, sF] = useState(initialData || { title:'', bookAuthor:'', grade:'Apprenti', description:'', docFile:null });
-            
+            const today = new Date().toISOString().split('T')[0];
+            const [f, sF] = useState(initialData || { title:'', bookAuthor:'', grade:'Apprenti', description:'', docFile:null, modifiedAt: today });
             const [uploading, setUploading] = useState(false);
+
             const handleFile = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -883,12 +884,15 @@
                 <form onSubmit={async(e)=>{e.preventDefault(); await onSave(f);}} className="space-y-4 w-full">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" placeholder="Titre du document" value={f.title} onChange={e=>sF({...f,title:e.target.value})} className="border p-3 rounded-lg text-sm w-full font-bold outline-none focus:border-amber-500" required />
-                        <input type="text" placeholder="Auteur" value={f.bookAuthor} onChange={e=>sF({...f,bookAuthor:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500" required />
+                        <input type="text" placeholder="Auteur / Source" value={f.bookAuthor} onChange={e=>sF({...f,bookAuthor:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500" required />
                         <select value={f.grade} onChange={e=>sF({...f,grade:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500">
                             <option>Apprenti</option><option>Compagnon</option><option>Maître</option><option>Tous</option>
                         </select>
+                        <div>
+                            <label className="text-[10px] font-bold text-red-600 uppercase tracking-widest block mb-1">Date de modification *</label>
+                            <input type="date" value={f.modifiedAt||today} onChange={e=>sF({...f,modifiedAt:e.target.value})} className="border-2 border-red-200 focus:border-red-400 p-3 rounded-lg text-sm w-full outline-none" required />
+                        </div>
                     </div>
-                    
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                         <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2 tracking-widest">Fichier joint (Optionnel)</label>
                         {!f.docFile ? (
@@ -901,13 +905,53 @@
                         )}
                         {uploading && <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2">Envoi du fichier...</p>}
                     </div>
-
-                    <textarea placeholder="Pourquoi partager ce document ?" value={f.description} onChange={e=>sF({...f,description:e.target.value})} className="w-full border p-3 rounded-lg text-sm h-24 outline-none focus:border-amber-500" required></textarea>
+                    <textarea placeholder="Description / notes sur ce document..." value={f.description} onChange={e=>sF({...f,description:e.target.value})} className="w-full border p-3 rounded-lg text-sm h-24 outline-none focus:border-amber-500" required></textarea>
                     <div className="flex justify-end space-x-3">
                         <button type="button" onClick={onCancel} className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Annuler</button>
                         <button type="submit" className="bg-amber-600 text-white px-6 py-2 rounded-lg font-bold shadow-md uppercase text-[10px] tracking-widest">Enregistrer</button>
                     </div>
                 </form>
+            );
+        }
+
+        function ReglementUploadForm({ reglementFile, onSaveReglement }) {
+            const today = new Date().toISOString().split('T')[0];
+            const [date, setDate] = useState(today);
+            const [uploading, setUploading] = useState(false);
+            const [showForm, setShowForm] = useState(false);
+            const [err, setErr] = useState('');
+
+            if (!showForm) return (
+                <button onClick={()=>setShowForm(true)} className="text-[10px] text-amber-400 hover:text-amber-300 uppercase tracking-widest font-bold flex items-center transition-colors mt-1">
+                    <SmartIcon name="Upload" size={12} className="mr-1"/> Mettre à jour
+                </button>
+            );
+
+            return (
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mt-2 flex flex-col gap-3 min-w-[220px]">
+                    <div>
+                        <label className="text-[10px] font-bold text-red-400 uppercase block mb-1">Date de mise à jour *</label>
+                        <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="w-full bg-slate-900 border border-slate-600 text-white p-2 rounded-lg text-sm outline-none focus:border-amber-500" required />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-amber-400 uppercase block mb-1">Nouveau fichier PDF *</label>
+                        <input type="file" accept=".pdf" className="text-xs text-slate-300 w-full" onChange={async(e)=>{
+                            const file = e.target.files[0]; if(!file) return;
+                            if (!date) { setErr('Entrez d\'abord la date.'); return; }
+                            setErr(''); setUploading(true);
+                            try {
+                                const url = await window.FB_API.uploadFile(file, 'cg51/reglement');
+                                const history = reglementFile && reglementFile.data ? [...(reglementFile.history||[]), { name: reglementFile.name, data: reglementFile.data, modifiedAt: reglementFile.modifiedAt||'' }] : [];
+                                await onSaveReglement({ name: file.name, data: url, modifiedAt: date, history });
+                                setShowForm(false);
+                            } catch(err2) { setErr('Erreur upload : ' + err2.message); }
+                            setUploading(false);
+                        }}/>
+                    </div>
+                    {err && <p className="text-red-400 text-[10px]">{err}</p>}
+                    {uploading && <p className="text-amber-400 text-[10px] uppercase font-bold">Envoi en cours...</p>}
+                    <button onClick={()=>setShowForm(false)} className="text-slate-400 text-[10px] uppercase hover:text-white">Annuler</button>
+                </div>
             );
         }
 
@@ -926,7 +970,7 @@
                 <div className="space-y-6 animate-fade">
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4">
                         <div><h2 className="text-2xl font-serif flex items-center"><SmartIcon name="Library" className="mr-3 text-amber-600" size={24}/>Les Archives</h2><p className="text-slate-500 text-sm font-medium">Partagez vos lectures et documents par grade.</p></div>
-                        {isArchitect && (
+                        {(isArchitect || unlockedGrades.maitre) && (
                             <button onClick={()=>sA(!isA)} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center space-x-2">
                                 <SmartIcon name={isA?"X":"Plus"} size={18}/><span>Ajouter un Document</span>
                             </button>
@@ -942,23 +986,27 @@
                             </div>
                             <div className="relative z-10 flex flex-col items-center md:items-end gap-3">
                                 {reglementFile && reglementFile.data ? (
-                                    <a href={reglementFile.data} download={reglementFile.name} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
-                                        <SmartIcon name="Download" size={16} className="mr-2"/> TÉLÉCHARGER LE PDF
-                                    </a>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <a href={reglementFile.data} download={reglementFile.name} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
+                                            <SmartIcon name="Download" size={16} className="mr-2"/> TÉLÉCHARGER LE PDF
+                                        </a>
+                                        {reglementFile.modifiedAt && <p className="text-slate-500 text-[10px]">Mis à jour le {new Date(reglementFile.modifiedAt).toLocaleDateString('fr-FR')}</p>}
+                                        {reglementFile.history && reglementFile.history.length > 0 && (
+                                            <details className="text-[10px] text-slate-400 text-right">
+                                                <summary className="cursor-pointer hover:text-amber-400">Historique ({reglementFile.history.length} version{reglementFile.history.length>1?'s':''})</summary>
+                                                <div className="mt-1 space-y-1">
+                                                    {reglementFile.history.slice(-5).reverse().map((v,i)=>(
+                                                        <div key={i}><a href={v.data} download={v.name} className="text-amber-400 hover:underline">{v.name}</a> — {new Date(v.modifiedAt).toLocaleDateString('fr-FR')}</div>
+                                                    ))}
+                                                </div>
+                                            </details>
+                                        )}
+                                    </div>
                                 ) : (
                                     <p className="text-slate-500 text-xs italic">Document en cours de dépôt...</p>
                                 )}
                                 {isArchitect && (
-                                    <label className="cursor-pointer text-[10px] text-amber-400 hover:text-amber-300 uppercase tracking-widest font-bold flex items-center transition-colors">
-                                        <SmartIcon name="Upload" size={12} className="mr-1"/> Mettre à jour
-                                        <input type="file" accept=".pdf" className="hidden" onChange={async (e)=>{
-                                            const file = e.target.files[0]; if(!file) return;
-                                            try {
-                                                const url = await window.FB_API.uploadFile(file, 'cg51/reglement');
-                                                onSaveReglement({ name: file.name, data: url });
-                                            } catch(err) { console.error('Upload échoué', err); }
-                                        }}/>
-                                    </label>
+                                    <ReglementUploadForm reglementFile={reglementFile} onSaveReglement={onSaveReglement} />
                                 )}
                             </div>
                         </div>
@@ -994,7 +1042,7 @@
                                                 )}
 
                                                 <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
-                                                    <span>Par {b.sharedBy}</span>
+                                                    <span>Par {b.sharedBy}{b.modifiedAt ? ` · ${new Date(b.modifiedAt).toLocaleDateString('fr-FR')}` : ''}</span>
                                                     {isArchitect && (
                                                         <div className="flex space-x-2">
                                                             <button onClick={()=>setEditingId(b.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
@@ -1407,25 +1455,14 @@
                 const unsubReglement = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null));
                 const unsubApiKey = api.onSnapshot(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'settings', 'claudeapi'), d => { if(d.exists()) { setClaudeApiKey(d.data().key||''); setApiKeyInput(d.data().key||''); } });
                 
-                const userEmail = fbUser?.email;
-                const canInitMembers = userEmail && ['maitre@cg51-virtuel.fr','architecte@cg51-virtuel.fr'].includes(userEmail);
-                const unsubMembers = api.onSnapshot(path('members'), async (s) => {
-                    if (s.empty && canInitMembers) {
-                        const batch = api.writeBatch(api.db);
-                        LOGE_MEMBERS_INIT.forEach(m => batch.set(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'members', m.name.replace(/\s+/g,'_')), { ...m, phone:'', email:'', profession:'', photoData:'' }));
-                        await batch.commit();
-                    } else { setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
+                const unsubMembers = api.onSnapshot(path('members'), (s) => {
+                    setMembers(s.docs.map(d => ({ id: d.id, ...d.data() })));
                 });
                 const unsubAgenda = api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubPlanches = api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubBiblio = api.onSnapshot(path('bibliotheque'), s => setBooks(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-                const canInitLiens = userEmail && ['architecte@cg51-virtuel.fr'].includes(userEmail);
-                const unsubLiens = api.onSnapshot(path('liens'), async (s) => {
-                    if (s.empty && canInitLiens) {
-                        const batch = api.writeBatch(api.db);
-                        LIENS_INIT.forEach((l, i) => batch.set(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'liens', String(i)), l));
-                        await batch.commit();
-                    } else { setLiens(s.docs.map(d => ({ id: d.id, ...d.data() }))); }
+                const unsubLiens = api.onSnapshot(path('liens'), (s) => {
+                    setLiens(s.docs.map(d => ({ id: d.id, ...d.data() })));
                 });
                 
                 return () => { unsubLogo(); unsubIdentity(); unsubReglement(); unsubApiKey(); unsubMembers(); unsubAgenda(); unsubPlanches(); unsubBiblio(); unsubLiens(); };
