@@ -1,0 +1,18 @@
+{
+  "slug": "test-trois-colonnes",
+  "logeId": "test-uuid-1234-5678-abcd-velum",
+  "name": "R∴L∴ Les Trois Colonnes n°7",
+  "shortName": "Les Trois Colonnes",
+  "appId": "test-uuid-1234-5678-abcd-velum",
+  "domain": "test-trois-colonnes.velum.app",
+  "contact_email": "vm@test-trois-colonnes.velum.app",
+  "formule": "essentiel",
+  "emails": {
+    "apprenti": "apprenti@test-trois-colonnes.velum.app",
+    "compagnon": "compagnon@test-trois-colonnes.velum.app",
+    "maitre": "maitre@test-trois-colonnes.velum.app",
+    "tresorier": "tresorier@test-trois-colonnes.velum.app",
+    "vm": "vm@test-trois-colonnes.velum.app",
+    "architecte": "architecte@test-trois-colonnes.velum.app"
+  }
+}
