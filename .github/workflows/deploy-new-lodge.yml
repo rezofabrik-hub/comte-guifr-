@@ -7,6 +7,11 @@ on:
         description: 'Slug de la loge (ex: loge-lumiere) — doit correspondre à lodges/{slug}/config.json'
         required: true
         type: string
+      logeId:
+        description: 'ID velum (UUID) de la loge — utilisé comme appId Firebase'
+        required: false
+        type: string
+        default: ''
       firebase_passwords:
         description: 'Mot de passe commun pour tous les comptes (min 8 car.) — sera changé par la loge'
         required: true
@@ -28,7 +33,13 @@ jobs:
             exit 1
           fi
           echo "name=$(jq -r '.name' $CONFIG)"               >> $GITHUB_OUTPUT
-          echo "appId=$(jq -r '.appId' $CONFIG)"             >> $GITHUB_OUTPUT
+          # Si logeId fourni via input, utiliser comme appId
+          LOGE_ID="${{ github.event.inputs.logeId }}"
+          if [ -n "$LOGE_ID" ]; then
+            echo "appId=$LOGE_ID"                            >> $GITHUB_OUTPUT
+          else
+            echo "appId=$(jq -r '.appId' $CONFIG)"           >> $GITHUB_OUTPUT
+          fi
           echo "domain=$(jq -r '.domain' $CONFIG)"           >> $GITHUB_OUTPUT
           echo "contact=$(jq -r '.contact_email' $CONFIG)"   >> $GITHUB_OUTPUT
           echo "email_apprenti=$(jq -r '.emails.apprenti' $CONFIG)"     >> $GITHUB_OUTPUT
@@ -109,6 +120,59 @@ jobs:
 
           print("✅ index.html généré pour $LOGE_NAME")
           PYEOF
+
+      - name: Injecter la configuration Firebase velum-france
+        run: |
+          SLUG="${{ github.event.inputs.slug }}"
+          LOGE_ID="${{ github.event.inputs.logeId }}"
+          DIST="lodges/$SLUG/dist/index.html"
+
+          if [ -n "$FIREBASE_CONFIG_FR" ]; then
+            python3 - <<PYEOF
+          import re, os, json
+
+          with open("$DIST", "r") as f:
+              html = f.read()
+
+          cfg = json.loads(os.environ["FIREBASE_CONFIG_FR"])
+          loge_app_id = os.environ.get("LOGE_ID") or cfg.get("appId", "")
+
+          new_block = (
+              "        // @@FIREBASE_CONFIG_START@@\n"
+              "                  const firebaseConfig = {\n"
+              f"                    apiKey: \"{cfg.get('apiKey','')}\",\n"
+              f"                    authDomain: \"{cfg.get('authDomain','')}\",\n"
+              f"                    projectId: \"{cfg.get('projectId','')}\",\n"
+              f"                    storageBucket: \"{cfg.get('storageBucket','')}\",\n"
+              f"                    messagingSenderId: \"{cfg.get('messagingSenderId','')}\",\n"
+              f"                    appId: \"{cfg.get('appId','')}\"\n"
+              "                  };\n"
+              "                  // @@FIREBASE_CONFIG_END@@"
+          )
+
+          html = re.sub(
+              r'// @@FIREBASE_CONFIG_START@@.*?// @@FIREBASE_CONFIG_END@@',
+              new_block, html, flags=re.DOTALL
+          )
+
+          # Remplacer LOGE_APP_ID par le logeId velum (UUID)
+          if loge_app_id:
+              html = re.sub(
+                  r'const LOGE_APP_ID\s*=\s*"[^"]*"',
+                  f'const LOGE_APP_ID = "{loge_app_id}"',
+                  html
+              )
+
+          with open("$DIST", "w") as f:
+              f.write(html)
+          print(f"✅ Firebase config injectée — projet: {cfg.get('projectId','?')}, appId: {loge_app_id}")
+          PYEOF
+          else
+            echo "⚠️  FIREBASE_CONFIG_FR non configuré — config Firebase conservée telle quelle"
+          fi
+        env:
+          FIREBASE_CONFIG_FR: ${{ secrets.FIREBASE_CONFIG_FR }}
+          LOGE_ID: ${{ github.event.inputs.logeId }}
 
       - name: Créer wrangler.toml pour la loge
         run: |
