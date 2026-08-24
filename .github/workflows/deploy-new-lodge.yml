@@ -203,8 +203,6 @@ jobs:
           workingDirectory: lodges/${{ github.event.inputs.slug }}/dist
 
       - name: Créer les comptes Firebase Auth
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           npm install -g firebase-tools
 
@@ -311,6 +309,7 @@ jobs:
           E_VM: ${{ steps.config.outputs.email_vm }}
           E_ARCH: ${{ steps.config.outputs.email_architecte }}
           PWD_INIT: ${{ github.event.inputs.firebase_passwords }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Résumé du déploiement
         run: |
