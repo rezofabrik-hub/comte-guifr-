@@ -131,19 +131,7 @@
             return 'apprenti';
         };
 
-        const LOGE_MEMBERS_INIT = [
-            { name: 'V∴M∴ Bruno RAMON', role: 'Vénérable Maître' },
-            { name: 'Sœur Lydie HERVÉ', role: '1er Surveillant' },
-            { name: 'Frère Julien DURAN', role: '2nd Surveillant' },
-            { name: 'Frère Claude CARCELLER', role: 'Orateur' },
-            { name: 'Frère Jean Félix LEVY', role: 'Secrétaire' },
-            { name: 'Frère David LOIRET', role: 'Trésorier' },
-            { name: 'Sœur Mat∴ CARU∴', role: 'Hospitalière' },
-            { name: 'Sœur Renée OLENDER', role: 'Maître des Cérémonies' },
-            { name: 'Sœur Marie SIONÉ', role: 'Experte' },
-            { name: 'Sœur Nicole', role: 'Compagnon' },
-            { name: 'Frère Laurent', role: 'Compagnon' }
-        ];
+        const LOGE_MEMBERS_INIT = [];
 
         const LIENS_INIT = [
             { t: "Hiram.be", d: "Le weblog de la Franc-Maçonnerie. Fondé en 2004.", u: "https://www.hiram.be/" },
@@ -194,7 +182,7 @@
 
             // Charger les membres depuis Firestore (lecture publique) au montage
             useEffect(() => {
-                fetch('https://firestore.googleapis.com/v1/projects/site-cg51/databases/(default)/documents/artifacts/site-cg51/public/data/members?pageSize=200')
+                fetch(`https://firestore.googleapis.com/v1/projects/${window.FB_API?.appId||'site-cg51'}/databases/(default)/documents/artifacts/${window.FB_API?.appId||'site-cg51'}/public/data/members?pageSize=200`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.documents) setMembers(data.documents.map(d => {
@@ -2018,12 +2006,12 @@
             const FB_KEY = "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20";
             // @@CONFIG_EMAILS_START@@
             const GRADE_EMAILS = {
-                apprenti: 'apprenti@cg51-virtuel.fr',
-                compagnon: 'compagnon@cg51-virtuel.fr',
-                maitre: 'maitre@cg51-virtuel.fr',
-                tresorier: 'tresorier@cg51-virtuel.fr',
-                vm: 'vm@cg51-virtuel.fr',
-                architecte: 'architecte@cg51-virtuel.fr'
+                apprenti: `apprenti@${LOGE_APP_ID}.velum.fr`,
+                compagnon: `compagnon@${LOGE_APP_ID}.velum.fr`,
+                maitre: `maitre@${LOGE_APP_ID}.velum.fr`,
+                tresorier: `tresorier@${LOGE_APP_ID}.velum.fr`,
+                vm: `vm@${LOGE_APP_ID}.velum.fr`,
+                architecte: `architecte@${LOGE_APP_ID}.velum.fr`
             };
             // @@CONFIG_EMAILS_END@@
             const GRADE_LABELS = { apprenti: 'Apprenti', compagnon: 'Compagnon', maitre: 'Maître', tresorier: 'Trésorier', vm: 'Vénérable Maître', architecte: 'Architecte' };
@@ -2416,7 +2404,7 @@
             const [books, setBooks] = useState([]);
             const [liens, setLiens] = useState([]);
             const [logeLogo, setLogeLogo] = useState(null);
-            const [logeIdentity, setLogeIdentity] = useState({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+            const [logeIdentity, setLogeIdentity] = useState({ name: '', rite: '', obedience: '', orient: '', maitreBanquet: '', telBanquet: '' });
             const [welcomeText, setWelcomeText] = useState('');
             const [reglementFile, setReglementFile] = useState(null);
             const [claudeApiKey, setClaudeApiKey] = useState('');
@@ -2448,7 +2436,7 @@
                     const DEFAULT_WELCOME = "Bienvenue, mes Très Chères Sœurs et mes Très Chers Frères,\n\nCe temple virtuel est le vôtre — un espace de partage et de lumière au service de notre Loge. Vous y trouverez des Planches à lire et à méditer, ainsi que notre Chaîne d'Union, reflet des liens fraternels qui nous unissent.\n\nPuisse chaque visite enrichir votre chemin initiatique.\n\nFraternellement.";
                     dataUnsubs.push(
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), d => d.exists() && setLogeLogo(d.data().logoData)),
-                        api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), d => d.exists() ? setLogeIdentity(prev=>({...prev,...d.data()})) : setLogeIdentity({name:'R∴L∴ Comte Guifré n°51',rite:'',obedience:''})),
+                        api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), d => d.exists() ? setLogeIdentity(prev=>({...prev,...d.data()})) : setLogeIdentity({name:'',rite:'',obedience:'',orient:'',maitreBanquet:'',telBanquet:''})),
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), d => d.exists() ? setWelcomeText(d.data().text||DEFAULT_WELCOME) : setWelcomeText(DEFAULT_WELCOME)),
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null)),
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'), d => { if(d.exists()){setClaudeApiKey(d.data().key||'');setApiKeyInput(d.data().key||'');} }),
@@ -2578,7 +2566,7 @@
                         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4 text-white">
                             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveView('home')}>
                                 {logeLogo ? <img src={logeLogo} className="w-10 h-10 object-contain" /> : <SmartIcon name="Landmark" size={24} className="text-white"/>}
-                                <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'}</span>
+                                <span className="text-lg font-bold font-serif text-white tracking-widest uppercase hidden md:inline">{logeIdentity?.name || 'Ma Loge'}</span>
                             </div>
                             <div className="flex flex-wrap justify-center items-center gap-2 font-serif text-[10px]">
                                 <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="place-of-worship" label="Parvis" />
@@ -2663,7 +2651,7 @@
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} currentUser={memberName} isArchitect={isArchitect} isVM={isVM} loginGradeKey={loginGradeKey} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView(loginGradeKey||'home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade={loginGradeKey||'apprenti'} currentUser={memberName} isArchitect={isArchitect} />}
                     </main>
-                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'R∴L∴ Comte Guifré n°51'} — Orient de Perpignan</footer>
+                    <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
                 </div>
             );
         }
