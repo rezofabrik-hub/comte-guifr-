@@ -2448,7 +2448,7 @@
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="scroll" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book-open" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="hands-holding" label="Chaîne d'Union" />
-                                <NavTab active={activeView==='visite'} onClick={()=>setActiveView('visite')} icon="user-check" label="Visite" />
+                                {(isVM || isArchitect || hasTresorAccess) && <NavTab active={activeView==='visite'} onClick={()=>setActiveView('visite')} icon="user-check" label="Visite" />}
                                 {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="scale-balanced" label="Trésorerie" />}
                                 {(isVM || isArchitect) && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="compass-drafting" label="Configuration" />}
 
