@@ -320,7 +320,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -575,7 +575,7 @@
                 <div className="space-y-8 animate-fade font-sans text-slate-900">
                     <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border flex flex-col md:flex-row justify-between items-center gap-8">
                         <div className="text-center md:text-left flex-grow font-serif">
-                            <h2 className="text-4xl font-bold text-slate-800 leading-tight">{(() => { const n = memberName || ''; const isSoeur = /s[oœ]eur/i.test(n); const titre = isSoeur ? 'ma Sœur' : 'mon Frère'; const prenom = n.replace(/^(fr[eè]re|s[oœ]eur|v∴m∴|v\.m\.|frere|soeur)\s*/i,'').trim(); return `Bienvenue, ${titre} ${prenom}`; })()}</h2>
+                            <h2 className="text-4xl font-bold text-slate-800 leading-tight">{(() => { const isSoeur = memberGenre === 'soeur'; const titre = isSoeur ? 'ma Sœur' : 'mon Frère'; const prenom = (memberName || '').replace(/^(fr[eè]re|s[oœ]eur|v∴m∴|v\.m\.|frere|soeur)\s*/i,'').trim(); return `Bienvenue, ${titre} ${prenom}`; })()}</h2>
                             <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Loge Comte Guifré n°51'}.</p>
                             {isEditingWelcome ? (
                                 <div className="mt-3 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 w-full max-w-md animate-fade">
@@ -947,13 +947,17 @@
         }
 
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
-            const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'' });
+            const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'', genre:'frere' });
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
             return (
                 <form onSubmit={async(e)=>{e.preventDefault(); sS(true); await onSave({...fd, name:fd.name, nom:fd.name}); sS(false);}} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm" required />
+                        <div className="flex gap-2 items-center">
+                            <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm flex-grow" required />
+                            <label className={`cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='frere' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'frere'}))}>Frère</label>
+                            <label className={`cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='soeur' ? 'bg-pink-50 border-pink-400 text-pink-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'soeur'}))}>Sœur</label>
+                        </div>
                         <select value={fd.grade||'Maître'} onChange={e=>sFd({...fd,grade:e.target.value})} className="border p-2 rounded text-sm font-bold text-amber-700">
                             <option>Maître</option><option>Compagnon</option><option>Apprenti</option>
                         </select>
@@ -2368,6 +2372,7 @@
             const [isLogged, setIsLogged] = useState(false);
             const [memberName, setMemberName] = useState('');
             const [memberRole, setMemberRole] = useState('');
+            const [memberGenre, setMemberGenre] = useState('frere');
             const [activeView, setActiveView] = useState('home');
             const [unlockedGrades, setUnlockedGrades] = useState({ apprenti: false, compagnon: false, maitre: false });
             const [pendingGrade, setPendingGrade] = useState('');
@@ -2505,7 +2510,7 @@
                 const clean = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/v∴m∴|soeur|frere|[^a-z]/g, "");
                 const search = clean(pendingNameMatch);
                 const m = members.find(x => clean(x.name).includes(search) || search.includes(clean(x.name)));
-                if (m) { setMemberName(m.name); setMemberRole(m.role); }
+                if (m) { setMemberName(m.name); setMemberRole(m.role); setMemberGenre(m.genre || 'frere'); }
                 setPendingNameMatch('');
             }, [members, pendingNameMatch]);
 
@@ -2576,7 +2581,7 @@
                                         IA {claudeApiKey ? '✓' : '✗'}
                                     </button>
                                 )}
-                                <button onClick={() => { api.signOut(api.auth); setIsLogged(false); setIsArchitect(false); setUnlockedGrades({apprenti:false,compagnon:false,maitre:false}); setMemberName(''); setMemberRole(''); setActiveView('home'); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors font-sans"><SmartIcon name="LogOut" size={20}/></button>
+                                <button onClick={() => { api.signOut(api.auth); setIsLogged(false); setIsArchitect(false); setUnlockedGrades({apprenti:false,compagnon:false,maitre:false}); setMemberName(''); setMemberRole(''); setMemberGenre('frere'); setActiveView('home'); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors font-sans"><SmartIcon name="LogOut" size={20}/></button>
                             </div>
                         </div>
                     </nav>
@@ -2595,7 +2600,7 @@
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
