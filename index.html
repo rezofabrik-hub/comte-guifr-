@@ -639,7 +639,13 @@
                                                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center font-sans"><SmartIcon name="Feather" size={12} className="mr-2"/> Objet des Travaux</p>
                                                         <p className="text-slate-700 italic font-serif leading-relaxed text-lg">"{tenue.sujet}"</p>
-                                                        
+
+                                                        {tenue.agapes && (
+                                                            <p className="mt-3 text-xs font-bold text-amber-700 font-sans flex items-center gap-1">
+                                                                <SmartIcon name="Utensils" size={11}/> Agapes — Intendant : {tenue.agapes}
+                                                            </p>
+                                                        )}
+
                                                         {tenue.planches && tenue.planches.length > 0 && (
                                                             <div className="mt-5 pt-5 border-t border-slate-200">
                                                                 <p className="text-[10px] font-bold text-amber-700 uppercase mb-4 tracking-widest font-sans">Planches détectées par l'IA :</p>
