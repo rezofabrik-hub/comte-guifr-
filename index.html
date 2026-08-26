@@ -2321,7 +2321,7 @@
                                     <div className="flex flex-wrap gap-2 items-center">
                                         <div className="relative flex items-center">
                                             <span className="text-[10px] text-orange-500 font-bold mr-1">Firebase actuel :</span>
-                                            <input className="border border-orange-300 bg-orange-50 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800 w-32 pr-7 outline-none focus:border-orange-500" type={showFb?'text':'password'} placeholder="si désynchronisé..." value={currentPwds[g]||''} onChange={e=>setCurrentPwds(p=>({...p,[g]:e.target.value}))} />
+                                            <input className="border border-orange-300 bg-orange-50 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800 w-32 pr-7 outline-none focus:border-orange-500" type={showFb?'text':'password'} placeholder={savedPwds[g]?'••••••••':'mot de passe...'} value={currentPwds[g]||''} onChange={e=>setCurrentPwds(p=>({...p,[g]:e.target.value}))} />
                                             <button type="button" onClick={()=>setShowFb(v=>!v)} className="absolute right-1.5 text-orange-400 hover:text-orange-600"><SmartIcon name={showFb?'EyeOff':'Eye'} size={12}/></button>
                                         </div>
                                         <span className="text-[10px] text-slate-400">→</span>
