@@ -2,15 +2,13 @@
   "slug": "exemple-loge",
   "name": "R∴L∴ Exemple Loge n°99",
   "shortName": "Exemple Loge",
-  "appId": "exemple-loge-99",
-  "domain": "exemple-loge.fr",
-  "contact_email": "vm@exemple-loge.fr",
+  "domain": "exemple-loge.velum.fr",
   "emails": {
-    "apprenti": "apprenti@exemple-loge.fr",
-    "compagnon": "compagnon@exemple-loge.fr",
-    "maitre": "maitre@exemple-loge.fr",
-    "tresorier": "tresorier@exemple-loge.fr",
-    "vm": "vm@exemple-loge.fr",
-    "architecte": "architecte@exemple-loge.fr"
+    "apprenti":   "apprenti@exemple-loge.velum.fr",
+    "compagnon":  "compagnon@exemple-loge.velum.fr",
+    "maitre":     "maitre@exemple-loge.velum.fr",
+    "tresorier":  "tresorier@exemple-loge.velum.fr",
+    "vm":         "vm@exemple-loge.velum.fr",
+    "architecte": "architecte@exemple-loge.velum.fr"
   }
 }
