@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Velum — Page de Test Fonctionnalités</title>
+<meta name="theme-color" content="#0f172a">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f1f5f9; --bg2: #ffffff; --bg3: #f8fafc;
+    --text: #0f172a; --text2: #475569; --text3: #94a3b8;
+    --border: #e2e8f0; --card: #ffffff;
+    --accent: #f59e0b; --accent2: #d97706;
+  }
+  [data-theme="dark"] {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #0f172a;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #475569;
+    --border: #334155; --card: #1e293b;
+    --accent: #f59e0b; --accent2: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+  .font-serif { font-family: 'Cinzel', serif; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .fade { animation: fadeIn 0.3s ease forwards; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .pulse { animation: pulse 2s infinite; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .badge { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 4px; border-radius:9px; font-size:10px; font-weight:700; background:#ef4444; color:white; }
+  @media print {
+    .no-print { display:none !important; }
+    body { background: white; color: black; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  const _h = window.location.hostname;
+  const LOGE_APP_ID = (_h==='localhost'||_h==='127.0.0.1'||_h.includes('pages.dev')||_h.includes('workers.dev')) ? 'site-cg51' : (_h.split('.')[0]||'site-cg51');
+  window.LOGE_APP_ID = LOGE_APP_ID;
+
+  if (!window.FB_API) {
+    const cfg = {
+      apiKey:"AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
+      authDomain:"site-cg51.firebaseapp.com", projectId:"site-cg51",
+      storageBucket:"site-cg51.firebasestorage.app", messagingSenderId:"532992433947",
+      appId:"1:532992433947:web:0ad401c53e6feeb0663dbe"
+    };
+    try {
+      const app = initializeApp(cfg);
+      const auth = getAuth(app);
+      setPersistence(auth, browserSessionPersistence).catch(()=>{});
+      window.FB_API = {
+        db: getFirestore(app), auth,
+        collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc,
+        query, orderBy, serverTimestamp, limit,
+        signInWithEmailAndPassword, signOut, onAuthStateChanged,
+        appId: LOGE_APP_ID
+      };
+    } catch(e) { console.error(e); }
+  }
+</script>
+
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const api = () => window.FB_API;
+const db = () => window.FB_API?.db;
+const P = (col) => api()?.collection(db(), 'artifacts', api()?.appId, 'public', 'data', col);
+const fmt = n => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n||0);
+const today = () => new Date().toISOString().slice(0,10);
+
+// ── Icônes ──────────────────────────────────────────────────────────────────
+const Icon = ({n, size=18, cls=''}) => {
+  const icons = {
+    home:'fa-house', members:'fa-users', agenda:'fa-calendar', tresor:'fa-coins',
+    msg:'fa-message', vote:'fa-check-to-slot', docs:'fa-folder-open', presence:'fa-user-check',
+    qr:'fa-qrcode', chart:'fa-chart-bar', dash:'fa-gauge', admin:'fa-shield-halved',
+    velum:'fa-crown', notif:'fa-bell', settings:'fa-gear', logout:'fa-right-from-bracket',
+    sun:'fa-sun', moon:'fa-moon', search:'fa-magnifying-glass', plus:'fa-plus',
+    trash:'fa-trash', edit:'fa-pen', check:'fa-check', x:'fa-xmark',
+    pdf:'fa-file-pdf', xls:'fa-file-excel', send:'fa-paper-plane', lock:'fa-lock',
+    unlock:'fa-lock-open', star:'fa-star', eye:'fa-eye', phone:'fa-phone',
+    mail:'fa-envelope', download:'fa-download', up:'fa-arrow-up', info:'fa-circle-info',
+    warn:'fa-triangle-exclamation', ok:'fa-circle-check', refresh:'fa-rotate',
+    key:'fa-key', globe:'fa-globe', euro:'fa-euro-sign', user:'fa-user',
+    badge:'fa-id-badge', photo:'fa-camera', transfer:'fa-right-left', log:'fa-list-check',
+    stripe:'fa-credit-card', onboard:'fa-wand-magic-sparkles', two:'fa-mobile-screen'
+  };
+  return <i className={`fa-solid ${icons[n]||'fa-circle'} ${cls}`} style={{fontSize:size}}/>;
+};
+
+// ── Confirm Button ────────────────────────────────────────────────────────
+function ConfirmBtn({onConfirm, label='Supprimer', className=''}) {
+  const [p, setP] = useState(false);
+  const t = useRef(null);
+  const ask = e => { e.stopPropagation(); setP(true); clearTimeout(t.current); t.current = setTimeout(()=>setP(false),3500); };
+  const go = e => { e.stopPropagation(); clearTimeout(t.current); setP(false); onConfirm(); };
+  const no = e => { e.stopPropagation(); clearTimeout(t.current); setP(false); };
+  if (p) return <span className="inline-flex items-center gap-1">
+    <button onClick={go} className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded">Confirmer ?</button>
+    <button onClick={no} className="text-slate-400 text-xs font-bold">✕</button>
+  </span>;
+  return <button onClick={ask} className={className}>{label}</button>;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const add = (msg, type='ok') => {
+    const id = Date.now();
+    setToasts(t => [...t, {id, msg, type}]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
+  };
+  return { toasts, toast: add };
+}
+function Toasts({toasts}) {
+  const colors = {ok:'bg-emerald-500', warn:'bg-amber-500', err:'bg-red-500', info:'bg-blue-500'};
+  return <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 no-print">
+    {toasts.map(t => <div key={t.id} className={`${colors[t.type]||'bg-slate-700'} text-white text-sm px-4 py-2 rounded-xl shadow-xl fade flex items-center gap-2`}>
+      <Icon n={t.type==='ok'?'ok':t.type==='warn'?'warn':'info'} size={14}/> {t.msg}
+    </div>)}
+  </div>;
+}
+
+// ── Graphique SVG simple ───────────────────────────────────────────────────
+function BarChart({data, color='#f59e0b', label='', height=120}) {
+  if (!data?.length) return <div className="text-center text-xs" style={{color:'var(--text3)'}}>Pas de données</div>;
+  const max = Math.max(...data.map(d=>d.v), 1);
+  const w = 100 / data.length;
+  return <div className="w-full overflow-x-auto">
+    <svg viewBox={`0 0 ${data.length*40} ${height+30}`} className="w-full" style={{minWidth: data.length*40}}>
+      {data.map((d,i) => {
+        const h = (d.v/max)*(height-10);
+        const x = i*40+4; const y = height-h;
+        return <g key={i}>
+          <rect x={x} y={y} width={32} height={h} rx={4} fill={color} opacity={0.85}/>
+          <text x={x+16} y={height+14} textAnchor="middle" fontSize={9} fill="var(--text2)">{d.l}</text>
+          {d.v > 0 && <text x={x+16} y={y-3} textAnchor="middle" fontSize={8} fill={color} fontWeight="bold">{d.v}</text>}
+        </g>;
+      })}
+    </svg>
+    {label && <p className="text-center text-xs mt-1" style={{color:'var(--text3)'}}>{label}</p>}
+  </div>;
+}
+
+function DonutChart({value, total, color='#f59e0b', label=''}) {
+  const pct = total ? Math.round((value/total)*100) : 0;
+  const r = 40; const c = 2*Math.PI*r;
+  const dash = (pct/100)*c;
+  return <div className="flex flex-col items-center gap-1">
+    <svg viewBox="0 0 100 100" width={80} height={80}>
+      <circle cx={50} cy={50} r={r} fill="none" stroke="var(--border)" strokeWidth={12}/>
+      <circle cx={50} cy={50} r={r} fill="none" stroke={color} strokeWidth={12}
+        strokeDasharray={`${dash} ${c}`} strokeLinecap="round"
+        transform="rotate(-90 50 50)"/>
+      <text x={50} y={55} textAnchor="middle" fontSize={16} fontWeight="bold" fill={color}>{pct}%</text>
+    </svg>
+    <span className="text-xs" style={{color:'var(--text2)'}}>{label}</span>
+  </div>;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SECTIONS
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── 1. DASHBOARD ──────────────────────────────────────────────────────────
+function Dashboard({members, agenda, toast}) {
+  const now = new Date();
+  const prochaine = agenda.filter(t=>t.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const daysTo = prochaine ? Math.ceil((new Date(prochaine.date)-now)/(1000*60*60*24)) : null;
+  const stats = [
+    {label:'Membres', value: members.length, icon:'members', color:'#3b82f6'},
+    {label:'Tenues prévues', value: agenda.filter(t=>t.date>=today()).length, icon:'agenda', color:'#f59e0b'},
+    {label:'Prochaine tenue', value: daysTo!==null?`J-${daysTo}`:'—', icon:'agenda', color:'#10b981'},
+    {label:'Taux présence moy.', value:'73%', icon:'presence', color:'#8b5cf6'},
+  ];
+  const gradeData = [
+    {l:'App.', v: members.filter(m=>m.grade==='Apprenti').length},
+    {l:'Comp.', v: members.filter(m=>m.grade==='Compagnon').length},
+    {l:'Maître', v: members.filter(m=>['Maître','Maitre'].includes(m.grade)).length},
+  ];
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Tableau de bord</h2>
+
+    <div className="grid grid-cols-2 gap-3">
+      {stats.map((s,i) => <div key={i} className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+        <div className="flex items-center gap-2 mb-1">
+          <Icon n={s.icon} size={14} cls="opacity-70"/>
+          <span className="text-xs" style={{color:'var(--text2)'}}>{s.label}</span>
+        </div>
+        <div className="text-2xl font-black" style={{color:s.color}}>{s.value}</div>
+      </div>)}
+    </div>
+
+    {prochaine && <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-1" style={{color:'var(--accent)'}}>PROCHAINE TENUE</p>
+      <p className="font-bold text-sm">{prochaine.title || prochaine.type}</p>
+      <p className="text-xs mt-0.5" style={{color:'var(--text2)'}}>{new Date(prochaine.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+      {daysTo === 0 && <span className="inline-block mt-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold pulse">Aujourd'hui !</span>}
+      {daysTo === 1 && <span className="inline-block mt-1 text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">Demain !</span>}
+    </div>}
+
+    <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>RÉPARTITION PAR GRADE</p>
+      <BarChart data={gradeData} color="#f59e0b" height={80}/>
+    </div>
+
+    <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>ACTIVITÉ — TENUES PAR MOIS</p>
+      <BarChart data={[
+        {l:'Sep',v:2},{l:'Oct',v:3},{l:'Nov',v:2},{l:'Déc',v:1},
+        {l:'Jan',v:3},{l:'Fév',v:2},{l:'Mar',v:4},{l:'Avr',v:3},
+        {l:'Mai',v:2},{l:'Jun',v:1},{l:'Jul',v:0},{l:'Aoû',v:0}
+      ]} color="#3b82f6" height={80} label="Exercice maçonnique 2024-2025"/>
+    </div>
+
+    <div className="grid grid-cols-3 gap-3">
+      <DonutChart value={73} total={100} color="#10b981" label="Présences"/>
+      <DonutChart value={88} total={100} color="#3b82f6" label="Cotisations"/>
+      <DonutChart value={45} total={100} color="#f59e0b" label="Planches lues"/>
+    </div>
+  </div>;
+}
+
+// ── 2. RECHERCHE MEMBRES ───────────────────────────────────────────────────
+function MembersSearch({members, toast}) {
+  const [q, setQ] = useState('');
+  const [grade, setGrade] = useState('');
+  const grades = ['','Apprenti','Compagnon','Maître'];
+  const res = useMemo(() => members.filter(m =>
+    (!q || m.name?.toLowerCase().includes(q.toLowerCase()) || m.role?.toLowerCase().includes(q.toLowerCase())) &&
+    (!grade || m.grade === grade)
+  ), [members, q, grade]);
+
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Recherche Membres</h2>
+    <div className="flex gap-2">
+      <div className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+        <Icon n="search" size={14} cls="opacity-50"/>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Nom, fonction..." className="bg-transparent outline-none text-sm w-full" style={{color:'var(--text)'}}/>
+      </div>
+      <select value={grade} onChange={e=>setGrade(e.target.value)} className="rounded-xl px-3 py-2 text-sm outline-none" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>
+        {grades.map(g => <option key={g} value={g}>{g||'Tous'}</option>)}
+      </select>
+    </div>
+    <p className="text-xs" style={{color:'var(--text3)'}}>{res.length} résultat{res.length!==1?'s':''}</p>
+    <div className="space-y-2">
+      {res.map((m,i) => <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style={{background:'var(--accent)',color:'#0f172a'}}>
+          {(m.name||'?')[0].toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm truncate">{m.name}</p>
+          <p className="text-xs truncate" style={{color:'var(--text2)'}}>{m.grade} {m.role ? `· ${m.role}` : ''}</p>
+        </div>
+        {m.telephone && <a href={`tel:${m.telephone}`} className="text-xs px-2 py-1 rounded-lg" style={{background:'var(--bg)',color:'var(--accent)'}}><Icon n="phone" size={12}/></a>}
+      </div>)}
+      {res.length===0 && <div className="text-center py-8 text-sm" style={{color:'var(--text3)'}}>Aucun résultat</div>}
+    </div>
+  </div>;
+}
+
+// ── 3. PRÉSENCES AUX TENUES ──────────────────────────────────────────────
+function Presences({members, agenda, toast}) {
+  const [sel, setSel] = useState('');
+  const [presMap, setPresMap] = useState({});
+  const [loading, setLoading] = useState(false);
+  const tenuesPassees = agenda.filter(t=>t.date<=today()).sort((a,b)=>b.date.localeCompare(a.date));
+  const tenue = tenuesPassees.find(t=>t.id===sel) || tenuesPassees[0];
+
+  useEffect(()=>{
+    if (!tenue?.id) return;
+    const unsub = api()?.onSnapshot(api().collection(db(),'artifacts',api().appId,'public','data','test_presences'), snap=>{
+      const m = {};
+      snap.docs.forEach(d=>{ if(d.data().tenue===tenue.id) m[d.data().membre]=d.data().present; });
+      setPresMap(m);
+    });
+    return ()=>unsub?.();
+  },[tenue?.id]);
+
+  const toggle = async (membreId) => {
+    if (!tenue?.id) return;
+    const key = `${tenue.id}_${membreId}`;
+    const val = !presMap[membreId];
+    setPresMap(p=>({...p,[membreId]:val}));
+    try {
+      await api().setDoc(api().doc(db(),'artifacts',api().appId,'public','data','test_presences',key),
+        {tenue:tenue.id, membre:membreId, present:val, date:tenue.date});
+      toast(`Présence ${val?'enregistrée':'retirée'}`, 'ok');
+    } catch(e) { toast('Erreur Firestore','err'); }
+  };
+
+  const presents = Object.values(presMap).filter(Boolean).length;
+  const total = members.length;
+
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Feuille de Présences</h2>
+    <select value={sel||tenue?.id||''} onChange={e=>setSel(e.target.value)} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>
+      {tenuesPassees.map(t=><option key={t.id} value={t.id}>{t.date} — {t.title||t.type}</option>)}
+    </select>
+
+    {tenue && <>
+      <div className="flex items-center justify-between rounded-xl p-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+        <span className="text-sm font-bold">{presents} / {total} présents</span>
+        <DonutChart value={presents} total={total||1} color="#10b981" label=""/>
+      </div>
+
+      <div className="space-y-2">
+        {members.map(m=>{
+          const present = !!presMap[m.id||m.name];
+          return <div key={m.id||m.name} onClick={()=>toggle(m.id||m.name)}
+            className="rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all"
+            style={{background: present ? 'rgba(16,185,129,0.1)' : 'var(--card)', border:`1px solid ${present?'#10b981':'var(--border)'}`}}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${present?'bg-emerald-500 text-white':'opacity-40'}`}
+              style={present?{}:{background:'var(--border)',color:'var(--text)'}}>
+              {present ? <Icon n="check" size={14}/> : (m.name||'?')[0].toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm">{m.name}</p>
+              <p className="text-xs" style={{color:'var(--text2)'}}>{m.grade}</p>
+            </div>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${present?'text-emerald-500':'opacity-40'}`}
+              style={present?{}:{color:'var(--text3)'}}>
+              {present?'Présent':'Absent'}
+            </span>
+          </div>;
+        })}
+      </div>
+    </>}
+  </div>;
+}
+
+// ── 4. QR CODE PRÉSENCE ──────────────────────────────────────────────────
+function QRCode({agenda, toast}) {
+  const [sel, setSel] = useState('');
+  const [qrData, setQrData] = useState(null);
+  const tenuesFutures = agenda.filter(t=>t.date>=today()).sort((a,b)=>a.date.localeCompare(b.date));
+  const tenue = tenuesFutures.find(t=>t.id===sel) || tenuesFutures[0];
+
+  const generate = () => {
+    if (!tenue) return;
+    const code = btoa(JSON.stringify({appId:api()?.appId, tenueId:tenue.id, date:tenue.date}));
+    setQrData({code, tenue});
+    toast('QR Code généré !', 'ok');
+  };
+
+  const qrUrl = qrData ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData.code)}&bgcolor=0f172a&color=f59e0b` : null;
+
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>QR Code Présence</h2>
+    <p className="text-xs" style={{color:'var(--text2)'}}>Génère un QR Code à scanner à l'entrée de la tenue pour confirmer automatiquement la présence.</p>
+
+    <select value={sel||tenue?.id||''} onChange={e=>setSel(e.target.value)} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>
+      {tenuesFutures.map(t=><option key={t.id} value={t.id}>{t.date} — {t.title||t.type}</option>)}
+      {!tenuesFutures.length && <option>Aucune tenue à venir</option>}
+    </select>
+
+    <button onClick={generate} className="w-full py-3 rounded-xl font-bold text-sm" style={{background:'var(--accent)',color:'#0f172a'}}>
+      <Icon n="qr" size={14}/> Générer le QR Code
+    </button>
+
+    {qrData && <div className="rounded-2xl p-6 text-center space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="font-bold text-sm">{qrData.tenue.title||qrData.tenue.type}</p>
+      <p className="text-xs" style={{color:'var(--text2)'}}>{qrData.tenue.date}</p>
+      <div className="flex justify-center">
+        <img src={qrUrl} alt="QR Code" className="rounded-xl" width={160} height={160}
+          onError={e=>e.target.style.display='none'}/>
+      </div>
+      <div className="rounded-xl p-3 text-xs font-mono break-all" style={{background:'var(--bg)',color:'var(--text3)'}}>{qrData.code.slice(0,40)}...</div>
+      <p className="text-xs" style={{color:'var(--text3)'}}>Afficher ce QR Code à l'entrée du temple. Les membres le scannent depuis leur app.</p>
+    </div>}
+  </div>;
+}
+
+// ── 5. MESSAGERIE INTERNE ────────────────────────────────────────────────
+function Messagerie({user, members, toast}) {
+  const [msgs, setMsgs] = useState([]);
+  const [txt, setTxt] = useState('');
+  const [dest, setDest] = useState('tous');
+  const [sending, setSending] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(()=>{
+    const q = api()?.query(P('test_messages'), api().orderBy('ts','desc'), api().limit(50));
+    if (!q) return;
+    const unsub = api()?.onSnapshot(q, snap=>{
+      setMsgs(snap.docs.map(d=>({id:d.id,...d.data()})).reverse());
+    });
+    return ()=>unsub?.();
+  },[]);
+
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[msgs]);
+
+  const send = async () => {
+    if (!txt.trim()) return;
+    setSending(true);
+    try {
+      await api()?.addDoc(P('test_messages'),{
+        text: txt.trim(), from: user?.email||'?',
+        fromName: user?.email?.split('@')[0]||'?',
+        dest, ts: api().serverTimestamp()
+      });
+      setTxt('');
+    } catch(e) { toast('Erreur envoi','err'); }
+    setSending(false);
+  };
+
+  const me = user?.email?.split('@')[0]||'?';
+  const gradeColors = {apprenti:'#3b82f6',compagnon:'#8b5cf6',maitre:'#f59e0b',tresorier:'#10b981',vm:'#ef4444',architecte:'#f97316'};
+
+  return <div className="fade flex flex-col h-[calc(100vh-140px)]">
+    <div className="p-4 pb-2">
+      <h2 className="font-serif text-lg mb-2" style={{color:'var(--accent)'}}>Messagerie Interne</h2>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {['tous','vm','architecte','tresorier'].map(d=><button key={d} onClick={()=>setDest(d)}
+          className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-bold transition-all ${dest===d?'text-black':'opacity-60'}`}
+          style={{background: dest===d?'var(--accent)':'var(--card)',border:'1px solid var(--border)',color:dest===d?'#0f172a':'var(--text)'}}>
+          {d==='tous'?'Tous':'@'+d}
+        </button>)}
+      </div>
+    </div>
+
+    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+      {msgs.length===0 && <div className="text-center py-8 text-sm" style={{color:'var(--text3)'}}>Aucun message — soyez le premier à écrire</div>}
+      {msgs.map(m=>{
+        const isMe = m.fromName === me;
+        const col = gradeColors[m.fromName] || '#94a3b8';
+        return <div key={m.id} className={`flex ${isMe?'justify-end':'justify-start'}`}>
+          <div className={`max-w-[80%] rounded-2xl px-3 py-2 ${isMe?'rounded-tr-sm':'rounded-tl-sm'}`}
+            style={{background: isMe ? 'var(--accent)' : 'var(--card)', border: isMe?'none':'1px solid var(--border)', color: isMe?'#0f172a':'var(--text)'}}>
+            {!isMe && <p className="text-[10px] font-black mb-0.5" style={{color:col}}>{m.fromName}</p>}
+            <p className="text-sm">{m.text}</p>
+            {m.dest!=='tous' && <p className="text-[9px] mt-0.5 opacity-60">→ {m.dest}</p>}
+          </div>
+        </div>;
+      })}
+      <div ref={endRef}/>
+    </div>
+
+    <div className="p-4 pt-2 flex gap-2">
+      <input value={txt} onChange={e=>setTxt(e.target.value)}
+        onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()}
+        placeholder="Votre message..."
+        className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      <button onClick={send} disabled={sending||!txt.trim()} className="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all disabled:opacity-40"
+        style={{background:'var(--accent)',color:'#0f172a'}}>
+        <Icon n="send" size={14}/>
+      </button>
+    </div>
+  </div>;
+}
+
+// ── 6. SONDAGES / VOTES ──────────────────────────────────────────────────
+function Sondages({user, members, toast}) {
+  const [sondages, setSondages] = useState([]);
+  const [form, setForm] = useState({question:'', options:['',''], deadline:''});
+  const [show, setShow] = useState(false);
+
+  useEffect(()=>{
+    const unsub = api()?.onSnapshot(P('test_sondages'), snap=>{
+      setSondages(snap.docs.map(d=>({id:d.id,...d.data()})));
+    });
+    return ()=>unsub?.();
+  },[]);
+
+  const addOpt = () => setForm(f=>({...f, options:[...f.options,'']}));
+  const setOpt = (i,v) => setForm(f=>({...f, options:f.options.map((o,j)=>j===i?v:o)}));
+
+  const create = async () => {
+    if (!form.question.trim() || form.options.filter(o=>o.trim()).length<2) return;
+    try {
+      await api()?.addDoc(P('test_sondages'),{
+        question: form.question.trim(),
+        options: form.options.filter(o=>o.trim()),
+        deadline: form.deadline,
+        votes: {}, createdBy: user?.email, ts: Date.now()
+      });
+      setForm({question:'',options:['',''],deadline:''});
+      setShow(false);
+      toast('Sondage créé !','ok');
+    } catch(e) { toast('Erreur','err'); }
+  };
+
+  const vote = async (sondage, opt) => {
+    const votes = {...(sondage.votes||{}), [user?.email||'?']: opt};
+    try {
+      await api()?.updateDoc(api().doc(db(),'artifacts',api().appId,'public','data','test_sondages',sondage.id),{votes});
+      toast('Vote enregistré !','ok');
+    } catch(e) { toast('Erreur','err'); }
+  };
+
+  return <div className="fade p-4 space-y-4">
+    <div className="flex items-center justify-between">
+      <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Sondages</h2>
+      <button onClick={()=>setShow(!show)} className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
+        style={{background:'var(--accent)',color:'#0f172a'}}>
+        <Icon n={show?'x':'plus'} size={14}/>
+      </button>
+    </div>
+
+    {show && <div className="rounded-2xl p-4 space-y-3 fade" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="font-bold text-sm">Nouveau sondage</p>
+      <input value={form.question} onChange={e=>setForm(f=>({...f,question:e.target.value}))}
+        placeholder="Question..." className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      {form.options.map((o,i)=><div key={i} className="flex gap-2">
+        <input value={o} onChange={e=>setOpt(i,e.target.value)}
+          placeholder={`Option ${i+1}`} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      </div>)}
+      <button onClick={addOpt} className="text-xs" style={{color:'var(--accent)'}}>+ Ajouter option</button>
+      <input type="date" value={form.deadline} onChange={e=>setForm(f=>({...f,deadline:e.target.value}))}
+        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      <button onClick={create} className="w-full py-2 rounded-xl font-bold text-sm"
+        style={{background:'var(--accent)',color:'#0f172a'}}>Créer le sondage</button>
+    </div>}
+
+    {sondages.map(s=>{
+      const total = Object.keys(s.votes||{}).length;
+      const monVote = (s.votes||{})[user?.email||'?'];
+      const counts = (s.options||[]).reduce((acc,o)=>{
+        acc[o] = Object.values(s.votes||{}).filter(v=>v===o).length; return acc;
+      },{});
+      const max = Math.max(...Object.values(counts),1);
+      return <div key={s.id} className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+        <p className="font-bold text-sm">{s.question}</p>
+        {s.deadline && <p className="text-xs" style={{color:'var(--text3)'}}>Clôture : {s.deadline}</p>}
+        <div className="space-y-2">
+          {(s.options||[]).map(o=>{
+            const c = counts[o]||0; const pct = total ? Math.round(c/total*100) : 0;
+            const chosen = monVote===o;
+            return <div key={o}>
+              <div className="flex items-center justify-between mb-1">
+                <button onClick={()=>vote(s,o)} className={`text-sm font-bold text-left flex-1 ${chosen?'':'opacity-80'}`}
+                  style={{color:chosen?'var(--accent)':'var(--text)'}}>
+                  {chosen && <Icon n="check" size={11} cls="mr-1"/>}{o}
+                </button>
+                <span className="text-xs ml-2" style={{color:'var(--text2)'}}>{c} vote{c!==1?'s':''} ({pct}%)</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{background:'var(--border)'}}>
+                <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: chosen?'var(--accent)':'#64748b'}}/>
+              </div>
+            </div>;
+          })}
+        </div>
+        <p className="text-xs" style={{color:'var(--text3)'}}>{total} participant{total!==1?'s':''}</p>
+      </div>;
+    })}
+  </div>;
+}
+
+// ── 7. DOCUMENTS ─────────────────────────────────────────────────────────
+function Documents({user, toast}) {
+  const [docs, setDocs] = useState([]);
+  const [form, setForm] = useState({titre:'',type:'Rituel',description:''});
+  const [show, setShow] = useState(false);
+  const types = ['Rituel','Procès-verbal','Planche','Règlement','Autre'];
+
+  useEffect(()=>{
+    const unsub = api()?.onSnapshot(P('test_documents'), snap=>{
+      setDocs(snap.docs.map(d=>({id:d.id,...d.data()})));
+    });
+    return ()=>unsub?.();
+  },[]);
+
+  const add = async () => {
+    if (!form.titre.trim()) return;
+    try {
+      await api()?.addDoc(P('test_documents'),{...form, addedBy:user?.email, date:today()});
+      setForm({titre:'',type:'Rituel',description:''});
+      setShow(false);
+      toast('Document ajouté !','ok');
+    } catch(e){ toast('Erreur','err'); }
+  };
+
+  const del = async id => {
+    await api()?.deleteDoc(api().doc(db(),'artifacts',api().appId,'public','data','test_documents',id));
+    toast('Supprimé','ok');
+  };
+
+  const typeIcons = {Rituel:'star',Procès_verbal:'log','Procès-verbal':'log',Planche:'docs',Règlement:'lock',Autre:'docs'};
+  const typeColors = {Rituel:'#f59e0b','Procès-verbal':'#3b82f6',Planche:'#8b5cf6',Règlement:'#10b981',Autre:'#94a3b8'};
+
+  return <div className="fade p-4 space-y-4">
+    <div className="flex items-center justify-between">
+      <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Bibliothèque</h2>
+      <button onClick={()=>setShow(!show)} className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{background:'var(--accent)',color:'#0f172a'}}>
+        <Icon n={show?'x':'plus'} size={14}/>
+      </button>
+    </div>
+
+    {show && <div className="rounded-2xl p-4 space-y-3 fade" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <input value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))}
+        placeholder="Titre du document" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
+        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}>
+        {types.map(t=><option key={t}>{t}</option>)}
+      </select>
+      <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}
+        placeholder="Description (optionnel)" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+        style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      <button onClick={add} className="w-full py-2 rounded-xl font-bold text-sm"
+        style={{background:'var(--accent)',color:'#0f172a'}}>Référencer le document</button>
+    </div>}
+
+    {types.map(type=>{
+      const tdocs = docs.filter(d=>d.type===type);
+      if (!tdocs.length) return null;
+      return <div key={type}>
+        <p className="text-xs font-bold mb-2 uppercase tracking-widest" style={{color:typeColors[type]||'var(--text3)'}}>{type}</p>
+        <div className="space-y-2">
+          {tdocs.map(d=><div key={d.id} className="rounded-xl p-3 flex items-center gap-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+            <Icon n={typeIcons[type]||'docs'} size={18} cls="" style_={{color:typeColors[type]}}/>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm truncate">{d.titre}</p>
+              {d.description && <p className="text-xs truncate" style={{color:'var(--text2)'}}>{d.description}</p>}
+              <p className="text-xs" style={{color:'var(--text3)'}}>{d.date}</p>
+            </div>
+            <ConfirmBtn onConfirm={()=>del(d.id)} label={<Icon n="trash" size={13}/>}
+              className="text-xs opacity-40 hover:opacity-100 transition-opacity"/>
+          </div>)}
+        </div>
+      </div>;
+    })}
+    {docs.length===0 && !show && <div className="text-center py-8 text-sm" style={{color:'var(--text3)'}}>Bibliothèque vide — ajoutez un document</div>}
+  </div>;
+}
+
+// ── 8. NOTIFICATIONS ────────────────────────────────────────────────────
+function Notifications({agenda, toast}) {
+  const [enabled, setEnabled] = useState(false);
+  const [perm, setPerm] = useState('default');
+  const [reminders, setReminders] = useState({j7:true, j2:true, j0:true});
+
+  useEffect(()=>{ if('Notification' in window) setPerm(Notification.permission); },[]);
+
+  const demander = async () => {
+    if (!('Notification' in window)) { toast('Notifications non supportées','warn'); return; }
+    const p = await Notification.requestPermission();
+    setPerm(p);
+    if (p==='granted') { setEnabled(true); toast('Notifications activées !','ok'); }
+    else toast('Permission refusée','warn');
+  };
+
+  const tester = () => {
+    if (perm!=='granted') { toast('Activer les notifications d\'abord','warn'); return; }
+    new Notification('Temple Virtuel — Test', {
+      body: 'Tenue du samedi à 18h00 — dans 2 jours',
+      icon: '/icon-192.png'
+    });
+    toast('Notification envoyée !','ok');
+  };
+
+  const prochaines = agenda.filter(t=>t.date>=today()).slice(0,3);
+
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Notifications Push</h2>
+
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-bold text-sm">Notifications du navigateur</p>
+          <p className="text-xs mt-0.5" style={{color:'var(--text2)'}}>
+            {perm==='granted'?'✅ Autorisées':perm==='denied'?'❌ Bloquées — modifier dans les réglages':'En attente d\'autorisation'}
+          </p>
+        </div>
+        {perm!=='granted' && <button onClick={demander} className="text-xs px-3 py-1.5 rounded-xl font-bold"
+          style={{background:'var(--accent)',color:'#0f172a'}}>Activer</button>}
+      </div>
+
+      {perm==='granted' && <button onClick={tester} className="w-full py-2 rounded-xl text-sm font-bold"
+        style={{background:'var(--bg)',border:'1px solid var(--accent)',color:'var(--accent)'}}>
+        <Icon n="notif" size={13}/> Envoyer une notification test
+      </button>}
+    </div>
+
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="font-bold text-sm">Rappels automatiques</p>
+      {[{key:'j7',label:'7 jours avant la tenue'},{key:'j2',label:'48h avant la tenue'},{key:'j0',label:'Le jour de la tenue'}].map(r=>
+        <div key={r.key} className="flex items-center justify-between">
+          <p className="text-sm">{r.label}</p>
+          <button onClick={()=>{setReminders(p=>({...p,[r.key]:!p[r.key]})); toast('Préférence sauvée','ok');}}
+            className={`w-12 h-6 rounded-full transition-all ${reminders[r.key]?'bg-emerald-500':'bg-slate-600'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full transition-all mx-0.5 ${reminders[r.key]?'translate-x-6':''}`}/>
+          </button>
+        </div>
+      )}
+    </div>
+
+    <div className="rounded-2xl p-4 space-y-2" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="font-bold text-sm mb-3">Prochaines notifications programmées</p>
+      {prochaines.map(t=>{
+        const d = new Date(t.date+'T12:00');
+        const days = Math.ceil((d-new Date())/(1000*60*60*24));
+        return <div key={t.id} className="flex items-center gap-2 text-xs py-1">
+          <Icon n="notif" size={12} cls="opacity-60"/>
+          <span className="flex-1">{t.title||t.type}</span>
+          <span className="font-bold" style={{color:'var(--accent)'}}>J-{days}</span>
+        </div>;
+      })}
+      {!prochaines.length && <p className="text-xs" style={{color:'var(--text3)'}}>Aucune tenue à venir</p>}
+    </div>
+  </div>;
+}
+
+// ── 9. TRÉSORERIE AVANCÉE ────────────────────────────────────────────────
+function TresorerieAvancee({toast}) {
+  const [transactions] = useState([
+    {date:'2025-09-01',type:'recette',cat:'Cotisation annuelle',montant:160,membre:'Frère Martin'},
+    {date:'2025-09-15',type:'depense',cat:'Loyer / Local',montant:350,memo:'Temple septembre'},
+    {date:'2025-10-01',type:'recette',cat:'Cotisation annuelle',montant:160,membre:'Frère Dupont'},
+    {date:'2025-10-15',type:'depense',cat:'Agapes',montant:120,memo:'Agapes octobre'},
+    {date:'2025-11-01',type:'recette',cat:'Cotisation annuelle',montant:160,membre:'Frère Bernard'},
+    {date:'2025-11-20',type:'depense',cat:'Fournitures',montant:45,memo:'Bougies et encens'},
+    {date:'2025-12-01',type:'recette',cat:'Don / Collecte',montant:80,memo:'Collecte solidarité'},
+    {date:'2025-12-15',type:'depense',cat:'Loyer / Local',montant:350,memo:'Temple décembre'},
+  ]);
+
+  const recettes = transactions.filter(t=>t.type==='recette').reduce((s,t)=>s+t.montant,0);
+  const depenses = transactions.filter(t=>t.type==='depense').reduce((s,t)=>s+t.montant,0);
+  const solde = recettes - depenses;
+
+  const moisData = ['Sep','Oct','Nov','Déc'].map((l,i)=>{
+    const m = i+9;
+    const r = transactions.filter(t=>t.type==='recette'&&new Date(t.date).getMonth()+1===m).reduce((s,t)=>s+t.montant,0);
+    const d = transactions.filter(t=>t.type==='depense'&&new Date(t.date).getMonth()+1===m).reduce((s,t)=>s+t.montant,0);
+    return {l, r, d, net:r-d};
+  });
+
+  const printPDF = () => { window.print(); toast('Impression / Export PDF…','info'); };
+
+  const exportCSV = () => {
+    const rows = [['Date','Type','Catégorie','Montant','Libellé'],...transactions.map(t=>[t.date,t.type,t.cat,t.montant,t.membre||t.memo||''])];
+    const csv = rows.map(r=>r.join(';')).join('\n');
+    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='tresorerie.csv'; a.click();
+    toast('Export CSV téléchargé !','ok');
+  };
+
+  return <div className="fade p-4 space-y-4">
+    <div className="flex items-center justify-between">
+      <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Trésorerie</h2>
+      <div className="flex gap-2">
+        <button onClick={printPDF} className="text-xs px-2 py-1.5 rounded-lg flex items-center gap-1"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'#ef4444'}}>
+          <Icon n="pdf" size={12}/> PDF
+        </button>
+        <button onClick={exportCSV} className="text-xs px-2 py-1.5 rounded-lg flex items-center gap-1"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'#10b981'}}>
+          <Icon n="xls" size={12}/> CSV
+        </button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-3 gap-2">
+      {[{l:'Recettes',v:recettes,c:'#10b981'},{l:'Dépenses',v:depenses,c:'#ef4444'},{l:'Solde',v:solde,c:solde>=0?'#10b981':'#ef4444'}].map((s,i)=>
+        <div key={i} className="rounded-xl p-3 text-center" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+          <p className="text-xs mb-1" style={{color:'var(--text3)'}}>{s.l}</p>
+          <p className="text-sm font-black" style={{color:s.c}}>{fmt(s.v)}</p>
+        </div>
+      )}
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>RECETTES PAR MOIS</p>
+      <BarChart data={moisData.map(m=>({l:m.l,v:m.r}))} color="#10b981" height={80}/>
+    </div>
+    <div className="rounded-2xl p-4" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>DÉPENSES PAR MOIS</p>
+      <BarChart data={moisData.map(m=>({l:m.l,v:m.d}))} color="#ef4444" height={80}/>
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>TRANSACTIONS RÉCENTES</p>
+      <div className="space-y-2">
+        {transactions.slice(-5).reverse().map((t,i)=><div key={i} className="flex items-center gap-2 text-xs">
+          <span style={{color:'var(--text3)'}}>{t.date.slice(5)}</span>
+          <span className="flex-1 truncate">{t.cat}</span>
+          <span className="font-bold" style={{color:t.type==='recette'?'#10b981':'#ef4444'}}>
+            {t.type==='recette'?'+':'-'}{fmt(t.montant)}
+          </span>
+        </div>)}
+      </div>
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'rgba(239,68,68,0.1)',border:'1px solid #ef4444'}}>
+      <p className="text-xs font-bold mb-2" style={{color:'#ef4444'}}>RELANCES COTISATIONS</p>
+      <p className="text-xs mb-3" style={{color:'var(--text2)'}}>2 membres n'ont pas payé leur cotisation 2025</p>
+      <div className="space-y-1 text-xs">
+        <div className="flex justify-between"><span>Frère Durand</span><span className="font-bold text-red-400">En retard — 160 €</span></div>
+        <div className="flex justify-between"><span>Frère Lefebvre</span><span className="font-bold text-amber-400">Partiel — 80 € restants</span></div>
+      </div>
+      <button onClick={()=>toast('Emails de relance envoyés (démo)','ok')} className="mt-3 w-full py-1.5 rounded-lg text-xs font-bold"
+        style={{background:'#ef4444',color:'white'}}>
+        <Icon n="mail" size={11}/> Envoyer relances par email
+      </button>
+    </div>
+  </div>;
+}
+
+// ── 10. ADMINISTRATION ──────────────────────────────────────────────────
+function Administration({members, user, toast}) {
+  const [logs] = useState([
+    {date:'2025-08-26 09:14', email:'vm@site-cg51.velum.fr', action:'Connexion'},
+    {date:'2025-08-25 18:32', email:'architecte@site-cg51.velum.fr', action:'Modification identité loge'},
+    {date:'2025-08-25 14:11', email:'tresorier@site-cg51.velum.fr', action:'Ajout transaction'},
+    {date:'2025-08-24 20:05', email:'maitre@site-cg51.velum.fr', action:'Connexion'},
+    {date:'2025-08-23 16:44', email:'vm@site-cg51.velum.fr', action:'Ajout membre'},
+  ]);
+  const [tfa, setTfa] = useState(false);
+  const [code, setCode] = useState('');
+  const [showing2fa, setShowing2fa] = useState(false);
+
+  const activer2fa = () => {
+    if (code==='123456') { setTfa(true); setShowing2fa(false); toast('2FA activé ! (démo)','ok'); }
+    else toast('Code incorrect (démo: 123456)','err');
+  };
+
+  const transferer = (membre) => toast(`Grade de ${membre.name} transféré (démo)`, 'ok');
+
+  const exporter = () => {
+    const data = JSON.stringify({membres:members, date:today()}, null, 2);
+    const blob = new Blob([data],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='sauvegarde-loge.json'; a.click();
+    toast('Sauvegarde téléchargée !','ok');
+  };
+
+  return <div className="fade p-4 space-y-4">
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Administration</h2>
+
+    {/* Double authentification */}
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2">
+        <Icon n="two" size={16} cls="text-blue-400"/>
+        <p className="font-bold text-sm">Double Authentification (2FA)</p>
+        {tfa && <span className="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">Actif</span>}
+      </div>
+      <p className="text-xs" style={{color:'var(--text2)'}}>Protège le compte Architecte et VM avec un code à 6 chiffres en plus du mot de passe.</p>
+      {!tfa && !showing2fa && <button onClick={()=>setShowing2fa(true)} className="w-full py-2 rounded-xl text-sm font-bold"
+        style={{background:'#3b82f6',color:'white'}}>Activer la 2FA</button>}
+      {showing2fa && <div className="space-y-2 fade">
+        <p className="text-xs" style={{color:'var(--text3)'}}>Code de vérification envoyé sur votre téléphone (démo : 123456)</p>
+        <input value={code} onChange={e=>setCode(e.target.value)} placeholder="Code à 6 chiffres" maxLength={6}
+          className="w-full rounded-xl px-3 py-2 text-sm text-center font-mono font-bold outline-none tracking-widest"
+          style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+        <button onClick={activer2fa} className="w-full py-2 rounded-xl text-sm font-bold"
+          style={{background:'#3b82f6',color:'white'}}>Valider</button>
+      </div>}
+    </div>
+
+    {/* Transfert de grade */}
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2">
+        <Icon n="transfer" size={16} cls="text-purple-400"/>
+        <p className="font-bold text-sm">Promotion de grade</p>
+      </div>
+      <p className="text-xs" style={{color:'var(--text2)'}}>Promouvoir un membre au grade supérieur.</p>
+      {members.filter(m=>['Apprenti','Compagnon'].includes(m.grade)).map(m=>{
+        const suivant = m.grade==='Apprenti'?'Compagnon':'Maître';
+        return <div key={m.id||m.name} className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold">{m.name}</p>
+            <p className="text-xs" style={{color:'var(--text2)'}}>{m.grade} → {suivant}</p>
+          </div>
+          <ConfirmBtn onConfirm={()=>transferer(m)} label={`Promouvoir`}
+            className="text-xs px-2 py-1 rounded-lg font-bold"
+            style={{background:'var(--bg)',color:'var(--accent)',border:'1px solid var(--accent)'}}/>
+        </div>;
+      })}
+      {!members.filter(m=>['Apprenti','Compagnon'].includes(m.grade)).length &&
+        <p className="text-xs" style={{color:'var(--text3)'}}>Tous les membres sont Maîtres</p>}
+    </div>
+
+    {/* Journal d'activité */}
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2">
+        <Icon n="log" size={16} cls="text-amber-400"/>
+        <p className="font-bold text-sm">Journal d'activité</p>
+      </div>
+      <div className="space-y-2">
+        {logs.map((l,i)=><div key={i} className="flex items-start gap-2 text-xs">
+          <span style={{color:'var(--text3)', minWidth:80}}>{l.date.split(' ')[1]}</span>
+          <span className="font-bold" style={{color:'var(--text2)'}}>{l.email.split('@')[0]}</span>
+          <span style={{color:'var(--text)'}}>{l.action}</span>
+        </div>)}
+      </div>
+    </div>
+
+    {/* Sauvegarde */}
+    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2">
+        <Icon n="download" size={16} cls="text-emerald-400"/>
+        <p className="font-bold text-sm">Sauvegarde complète</p>
+      </div>
+      <p className="text-xs" style={{color:'var(--text2)'}}>Télécharger toutes les données de la loge au format JSON.</p>
+      <button onClick={exporter} className="w-full py-2 rounded-xl text-sm font-bold"
+        style={{background:'#10b981',color:'white'}}>
+        <Icon n="download" size={13}/> Exporter les données
+      </button>
+    </div>
+  </div>;
+}
+
+// ── 11. DASHBOARD VELUM (GÉRANT) ─────────────────────────────────────────
+function VelumDashboard({toast}) {
+  const loges = [
+    {slug:'site-cg51', nom:'R∴L∴ Comte Guifré n°51', plan:'Complet', actif:true, membres:12, derniereCo:'2025-08-26'},
+    {slug:'loge-lumiere', nom:'R∴L∴ Les Trois Lumières n°99', plan:'Basique', actif:true, membres:8, derniereCo:'2025-08-25'},
+    {slug:'orient-paris', nom:'R∴L∴ Orient de Paris n°7', plan:'Complet', actif:false, membres:15, derniereCo:'2025-08-10'},
+    {slug:'les-colonnes', nom:'R∴L∴ Les Trois Colonnes n°42', plan:'Basique', actif:true, membres:11, derniereCo:'2025-08-24'},
+  ];
+  const total = loges.length;
+  const actives = loges.filter(l=>l.actif).length;
+  const ca = loges.filter(l=>l.plan==='Complet').length*200 + loges.filter(l=>l.plan==='Basique').length*160;
+
+  return <div className="fade p-4 space-y-4">
+    <div className="flex items-center gap-2">
+      <Icon n="velum" size={18} cls="text-amber-400"/>
+      <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Velum — Panneau de contrôle</h2>
+    </div>
+    <p className="text-xs italic" style={{color:'var(--text3)'}}>Vue réservée au gérant de la plateforme (simulation)</p>
+
+    <div className="grid grid-cols-3 gap-2">
+      {[{l:'Loges totales',v:total,c:'#3b82f6'},{l:'Actives',v:actives,c:'#10b981'},{l:'CA annuel',v:fmt(ca),c:'#f59e0b'}].map((s,i)=>
+        <div key={i} className="rounded-xl p-3 text-center" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+          <p className="text-[9px] mb-1 uppercase tracking-wide" style={{color:'var(--text3)'}}>{s.l}</p>
+          <p className="text-sm font-black" style={{color:s.c}}>{s.v}</p>
+        </div>
+      )}
+    </div>
+
+    <div className="space-y-2">
+      {loges.map(l=><div key={l.slug} className="rounded-xl p-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${l.actif?'bg-emerald-500 pulse':'bg-slate-600'}`}/>
+              <p className="font-bold text-xs truncate">{l.nom}</p>
+            </div>
+            <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>
+              {l.slug} · {l.membres} membres · Dernière co: {l.derniereCo}
+            </p>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${l.plan==='Complet'?'bg-amber-500/20 text-amber-400':'bg-slate-500/20 text-slate-400'}`}>
+            {l.plan}
+          </span>
+        </div>
+      </div>)}
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>PROJECTIONS REVENUS</p>
+      <BarChart data={[
+        {l:'An 1',v:85},{l:'An 2',v:340},{l:'An 3',v:1360},{l:'An 4',v:3060},{l:'An 5',v:5950}
+      ]} color="#f59e0b" height={80} label="Loges actives (scénario réaliste)"/>
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'rgba(16,185,129,0.1)',border:'1px solid #10b981'}}>
+      <p className="text-xs font-bold mb-2" style={{color:'#10b981'}}>ONBOARDING — Nouvelle loge</p>
+      <p className="text-xs mb-3" style={{color:'var(--text2)'}}>Simuler l'accueil d'une nouvelle loge cliente.</p>
+      <button onClick={()=>toast('Email de bienvenue envoyé + loge provisionnée ! (démo)','ok')}
+        className="w-full py-2 rounded-xl text-sm font-bold"
+        style={{background:'#10b981',color:'white'}}>
+        <Icon n="onboard" size={13}/> Provisionner une loge test
+      </button>
+    </div>
+
+    <div className="rounded-2xl p-4" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2 mb-3">
+        <Icon n="stripe" size={14} cls="text-blue-400"/>
+        <p className="text-xs font-bold">Facturation Stripe (simulation)</p>
+      </div>
+      <div className="space-y-2 text-xs">
+        {loges.map(l=><div key={l.slug} className="flex justify-between">
+          <span style={{color:'var(--text2)'}}>{l.slug}</span>
+          <span className="font-bold" style={{color:'#10b981'}}>{l.plan==='Complet'?'200':'160'} €/an ✓</span>
+        </div>)}
+      </div>
+      <div className="mt-3 pt-3 flex justify-between font-bold" style={{borderTop:'1px solid var(--border)'}}>
+        <span>Total annuel</span>
+        <span style={{color:'#f59e0b'}}>{fmt(ca)}</span>
+      </div>
+    </div>
+  </div>;
+}
+
+// ── 12. ONBOARDING ──────────────────────────────────────────────────────
+function Onboarding({toast, onDone}) {
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState({nom:'',rite:'',orient:'',vm:'',tel:''});
+  const steps = [
+    {title:'Bienvenue dans Velum', icon:'velum', desc:"Configurons ensemble votre loge en 4 étapes rapides."},
+    {title:'Identité de la loge', icon:'star', desc:"Comment s'appelle votre loge ?"},
+    {title:'Vénérable Maître', icon:'user', desc:"Qui dirige la loge cette année ?"},
+    {title:'C'est prêt !', icon:'ok', desc:"Votre temple virtuel est configuré."},
+  ];
+  const s = steps[step];
+  const next = () => { if(step<steps.length-1) setStep(step+1); else { toast('Configuration terminée !','ok'); onDone(); } };
+  const pct = Math.round((step/(steps.length-1))*100);
+
+  return <div className="fade p-4 flex flex-col min-h-[70vh]">
+    <div className="h-1.5 rounded-full mb-6" style={{background:'var(--border)'}}>
+      <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:'var(--accent)'}}/>
+    </div>
+
+    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 py-8">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center"
+        style={{background:'rgba(245,158,11,0.15)',border:'2px solid var(--accent)'}}>
+        <Icon n={s.icon} size={28} cls="text-amber-400"/>
+      </div>
+      <h2 className="font-serif text-xl" style={{color:'var(--accent)'}}>{s.title}</h2>
+      <p className="text-sm max-w-xs" style={{color:'var(--text2)'}}>{s.desc}</p>
+
+      {step===1 && <div className="w-full max-w-xs space-y-3 text-left">
+        <input value={data.nom} onChange={e=>setData(d=>({...d,nom:e.target.value}))}
+          placeholder="R∴L∴ Nom de la Loge n°..." className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+        <input value={data.rite} onChange={e=>setData(d=>({...d,rite:e.target.value}))}
+          placeholder="Rite (ex: Rite Écossais Ancien Accepté)" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+        <input value={data.orient} onChange={e=>setData(d=>({...d,orient:e.target.value}))}
+          placeholder="Orient (ville)" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      </div>}
+
+      {step===2 && <div className="w-full max-w-xs space-y-3 text-left">
+        <input value={data.vm} onChange={e=>setData(d=>({...d,vm:e.target.value}))}
+          placeholder="Nom du Vénérable Maître" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+        <input value={data.tel} onChange={e=>setData(d=>({...d,tel:e.target.value}))}
+          placeholder="Téléphone (optionnel)" className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+          style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+      </div>}
+
+      {step===3 && <div className="w-full max-w-xs space-y-2 text-left">
+        {data.nom && <div className="flex items-center gap-2 text-sm"><Icon n="ok" size={14} cls="text-emerald-400"/><span>{data.nom}</span></div>}
+        {data.orient && <div className="flex items-center gap-2 text-sm"><Icon n="ok" size={14} cls="text-emerald-400"/><span>Orient de {data.orient}</span></div>}
+        {data.vm && <div className="flex items-center gap-2 text-sm"><Icon n="ok" size={14} cls="text-emerald-400"/><span>VM : {data.vm}</span></div>}
+        <div className="flex items-center gap-2 text-sm"><Icon n="ok" size={14} cls="text-emerald-400"/><span>6 comptes Firebase créés</span></div>
+        <div className="flex items-center gap-2 text-sm"><Icon n="ok" size={14} cls="text-emerald-400"/><span>Firestore initialisé</span></div>
+      </div>}
+    </div>
+
+    <div className="flex gap-3">
+      {step>0 && <button onClick={()=>setStep(step-1)} className="flex-1 py-3 rounded-xl font-bold text-sm"
+        style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>Retour</button>}
+      <button onClick={next} className="flex-1 py-3 rounded-xl font-bold text-sm"
+        style={{background:'var(--accent)',color:'#0f172a'}}>
+        {step===steps.length-1 ? 'Accéder à la loge' : 'Continuer'}
+      </button>
+    </div>
+    <p className="text-center text-xs mt-3" style={{color:'var(--text3)'}}>Étape {step+1} / {steps.length}</p>
+  </div>;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// APP PRINCIPALE
+// ════════════════════════════════════════════════════════════════════════════
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState('dash');
+  const [theme, setTheme] = useState('dark');
+  const [members, setMembers] = useState([]);
+  const [agenda, setAgenda] = useState([]);
+  const [showOnboard, setShowOnboard] = useState(false);
+  const { toasts, toast } = useToast();
+
+  // Auth
+  useEffect(()=>{
+    const wait = setInterval(()=>{
+      if (window.FB_API) {
+        clearInterval(wait);
+        api()?.onAuthStateChanged(api().auth, u=>{ setUser(u); setLoading(false); });
+      }
+    }, 100);
+    return ()=>clearInterval(wait);
+  },[]);
+
+  // Données
+  useEffect(()=>{
+    if (!user) return;
+    const u1 = api()?.onSnapshot(P('members'), s=>setMembers(s.docs.map(d=>({id:d.id,...d.data()}))));
+    const u2 = api()?.onSnapshot(P('agenda'), s=>setAgenda(s.docs.map(d=>({id:d.id,...d.data()}))));
+    return ()=>{ u1?.(); u2?.(); };
+  },[user]);
+
+  // Thème
+  useEffect(()=>{ document.documentElement.setAttribute('data-theme', theme); },[theme]);
+
+  const toggleTheme = () => setTheme(t=>t==='dark'?'light':'dark');
+
+  const login = async (email, pwd) => {
+    try { await api()?.signInWithEmailAndPassword(api().auth, email, pwd); }
+    catch(e) { toast('Email ou mot de passe incorrect','err'); }
+  };
+
+  const logout = async () => { await api()?.signOut(api().auth); setSection('dash'); };
+
+  const nav = [
+    {id:'dash', icon:'dash', label:'Dashboard'},
+    {id:'search', icon:'search', label:'Membres'},
+    {id:'presence', icon:'presence', label:'Présences'},
+    {id:'qr', icon:'qr', label:'QR Code'},
+    {id:'msg', icon:'msg', label:'Messages'},
+    {id:'vote', icon:'vote', label:'Sondages'},
+    {id:'docs', icon:'docs', label:'Documents'},
+    {id:'notif', icon:'notif', label:'Notifs'},
+    {id:'tresor', icon:'tresor', label:'Trésorerie'},
+    {id:'admin', icon:'admin', label:'Admin'},
+    {id:'velum', icon:'velum', label:'Velum'},
+    {id:'onboard', icon:'onboard', label:'Onboarding'},
+  ];
+
+  if (loading) return <div className="flex items-center justify-center h-screen" style={{background:'var(--bg)'}}>
+    <div className="text-center space-y-3">
+      <Icon n="velum" size={40} cls="text-amber-400"/>
+      <p className="font-serif text-lg" style={{color:'var(--accent)'}}>Velum</p>
+      <p className="text-xs pulse" style={{color:'var(--text3)'}}>Chargement…</p>
+    </div>
+  </div>;
+
+  if (!user) return <div className="flex items-center justify-center min-h-screen p-4" style={{background:'var(--bg)'}}>
+    <Toasts toasts={toasts}/>
+    <div className="w-full max-w-sm space-y-6">
+      <div className="text-center space-y-2">
+        <Icon n="velum" size={48} cls="text-amber-400"/>
+        <h1 className="font-serif text-2xl" style={{color:'var(--accent)'}}>Temple Virtuel</h1>
+        <p className="text-xs uppercase tracking-widest" style={{color:'var(--text3)'}}>Page de test — Nouvelles fonctionnalités</p>
+      </div>
+      <LoginForm onLogin={login} theme={theme} toggleTheme={toggleTheme}/>
+    </div>
+  </div>;
+
+  const renderSection = () => {
+    if (showOnboard) return <Onboarding toast={toast} onDone={()=>setShowOnboard(false)}/>;
+    switch(section) {
+      case 'dash': return <Dashboard members={members} agenda={agenda} toast={toast}/>;
+      case 'search': return <MembersSearch members={members} toast={toast}/>;
+      case 'presence': return <Presences members={members} agenda={agenda} toast={toast}/>;
+      case 'qr': return <QRCode agenda={agenda} toast={toast}/>;
+      case 'msg': return <Messagerie user={user} members={members} toast={toast}/>;
+      case 'vote': return <Sondages user={user} members={members} toast={toast}/>;
+      case 'docs': return <Documents user={user} toast={toast}/>;
+      case 'notif': return <Notifications agenda={agenda} toast={toast}/>;
+      case 'tresor': return <TresorerieAvancee toast={toast}/>;
+      case 'admin': return <Administration members={members} user={user} toast={toast}/>;
+      case 'velum': return <VelumDashboard toast={toast}/>;
+      case 'onboard': return <Onboarding toast={toast} onDone={()=>setSection('dash')}/>;
+      default: return <Dashboard members={members} agenda={agenda} toast={toast}/>;
+    }
+  };
+
+  const unread = 3;
+
+  return <div className="flex flex-col h-screen" style={{background:'var(--bg)'}}>
+    <Toasts toasts={toasts}/>
+
+    {/* Header */}
+    <header className="flex items-center justify-between px-4 py-3 no-print" style={{background:'var(--bg2)',borderBottom:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2">
+        <Icon n="velum" size={18} cls="text-amber-400"/>
+        <span className="font-serif text-sm font-bold" style={{color:'var(--accent)'}}>Velum TEST</span>
+        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{background:'rgba(245,158,11,0.2)',color:'var(--accent)'}}>BETA</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <button onClick={toggleTheme} className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>
+          <Icon n={theme==='dark'?'sun':'moon'} size={14}/>
+        </button>
+        <div className="relative">
+          <button onClick={()=>setSection('msg')} className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>
+            <Icon n="msg" size={14}/>
+          </button>
+          {unread>0 && <span className="badge absolute -top-1 -right-1">{unread}</span>}
+        </div>
+        <button onClick={logout} className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>
+          <Icon n="logout" size={13}/>
+        </button>
+      </div>
+    </header>
+
+    {/* Content */}
+    <main className="flex-1 overflow-y-auto">
+      {renderSection()}
+    </main>
+
+    {/* Bottom nav */}
+    <nav className="no-print" style={{background:'var(--bg2)',borderTop:'1px solid var(--border)'}}>
+      <div className="flex overflow-x-auto" style={{scrollbarWidth:'none'}}>
+        {nav.map(n=>{
+          const active = section===n.id && !showOnboard;
+          return <button key={n.id} onClick={()=>{setSection(n.id);setShowOnboard(n.id==='onboard');}}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 shrink-0 transition-all"
+            style={{color: active ? 'var(--accent)' : 'var(--text3)', borderTop: active ? '2px solid var(--accent)' : '2px solid transparent'}}>
+            <div className="relative">
+              <Icon n={n.icon} size={16}/>
+              {n.id==='msg' && unread>0 && <span className="badge absolute -top-2 -right-2" style={{fontSize:8,minWidth:14,height:14}}>{unread}</span>}
+            </div>
+            <span style={{fontSize:9}}>{n.label}</span>
+          </button>;
+        })}
+      </div>
+    </nav>
+  </div>;
+}
+
+function LoginForm({onLogin, theme, toggleTheme}) {
+  const [email, setEmail] = useState('');
+  const [pwd, setPwd] = useState('');
+  return <form onSubmit={e=>{e.preventDefault();onLogin(email,pwd);}} className="space-y-4 rounded-2xl p-6" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+    <input type="email" required value={email} onChange={e=>setEmail(e.target.value)}
+      placeholder="grade@loge.velum.fr" className="w-full rounded-xl px-3 py-3 text-sm outline-none"
+      style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+    <input type="password" required value={pwd} onChange={e=>setPwd(e.target.value)}
+      placeholder="Mot de passe" className="w-full rounded-xl px-3 py-3 text-sm outline-none"
+      style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)'}}/>
+    <button type="submit" className="w-full py-3 rounded-xl font-bold" style={{background:'var(--accent)',color:'#0f172a'}}>
+      Entrer dans le Temple
+    </button>
+    <div className="flex items-center justify-center gap-2">
+      <button type="button" onClick={toggleTheme} className="text-xs" style={{color:'var(--text3)'}}>
+        <Icon n={theme==='dark'?'sun':'moon'} size={11}/> {theme==='dark'?'Mode clair':'Mode sombre'}
+      </button>
+    </div>
+  </form>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
