@@ -8,10 +8,10 @@
     <!-- MODE APPLICATION MOBILE (PWA) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="CG51">
+    <meta name="apple-mobile-web-app-title" content="Loge">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
-    <meta name="application-name" content="CG51">
+    <meta name="application-name" content="Loge">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple.svg">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -63,7 +63,11 @@
                 messagingSenderId: "532992433947",
                 appId: "1:532992433947:web:0ad401c53e6feeb0663dbe"
             };
-            const LOGE_APP_ID = "site-cg51";
+            const LOGE_APP_ID = (() => {
+                const h = window.location.hostname;
+                if (h === 'localhost' || h === '127.0.0.1' || h.includes('pages.dev') || h.includes('workers.dev')) return 'site-cg51';
+                return h.split('.')[0] || 'site-cg51';
+            })();
             // @@FIREBASE_CONFIG_END@@
             try {
                 const app = initializeApp(firebaseConfig);
@@ -91,8 +95,8 @@
         const { useState, useEffect, useMemo, useCallback } = React;
 
         // @@LODGE_EMAILS_START@@
-        const GRADE_ACCOUNTS = { apprenti: 'apprenti@cg51-virtuel.fr', compagnon: 'compagnon@cg51-virtuel.fr', maitre: 'maitre@cg51-virtuel.fr', tresorier: 'tresorier@cg51-virtuel.fr', vm: 'vm@cg51-virtuel.fr' };
-        const ARCHITECT_ACCOUNT = 'architecte@cg51-virtuel.fr';
+        const GRADE_ACCOUNTS = { apprenti: `apprenti@${LOGE_APP_ID}.velum.fr`, compagnon: `compagnon@${LOGE_APP_ID}.velum.fr`, maitre: `maitre@${LOGE_APP_ID}.velum.fr`, tresorier: `tresorier@${LOGE_APP_ID}.velum.fr`, vm: `vm@${LOGE_APP_ID}.velum.fr` };
+        const ARCHITECT_ACCOUNT = `architecte@${LOGE_APP_ID}.velum.fr`;
         // @@LODGE_EMAILS_END@@
         const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
@@ -231,7 +235,7 @@
                     <div className="max-w-md w-full bg-slate-800 p-10 rounded-[2rem] border border-slate-700 shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-600"></div>
                         {logo ? <img src={logo} className="w-24 h-24 mx-auto mb-6 object-contain" /> : <SmartIcon name="Landmark" size={48} className="text-amber-500 mx-auto mb-6" />}
-                        <h1 className="text-2xl uppercase tracking-widest mb-1 font-bold">{logeName || 'LCG51'}</h1>
+                        <h1 className="text-2xl uppercase tracking-widest mb-1 font-bold">{logeName || 'Loge'}</h1>
                         <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-10 italic font-sans">À la Gloire du Grand Architecte de l'Univers</p>
                         {error && <div className="bg-red-500/10 border border-red-500 text-red-200 p-4 rounded-xl text-xs mb-8 flex items-center gap-3 text-left font-sans font-bold"><SmartIcon name="AlertTriangle" />{error}</div>}
                         {mode === 'member' ? (
@@ -260,8 +264,8 @@
                                         <p className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2"><SmartIcon name="KeyRound" size={14}/> Récupération d'accès</p>
                                         <p className="text-slate-300 text-xs leading-relaxed mb-3">Contactez le <strong className="text-white">Vénérable Maître</strong> ou l'<strong className="text-white">Architecte du Temple</strong> pour récupérer vos identifiants :</p>
                                         <div className="space-y-2">
-                                            <a href="mailto:vm@cg51-virtuel.fr" className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> vm@cg51-virtuel.fr</a>
-                                            <a href="mailto:architecte@cg51-virtuel.fr" className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> architecte@cg51-virtuel.fr</a>
+                                            <a href={`mailto:${GRADE_ACCOUNTS.vm}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {GRADE_ACCOUNTS.vm}</a>
+                                            <a href={`mailto:${ARCHITECT_ACCOUNT}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {ARCHITECT_ACCOUNT}</a>
                                         </div>
                                     </div>
                                 )}
@@ -497,7 +501,7 @@
                 const savedRite = logeIdentity?.rite || '';
                 const resolvedRite = resolveRite(savedRite);
                 const pool = (resolvedRite && RITE_QUOTES[resolvedRite]) || MASONIC_QUOTES.maitre;
-                const storageKey = 'cg51_quote_idx_' + (resolvedRite || 'maitre');
+                const storageKey = `${LOGE_APP_ID}_quote_idx_` + (resolvedRite || 'maitre');
                 let idx = parseInt(localStorage.getItem(storageKey) || '0', 10);
                 if (isNaN(idx) || idx < 0 || idx >= pool.length) idx = 0;
                 const quote = pool[idx];
@@ -506,14 +510,15 @@
             }, [activeGradeLevel, logeIdentity?.rite]);
 
             const [isEditingId, setIsEditingId] = useState(false);
-            const [idForm, setIdForm] = useState({ name: '', rite: '', obedience: '', maitreBanquet: '', telBanquet: '' });
+            const [idForm, setIdForm] = useState({ name: '', rite: '', obedience: '', orient: '', maitreBanquet: '', telBanquet: '' });
             const [idErr, setIdErr] = useState('');
 
             const openIdEdit = () => {
                 setIdForm({
-                    name: logeIdentity?.name || 'R∴L∴ Comte Guifré n°51',
+                    name: logeIdentity?.name || '',
                     obedience: logeIdentity?.obedience || '',
                     rite: logeIdentity?.rite || '',
+                    orient: logeIdentity?.orient || '',
                     maitreBanquet: logeIdentity?.maitreBanquet || '',
                     telBanquet: logeIdentity?.telBanquet || '',
                 });
@@ -523,7 +528,7 @@
 
             const saveId = async () => {
                 try {
-                    await onSaveIdentity({ name: idForm.name, obedience: idForm.obedience, rite: idForm.rite, maitreBanquet: idForm.maitreBanquet, telBanquet: idForm.telBanquet });
+                    await onSaveIdentity({ name: idForm.name, obedience: idForm.obedience, rite: idForm.rite, maitreBanquet: idForm.maitreBanquet, telBanquet: idForm.telBanquet, orient: idForm.orient||'' });
                     setIsEditingId(false);
                     setIdErr('');
                 } catch(e) {
@@ -533,7 +538,7 @@
 
             const clearId = async () => {
                 try {
-                    await onSaveIdentity({ name: 'R∴L∴ Comte Guifré n°51', rite: '', obedience: '' });
+                    await onSaveIdentity({ name: '', rite: '', obedience: '', orient: '', maitreBanquet: '', telBanquet: '' });
                     setIsEditingId(false);
                 } catch(e) { setIdErr('Erreur : ' + (e.message || '')); }
             };
@@ -578,7 +583,7 @@
                     <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border flex flex-col md:flex-row justify-between items-center gap-8">
                         <div className="text-center md:text-left flex-grow font-serif">
                             <h2 className="text-4xl font-bold text-slate-800 leading-tight">{(() => { const isSoeur = memberGenre === 'soeur'; const titre = isSoeur ? 'ma Sœur' : 'mon Frère'; const prenom = (memberName || '').replace(/^(fr[eè]re|s[oœ]eur|v∴m∴|v\.m\.|frere|soeur)\s*/i,'').trim(); return `Bienvenue, ${titre} ${prenom}`; })()}</h2>
-                            <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Loge Comte Guifré n°51'}.</p>
+                            <p className="text-slate-500 text-lg leading-relaxed italic mt-2 font-sans opacity-80">Le Temple virtuel de la {logeIdentity?.name || 'Ma Loge'}.</p>
                             {isEditingWelcome ? (
                                 <div className="mt-3 flex flex-col gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 w-full max-w-md animate-fade">
                                     <textarea rows={3} className="border border-amber-300 rounded-lg p-2 text-sm text-amber-900 outline-none focus:border-amber-500 resize-none bg-white w-full font-sans" value={welcomeInput} onChange={e=>setWelcomeInput(e.target.value)} placeholder="Message affiché sur le Parvis à la connexion…" autoFocus/>
@@ -613,6 +618,10 @@
                                                 <option value="">— Sélectionner —</option>
                                                 {(OBED_RITES[idForm.obedience] ? [...OBED_RITES[idForm.obedience], 'Autre'] : TOUS_LES_RITES).map(r=><option key={r} value={r}>{r}</option>)}
                                             </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Orient (ville)</label>
+                                            <input type="text" placeholder="ex: Perpignan" value={idForm.orient||''} onChange={e=>setIdForm({...idForm, orient:e.target.value})} className="w-full border p-2 rounded-lg text-xs bg-white outline-none focus:border-amber-500" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Maître des Banquets</label>
@@ -1098,7 +1107,7 @@
                 const file = e.target.files[0]; if(!file) return;
                 setLoading(true); setAiError(''); setAnalyzing(false);
                 try {
-                    const url = await window.FB_API.uploadFile(file, 'cg51/agenda-odj');
+                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/agenda-odj`);
                     s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
                     if (apiKey) {
                         setAnalyzing(true);
@@ -1625,7 +1634,7 @@
                 if (!file) return;
                 setUploading(true);
                 try {
-                    const url = await window.FB_API.uploadFile(file, 'cg51/bibliotheque');
+                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/bibliotheque`);
                     sF({...f, docFile: { name: file.name, data: url }});
                 } catch (err) { console.error('Upload échoué', err); }
                 setUploading(false);
@@ -1691,7 +1700,7 @@
                             if (!date) { setErr('Entrez d\'abord la date.'); return; }
                             setErr(''); setUploading(true);
                             try {
-                                const url = await window.FB_API.uploadFile(file, 'cg51/reglement');
+                                const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/reglement`);
                                 const history = reglementFile && reglementFile.data ? [...(reglementFile.history||[]), { name: reglementFile.name, data: reglementFile.data, modifiedAt: reglementFile.modifiedAt||'' }] : [];
                                 await onSaveReglement({ name: file.name, data: url, modifiedAt: date, history });
                                 setShowForm(false);
@@ -1975,7 +1984,7 @@
                 if(file.size>10*1024*1024){sE("10 Mo max");return;}
                 sE('');
                 try {
-                    const url = await window.FB_API.uploadFile(file, 'cg51/planches');
+                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/planches`);
                     sF(prev => ({...prev, pdfFile:{name:file.name, data:url}}));
                 } catch(err) { sE("Échec de l'envoi du fichier"); }
             };
@@ -2523,7 +2532,7 @@
                 }
                 setUnlockedGrades({ apprenti:true, compagnon:true, maitre:true });
                 setIsArchitect(true);
-                setMemberName('Frère Laurent MIENVILLE');
+                setMemberName('Architecte');
                 setMemberRole('Architecte');
                 setIsLogged(true); setFbError(null);
             };
@@ -2624,7 +2633,7 @@
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
@@ -2633,7 +2642,7 @@
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
                             </div>
                         )}
-                        {activeView === 'configuration' && isArchitect && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, 'cg51/branding'); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
+                        {activeView === 'configuration' && isArchitect && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'visite' && <VisiteView items={agendaItems} canEdit={canEdit} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
