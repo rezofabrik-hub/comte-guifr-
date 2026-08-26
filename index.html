@@ -930,6 +930,22 @@
         };
         const GRADE_ORDER_M = { 'maître':0,'maitre':0,'compagnon':1,'apprenti':2 };
 
+        function ConfirmButton({ onConfirm, className, iconName, label, size = 14 }) {
+            const [pending, setPending] = React.useState(false);
+            const timer = React.useRef(null);
+            const ask = (e) => { e.stopPropagation(); setPending(true); clearTimeout(timer.current); timer.current = setTimeout(() => setPending(false), 3500); };
+            const confirm = (e) => { e.stopPropagation(); clearTimeout(timer.current); setPending(false); onConfirm(); };
+            const cancel = (e) => { e.stopPropagation(); clearTimeout(timer.current); setPending(false); };
+            if (pending) return (
+                <span className="inline-flex items-center gap-1 animate-fade">
+                    <button onClick={confirm} className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded hover:bg-red-600">Confirmer ?</button>
+                    <button onClick={cancel} className="text-slate-400 text-[10px] hover:text-slate-600 font-bold">✕</button>
+                </span>
+            );
+            if (label) return <button type="button" onClick={ask} className={className}>{label}</button>;
+            return <button type="button" onClick={ask} className={className}><SmartIcon name={iconName||'Trash2'} size={size}/></button>;
+        }
+
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
             const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'' });
             const [sub, sS] = useState(false);
@@ -950,7 +966,7 @@
                         </div>
                     </div>
                     <div className="flex justify-between items-center pt-4 border-t">
-                        {onDelete && <button type="button" onClick={onDelete} className="text-red-500 text-xs font-bold hover:underline">SUPPRIMER</button>}
+                        {onDelete && <ConfirmButton onConfirm={onDelete} className="text-red-500 text-xs font-bold hover:underline" label="SUPPRIMER" />}
                         <div className="flex space-x-3 ml-auto"><button type="button" onClick={onCancel} className="text-slate-400 text-sm">Annuler</button><button type="submit" disabled={sub} className="bg-amber-600 text-white px-8 py-2 rounded-lg font-bold shadow-md uppercase text-xs">Enregistrer</button></div>
                     </div>
                 </form>
@@ -1195,7 +1211,7 @@
                         {canEdit && (
                             <div className="flex flex-col space-y-3">
                                 <button onClick={() => setEditingItem(i)} className="text-slate-300 hover:text-amber-600 transition-colors font-sans" title="Modifier la tenue"><SmartIcon name="Edit2" size={18}/></button>
-                                <button onClick={() => onDelete(i.id)} className="text-slate-300 hover:text-red-500 transition-colors font-sans" title="Supprimer la tenue"><SmartIcon name="Trash2" size={18}/></button>
+                                <ConfirmButton onConfirm={() => onDelete(i.id)} className="text-slate-300 hover:text-red-500 transition-colors font-sans" size={18} />
                             </div>
                         )}
                     </div>
@@ -1280,7 +1296,7 @@
                                     <div className="flex items-center gap-2 border-t pt-4 mt-auto font-sans">
                                         <a href={f.odjFile.data} download={f.odjFile.name} className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</a>
                                         {canEdit && (
-                                            <button onClick={async()=>{ await handleRemoveFile(f.id); }} className="p-2.5 text-slate-300 hover:text-red-500 transition-colors font-sans"><SmartIcon name="Trash2" size={18}/></button>
+                                            <ConfirmButton onConfirm={async()=>{ await handleRemoveFile(f.id); }} className="p-2.5 text-slate-300 hover:text-red-500 transition-colors font-sans" size={18} />
                                         )}
                                     </div>
                                 </div>
@@ -1483,7 +1499,7 @@
                                                                         <td className="p-3 text-center"><input type="checkbox" checked={!!v.agapes} onChange={()=>canEdit&&toggleAgapes(tenue,idx)} className="w-4 h-4 accent-amber-600 cursor-pointer"/></td>
                                                                         {canEdit && <td className="p-3 text-right whitespace-nowrap">
                                                                             <button onClick={()=>setEditingVisitor({tenueId:tenue.id,idx,data:{...v}})} className="text-slate-300 hover:text-amber-500 transition-colors mr-2"><SmartIcon name="Edit2" size={13}/></button>
-                                                                            <button onClick={()=>deleteVisitor(tenue,idx)} className="text-slate-200 hover:text-red-400 transition-colors"><SmartIcon name="Trash2" size={13}/></button>
+                                                                            <ConfirmButton onConfirm={()=>deleteVisitor(tenue,idx)} className="text-slate-200 hover:text-red-400 transition-colors" size={13} />
                                                                         </td>}
                                                                     </tr>
                                                                 );
@@ -1510,7 +1526,7 @@
                                                             <p className="text-xs font-bold text-slate-700 truncate">{t.description||t.name}</p>
                                                             <p className="text-lg font-black font-serif text-slate-800">{fmt(t.total)}</p>
                                                         </div>
-                                                        {canEdit && <button onClick={()=>removeTicket(tenue,i)} className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0"><SmartIcon name="Trash2" size={14}/></button>}
+                                                        {canEdit && <ConfirmButton onConfirm={()=>removeTicket(tenue,i)} className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0" size={14} />}
                                                     </div>
                                                 ))}
                                                 {canEdit && (
@@ -1766,7 +1782,7 @@
                                                     {canEditBiblio && (
                                                         <div className="flex space-x-2">
                                                             <button onClick={()=>setEditingId(b.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
-                                                            <button onClick={()=>onDelete(b.id)} className="p-1.5 text-slate-400 hover:text-red-500"><SmartIcon name="Trash2" size={14}/></button>
+                                                            <ConfirmButton onConfirm={()=>onDelete(b.id)} className="p-1.5 text-slate-400 hover:text-red-500" size={14} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1848,7 +1864,7 @@
                                         {canEdit && (
                                             <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-lg">
                                                 <button onClick={()=>setEditingId(l.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
-                                                <button onClick={()=>onDelete(l.id)} className="p-1.5 text-slate-400 hover:text-red-600"><SmartIcon name="Trash2" size={14}/></button>
+                                                <ConfirmButton onConfirm={()=>onDelete(l.id)} className="p-1.5 text-slate-400 hover:text-red-600" size={14} />
                                             </div>
                                         )}
                                         <h3 className="font-bold text-lg text-slate-900 group-hover:text-amber-700 pr-12 leading-tight">{l.t}</h3>
@@ -2572,7 +2588,7 @@
                                 <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)} placeholder="AIza..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
                                 <div className="flex gap-3">
                                     <button onClick={()=>setShowApiKeyModal(false)} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl">Annuler</button>
-                                    {claudeApiKey && <button onClick={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:''}); setShowApiKeyModal(false); }} className="text-red-400 font-bold text-xs uppercase py-3 px-4 border border-red-200 rounded-xl">Supprimer</button>}
+                                    {claudeApiKey && <ConfirmButton onConfirm={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:''}); setShowApiKeyModal(false); }} className="text-red-400 font-bold text-xs uppercase py-3 px-4 border border-red-200 rounded-xl" label="Supprimer" />}
                                     <button onClick={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:apiKeyInput.trim()}); setShowApiKeyModal(false); }} className="flex-1 bg-amber-600 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md">Enregistrer</button>
                                 </div>
                             </div>
