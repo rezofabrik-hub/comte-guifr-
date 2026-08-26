@@ -2559,15 +2559,14 @@
                         {['apprenti','compagnon','maitre'].includes(activeView) && (() => {
                             // Planches from the planches collection
                             const standalonePlanches = planches.filter(p=>normalizeGrade(p.grade)===activeView);
-                            // Planches embedded in tenues (agenda items), deduplicated by title+author
-                            const standaloneKeys = new Set(standalonePlanches.map(p=>`${(p.title||'').toLowerCase().trim()}|${(p.author||'').toLowerCase().trim()}`));
+                            // Planches embedded in tenues (agenda items)
                             const tenuePlanches = agendaItems.flatMap(t => (t.planches||[]).map(p=>({
                                 ...p,
                                 fromTenue: true,
                                 tenueId: t.id,
                                 tenueDate: t.date,
                                 id: `tenue_${t.id}_${(p.title||'').replace(/\s/g,'_')}`
-                            }))).filter(p => normalizeGrade(p.grade)===activeView && !standaloneKeys.has(`${(p.title||'').toLowerCase().trim()}|${(p.author||'').toLowerCase().trim()}`));
+                            }))).filter(p => normalizeGrade(p.grade)===activeView);
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
                             return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} />;
                         })()}
