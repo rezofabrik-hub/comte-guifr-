@@ -1,0 +1,41 @@
+{
+  "appId": "fr.velum.temple",
+  "appName": "Temple Virtuel",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "*.googleapis.com",
+      "*.firebaseapp.com",
+      "*.firebasestorage.app",
+      "*.gstatic.com",
+      "*.cloudflareinsights.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#0f172a",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#f59e0b"
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0f172a"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  },
+  "android": {
+    "minWebViewVersion": 60
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

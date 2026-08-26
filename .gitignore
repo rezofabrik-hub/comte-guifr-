@@ -1,0 +1,21 @@
+# Capacitor — projets natifs générés localement
+android/
+ios/
+node_modules/
+
+# Builds Android
+*.apk
+*.aab
+*.keystore
+
+# Builds iOS
+*.ipa
+*.xcarchive
+DerivedData/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Dossiers de déploiement temporaires (générés par le workflow)
+lodges/*/dist/
