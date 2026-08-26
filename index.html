@@ -181,10 +181,51 @@
 
         function LoginScreen({ onLogin, onArchitectLogin, error, logo, logeName }) {
             const [mode, setMode] = useState('member');
-            const [n, sN] = useState(''); const [grade, setGrade] = useState('apprenti'); const [p, sP] = useState('');
+            const [n, sN] = useState(''); const [grade, setGrade] = useState(''); const [p, sP] = useState('');
             const [archPwd, setArchPwd] = useState('');
             const [showPwd, setShowPwd] = useState(false);
             const [showForgot, setShowForgot] = useState(false);
+            const [members, setMembers] = useState([]);
+            const [detected, setDetected] = useState(null); // { grade, label } auto-détecté
+
+            // Charger les membres depuis Firestore (lecture publique) au montage
+            useEffect(() => {
+                fetch('https://firestore.googleapis.com/v1/projects/site-cg51/databases/(default)/documents/artifacts/site-cg51/public/data/members?pageSize=200')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.documents) setMembers(data.documents.map(d => {
+                            const f = d.fields || {};
+                            return { name: f.name?.stringValue || '', role: f.role?.stringValue || '', grade: f.grade?.stringValue || '' };
+                        }));
+                    }).catch(() => {});
+            }, []);
+
+            // Normaliser : minuscules, sans accents, sans titres maçonniques
+            const clean = (s) => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/frere |soeur |v∴m∴ |f\. |s\. /g,'').trim();
+
+            // Auto-détecter le grade quand le nom change
+            useEffect(() => {
+                if (!n.trim() || members.length === 0) { setDetected(null); return; }
+                const q = clean(n);
+                const found = members.find(m => {
+                    const mn = clean(m.name);
+                    return mn.includes(q) || q.includes(mn) || mn.split(' ').some(part => part.length > 2 && q.includes(part));
+                });
+                if (!found) { setDetected(null); return; }
+                const role = (found.role || '').toLowerCase();
+                const g = (found.grade || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+                let key = '';
+                if (role.includes('vénérable') || role.includes('venerable') || role.includes('vm')) key = 'vm';
+                else if (role.includes('trésorier') || role.includes('tresorier')) key = 'tresorier';
+                else if (g.includes('maitre') || g.includes('maître')) key = 'maitre';
+                else if (g.includes('compagnon')) key = 'compagnon';
+                else if (g.includes('apprenti')) key = 'apprenti';
+                if (key) { setDetected({ key, label: { vm:'Vénérable Maître', tresorier:'Trésorier', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' }[key] }); setGrade(key); }
+                else setDetected(null);
+            }, [n, members]);
+
+            const GRADE_LABELS_LOGIN = { apprenti:'Apprenti', compagnon:'Compagnon', maitre:'Maître', tresorier:'Trésorier', vm:'Vénérable Maître' };
+
             return (
                 <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-center font-serif text-white animate-fade">
                     <div className="max-w-md w-full bg-slate-800 p-10 rounded-[2rem] border border-slate-700 shadow-2xl relative overflow-hidden">
@@ -194,10 +235,16 @@
                         <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-10 italic font-sans">À la Gloire du Grand Architecte de l'Univers</p>
                         {error && <div className="bg-red-500/10 border border-red-500 text-red-200 p-4 rounded-xl text-xs mb-8 flex items-center gap-3 text-left font-sans font-bold"><SmartIcon name="AlertTriangle" />{error}</div>}
                         {mode === 'member' ? (
-                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade, p); }} className="space-y-6 text-left font-sans">
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Nom complet</label><input type="text" required placeholder="Votre nom..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={n} onChange={e=>sN(e.target.value)} /></div>
-                                <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Grade</label>
-                                    <select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner">
+                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade || 'apprenti', p); }} className="space-y-6 text-left font-sans">
+                                <div>
+                                    <label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Nom complet</label>
+                                    <input type="text" required placeholder="Votre nom..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={n} onChange={e=>sN(e.target.value)} />
+                                    {detected && <p className="text-[10px] text-amber-400 font-bold mt-1.5 ml-1 flex items-center gap-1"><SmartIcon name="CheckCircle" size={11}/> Grade détecté : {detected.label}</p>}
+                                </div>
+                                <div>
+                                    <label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Grade {detected ? <span className="text-amber-500 normal-case">(auto-détecté)</span> : ''}</label>
+                                    <select value={grade} onChange={e=>{setGrade(e.target.value); setDetected(null);}} className={`w-full bg-slate-900 border p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner ${detected ? 'border-amber-500' : 'border-slate-600'}`}>
+                                        <option value="">— Sélectionner —</option>
                                         <option value="apprenti">Apprenti</option>
                                         <option value="compagnon">Compagnon</option>
                                         <option value="maitre">Maître</option>
