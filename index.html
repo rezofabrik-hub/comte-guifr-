@@ -1266,152 +1266,260 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const pastItems = items.filter(i => new Date(i.date) < today).sort((a,b) => new Date(b.date) - new Date(a.date));
             const [analyzing, setAnalyzing] = useState({});
+            const [analyzingTicket, setAnalyzingTicket] = useState({});
             const [expandedId, setExpandedId] = useState(null);
+            const [editingVisitor, setEditingVisitor] = useState(null); // { tenueId, idx, data }
+            const [prixEdit, setPrixEdit] = useState({}); // { tenueId: string }
+
+            const geminiImage = async (file, prompt) => {
+                const reader = new FileReader();
+                const photoData = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
+                const base64 = photoData.split(',')[1];
+                const mimeType = file.type || 'image/jpeg';
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: base64 } }, { text: prompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 1024 } })
+                });
+                const data = await res.json();
+                let txt = data.candidates[0].content.parts[0].text.trim();
+                if (txt.startsWith('```')) txt = txt.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
+                return { photoData, parsed: JSON.parse(txt) };
+            };
 
             const analyzePhoto = async (tenue, file) => {
                 setAnalyzing(p => ({...p, [tenue.id]: true}));
                 try {
-                    const reader = new FileReader();
-                    const photoData = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
-                    const base64 = photoData.split(',')[1];
-                    const mimeType = file.type || 'image/jpeg';
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                        method: 'POST', headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [
-                            { inline_data: { mime_type: mimeType, data: base64 } },
-                            { text: `Analyse ce tableau de visiteurs maçonniques. Extrais les données de chaque ligne (ignore les signatures). Retourne UNIQUEMENT un tableau JSON valide sans markdown, avec pour chaque visiteur: {"nom": "Prénom NOM complet", "obedience": "obédience", "rite": "rite", "grade": "Apprenti|Compagnon|Maître"}. Si une valeur est illisible mets null. Exemple: [{"nom":"Jean DUPONT","obedience":"GODF","rite":"REAA","grade":"Maître"}]` }
-                        ]}], generationConfig: { temperature: 0, maxOutputTokens: 1024 } })
-                    });
-                    const data = await res.json();
-                    let jsonStr = data.candidates[0].content.parts[0].text.trim();
-                    if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
-                    const extracted = JSON.parse(jsonStr);
-                    const existing = tenue.visitors || [];
-                    const merged = [...existing];
-                    for (const v of extracted) {
-                        if (v.nom && !merged.find(x => (x.nom||'').toLowerCase() === v.nom.toLowerCase())) {
-                            merged.push({ ...v, agapes: false });
-                        }
+                    const { photoData, parsed } = await geminiImage(file, `Analyse ce tableau de visiteurs maçonniques. Extrais les données de chaque ligne (ignore les signatures). Retourne UNIQUEMENT un tableau JSON valide sans markdown, avec pour chaque visiteur: {"nom": "Prénom NOM complet", "obedience": "obédience", "rite": "rite", "grade": "Apprenti|Compagnon|Maître"}. Si une valeur est illisible mets null.`);
+                    const merged = [...(tenue.visitors||[])];
+                    for (const v of parsed) {
+                        if (v.nom && !merged.find(x => (x.nom||'').toLowerCase() === v.nom.toLowerCase())) merged.push({ ...v, agapes: false });
                     }
                     await onUpdate(tenue.id, { visitorsPhoto: { data: photoData, name: file.name }, visitors: merged });
-                } catch(e) { console.error('Analyse visiteurs échouée', e); alert('Erreur lors de l\'analyse IA : ' + e.message); }
+                } catch(e) { console.error(e); alert('Erreur analyse visiteurs : ' + e.message); }
                 setAnalyzing(p => ({...p, [tenue.id]: false}));
             };
 
+            const analyzeTicket = async (tenue, file) => {
+                setAnalyzingTicket(p => ({...p, [tenue.id]: true}));
+                try {
+                    const { photoData, parsed } = await geminiImage(file, `Analyse ce ticket de caisse. Retourne UNIQUEMENT un objet JSON valide sans markdown: {"total": montant_total_en_euros_nombre_decimal, "description": "résumé court du contenu"}. Exemple: {"total": 47.80, "description": "Courses Lidl — fruits, fromages, vins"}`);
+                    const tickets = [...(tenue.agapesTickets||[]), { data: photoData, name: file.name, total: parsed.total||0, description: parsed.description||'' }];
+                    const coutTotal = tickets.reduce((s,t) => s + (parseFloat(t.total)||0), 0);
+                    await onUpdate(tenue.id, { agapesTickets: tickets, agapesCout: Math.round(coutTotal * 100) / 100 });
+                } catch(e) { console.error(e); alert('Erreur analyse ticket : ' + e.message); }
+                setAnalyzingTicket(p => ({...p, [tenue.id]: false}));
+            };
+
+            const removeTicket = async (tenue, idx) => {
+                const tickets = (tenue.agapesTickets||[]).filter((_,i)=>i!==idx);
+                const coutTotal = tickets.reduce((s,t) => s + (parseFloat(t.total)||0), 0);
+                await onUpdate(tenue.id, { agapesTickets: tickets, agapesCout: Math.round(coutTotal * 100) / 100 });
+            };
+
             const toggleAgapes = async (tenue, idx) => {
-                const visitors = [...(tenue.visitors || [])];
+                const visitors = [...(tenue.visitors||[])];
                 visitors[idx] = { ...visitors[idx], agapes: !visitors[idx].agapes };
                 await onUpdate(tenue.id, { visitors });
             };
             const deleteVisitor = async (tenue, idx) => { await onUpdate(tenue.id, { visitors: (tenue.visitors||[]).filter((_,i)=>i!==idx) }); };
             const addVisitor = async (tenue, v) => { await onUpdate(tenue.id, { visitors: [...(tenue.visitors||[]), {...v, agapes: false}] }); };
+            const saveEditVisitor = async (tenue, idx, v) => {
+                const visitors = [...(tenue.visitors||[])];
+                visitors[idx] = v;
+                await onUpdate(tenue.id, { visitors });
+                setEditingVisitor(null);
+            };
+            const savePrix = async (tenue, val) => {
+                const prix = parseFloat(val) || 0;
+                await onUpdate(tenue.id, { agapesPrixParPersonne: prix });
+                setPrixEdit(p => ({...p, [tenue.id]: undefined}));
+            };
 
             const gradeColor = (g='') => { const gl=g.toLowerCase(); return gl.includes('maître')||gl.includes('maitre') ? 'bg-slate-100 text-slate-600' : gl.includes('compagnon') ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'; };
+            const fmt = (n) => (parseFloat(n)||0).toFixed(2).replace('.',',') + ' €';
 
             return (
                 <div className="space-y-6 animate-fade font-sans text-slate-800">
                     <div className="bg-white p-6 rounded-2xl border flex justify-between items-center shadow-sm">
-                        <div><h2 className="text-2xl font-bold font-serif text-slate-800">Registre des Visites</h2><p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">Tableau des frères et sœurs visiteurs par tenue</p></div>
+                        <div><h2 className="text-2xl font-bold font-serif text-slate-800">Registre des Visites</h2><p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">Tableau des visiteurs et finances agapes par tenue</p></div>
                         <SmartIcon name="UserCheck" size={28} className="text-amber-300"/>
                     </div>
                     {pastItems.length === 0 && <p className="text-slate-400 italic py-10 text-center">Aucune tenue passée.</p>}
-                    {pastItems.map(tenue => (
+                    {pastItems.map(tenue => {
+                        const visitorsAgapes = (tenue.visitors||[]).filter(v=>v.agapes).length;
+                        const prix = parseFloat(tenue.agapesPrixParPersonne)||0;
+                        const cout = parseFloat(tenue.agapesCout)||0;
+                        const recette = prix * visitorsAgapes;
+                        const benefice = recette - cout;
+                        return (
                         <div key={tenue.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
                             <button onClick={() => setExpandedId(expandedId === tenue.id ? null : tenue.id)} className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-all text-left">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><SmartIcon name="Users" size={20}/></div>
                                     <div>
                                         <p className="font-bold font-serif text-slate-800">{new Date(tenue.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
-                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold font-sans">{tenue.type} — <span className="text-amber-600">{(tenue.visitors||[]).length} visiteur{(tenue.visitors||[]).length!==1?'s':''}</span>{(tenue.visitors||[]).filter(v=>v.agapes).length > 0 && <span className="text-slate-400"> · {(tenue.visitors||[]).filter(v=>v.agapes).length} aux agapes</span>}</p>
+                                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold font-sans">{tenue.type} — <span className="text-amber-600">{(tenue.visitors||[]).length} visiteur{(tenue.visitors||[]).length!==1?'s':''}</span>{visitorsAgapes > 0 && <span className="text-slate-400"> · {visitorsAgapes} aux agapes</span>}{cout > 0 && <span className={`ml-2 ${benefice >= 0 ? 'text-green-600' : 'text-red-500'}`}>{benefice >= 0 ? '+' : ''}{fmt(benefice)}</span>}</p>
                                     </div>
                                 </div>
                                 <SmartIcon name={expandedId===tenue.id?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400"/>
                             </button>
 
                             {expandedId === tenue.id && (
-                                <div className="p-5 border-t border-slate-100 space-y-5 animate-fade">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        {/* Photo */}
-                                        <div className="space-y-2">
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Photo du tableau de visiteurs</p>
-                                            {tenue.visitorsPhoto ? (
-                                                <div className="space-y-2">
-                                                    <img src={tenue.visitorsPhoto.data} alt="Tableau visiteurs" className="w-full rounded-xl border border-slate-200 object-contain max-h-72"/>
-                                                    {canEdit && (
-                                                        <label className="flex items-center justify-center gap-2 bg-slate-50 text-slate-500 font-bold text-[10px] uppercase py-2 rounded-lg hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer border border-slate-200">
-                                                            {analyzing[tenue.id] ? <><SmartIcon name="Loader" size={12} className="animate-spin"/>Analyse en cours...</> : <><SmartIcon name="RefreshCw" size={12}/>Changer la photo (ré-analyser)</>}
+                                <div className="p-5 border-t border-slate-100 space-y-6 animate-fade">
+
+                                    {/* === SECTION VISITEURS === */}
+                                    <div className="space-y-4">
+                                        <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest border-b border-slate-100 pb-2">Tableau des visiteurs</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            {/* Photo */}
+                                            <div className="space-y-2">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Photo du tableau de visiteurs</p>
+                                                {tenue.visitorsPhoto ? (
+                                                    <div className="space-y-2">
+                                                        <img src={tenue.visitorsPhoto.data} alt="Tableau visiteurs" className="w-full rounded-xl border border-slate-200 object-contain max-h-72"/>
+                                                        {canEdit && <label className="flex items-center justify-center gap-2 bg-slate-50 text-slate-500 font-bold text-[10px] uppercase py-2 rounded-lg hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer border border-slate-200">{analyzing[tenue.id]?<><SmartIcon name="Loader" size={12} className="animate-spin"/>Analyse...</>:<><SmartIcon name="RefreshCw" size={12}/>Changer (ré-analyser)</>}<input type="file" className="hidden" accept="image/*" onChange={e=>e.target.files[0]&&analyzePhoto(tenue,e.target.files[0])} disabled={analyzing[tenue.id]}/></label>}
+                                                    </div>
+                                                ) : (
+                                                    canEdit ? (
+                                                        <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${analyzing[tenue.id]?'border-amber-300 bg-amber-50/30':'border-slate-200 hover:border-amber-400 hover:bg-amber-50/20'}`}>
+                                                            {analyzing[tenue.id]?<><SmartIcon name="Loader" size={28} className="text-amber-500 animate-spin"/><p className="text-[10px] font-bold text-amber-600 uppercase">Analyse en cours...</p></>:<><SmartIcon name="Camera" size={28} className="text-slate-300"/><p className="text-[10px] font-bold text-slate-400 uppercase text-center">Photo du tableau de visiteurs</p><p className="text-[9px] text-slate-300 text-center">L'IA extraira automatiquement les visiteurs</p></>}
                                                             <input type="file" className="hidden" accept="image/*" onChange={e=>e.target.files[0]&&analyzePhoto(tenue,e.target.files[0])} disabled={analyzing[tenue.id]}/>
                                                         </label>
-                                                    )}
+                                                    ) : <div className="flex flex-col items-center justify-center gap-2 border border-slate-100 rounded-xl p-8 bg-slate-50"><SmartIcon name="Camera" size={24} className="text-slate-200"/><p className="text-[10px] text-slate-300 italic">Aucune photo</p></div>
+                                                )}
+                                            </div>
+                                            {/* Résumé agapes */}
+                                            <div className="bg-amber-50/50 rounded-xl border border-amber-100 p-4 flex flex-col">
+                                                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-1"><SmartIcon name="Utensils" size={11}/>Restent aux agapes</p>
+                                                {visitorsAgapes === 0 ? <p className="text-xs text-slate-400 italic flex-grow flex items-center">Aucun visiteur aux agapes</p> : (
+                                                    <ul className="space-y-1.5 flex-grow">{(tenue.visitors||[]).filter(v=>v.agapes).map((v,i)=><li key={i} className="text-xs font-bold text-amber-800 flex items-center gap-1.5"><SmartIcon name="CheckCircle" size={12} className="text-amber-500 flex-shrink-0"/>{v.nom}</li>)}</ul>
+                                                )}
+                                                <div className="mt-4 pt-3 border-t border-amber-200"><p className="text-2xl font-black font-serif text-amber-600">{visitorsAgapes}<span className="text-[10px] font-bold text-amber-400 ml-1 font-sans">/ {(tenue.visitors||[]).length}</span></p><p className="text-[9px] text-amber-500 uppercase font-bold tracking-widest">visiteurs aux agapes</p></div>
+                                            </div>
+                                        </div>
+
+                                        {/* Tableau visiteurs */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Visiteurs ({(tenue.visitors||[]).length})</p>
+                                                {canEdit && <AddVisitorInline onAdd={v=>addVisitor(tenue,v)}/>}
+                                            </div>
+                                            {(tenue.visitors||[]).length === 0 ? (
+                                                <p className="text-xs text-slate-400 italic text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Aucun visiteur — uploadez la photo du tableau pour extraction automatique.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto rounded-xl border border-slate-100">
+                                                    <table className="w-full text-xs font-sans">
+                                                        <thead><tr className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                                            <th className="text-left p-3 pl-4">Nom & Prénom</th><th className="text-left p-3">Obédience</th><th className="text-left p-3">Rite</th><th className="text-left p-3">Grade</th>
+                                                            <th className="text-center p-3 whitespace-nowrap"><SmartIcon name="Utensils" size={10} className="inline mr-1"/>Agapes</th>
+                                                            {canEdit && <th className="p-3 w-16"></th>}
+                                                        </tr></thead>
+                                                        <tbody className="divide-y divide-slate-50">
+                                                            {(tenue.visitors||[]).map((v,idx) => {
+                                                                const isEditing = editingVisitor?.tenueId===tenue.id && editingVisitor?.idx===idx;
+                                                                if (isEditing) return (
+                                                                    <tr key={idx} className="bg-amber-50/40">
+                                                                        <td className="p-2 pl-4"><input defaultValue={v.nom||''} onChange={e=>setEditingVisitor(p=>({...p,data:{...p.data,nom:e.target.value}}))} className="border p-1.5 rounded text-xs w-full outline-none focus:border-amber-400" placeholder="Nom Prénom"/></td>
+                                                                        <td className="p-2"><input defaultValue={v.obedience||''} onChange={e=>setEditingVisitor(p=>({...p,data:{...p.data,obedience:e.target.value}}))} className="border p-1.5 rounded text-xs w-full outline-none focus:border-amber-400" placeholder="Obédience"/></td>
+                                                                        <td className="p-2"><input defaultValue={v.rite||''} onChange={e=>setEditingVisitor(p=>({...p,data:{...p.data,rite:e.target.value}}))} className="border p-1.5 rounded text-xs w-full outline-none focus:border-amber-400" placeholder="Rite"/></td>
+                                                                        <td className="p-2"><select defaultValue={v.grade||'Maître'} onChange={e=>setEditingVisitor(p=>({...p,data:{...p.data,grade:e.target.value}}))} className="border p-1.5 rounded text-xs outline-none focus:border-amber-400"><option>Apprenti</option><option>Compagnon</option><option>Maître</option></select></td>
+                                                                        <td className="p-2 text-center"><input type="checkbox" defaultChecked={!!v.agapes} onChange={e=>setEditingVisitor(p=>({...p,data:{...p.data,agapes:e.target.checked}}))} className="w-4 h-4 accent-amber-600"/></td>
+                                                                        <td className="p-2 text-right whitespace-nowrap"><button onClick={()=>saveEditVisitor(tenue,idx,editingVisitor.data)} className="text-green-600 hover:text-green-700 mr-2 font-bold text-[10px] uppercase">OK</button><button onClick={()=>setEditingVisitor(null)} className="text-slate-400 hover:text-slate-600 text-[10px] uppercase font-bold">✕</button></td>
+                                                                    </tr>
+                                                                );
+                                                                return (
+                                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                                        <td className="p-3 pl-4 font-bold text-slate-800">{v.nom||'—'}</td>
+                                                                        <td className="p-3 text-slate-500">{v.obedience||'—'}</td>
+                                                                        <td className="p-3 text-slate-500">{v.rite||'—'}</td>
+                                                                        <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${gradeColor(v.grade)}`}>{v.grade||'—'}</span></td>
+                                                                        <td className="p-3 text-center"><input type="checkbox" checked={!!v.agapes} onChange={()=>canEdit&&toggleAgapes(tenue,idx)} className="w-4 h-4 accent-amber-600 cursor-pointer"/></td>
+                                                                        {canEdit && <td className="p-3 text-right whitespace-nowrap">
+                                                                            <button onClick={()=>setEditingVisitor({tenueId:tenue.id,idx,data:{...v}})} className="text-slate-300 hover:text-amber-500 transition-colors mr-2"><SmartIcon name="Edit2" size={13}/></button>
+                                                                            <button onClick={()=>deleteVisitor(tenue,idx)} className="text-slate-200 hover:text-red-400 transition-colors"><SmartIcon name="Trash2" size={13}/></button>
+                                                                        </td>}
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                            ) : (
-                                                canEdit ? (
-                                                    <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${analyzing[tenue.id]?'border-amber-300 bg-amber-50/30':'border-slate-200 hover:border-amber-400 hover:bg-amber-50/20'}`}>
-                                                        {analyzing[tenue.id] ? <><SmartIcon name="Loader" size={28} className="text-amber-500 animate-spin"/><p className="text-[10px] font-bold text-amber-600 uppercase">Analyse en cours...</p></> : <><SmartIcon name="Camera" size={28} className="text-slate-300"/><p className="text-[10px] font-bold text-slate-400 uppercase text-center">Ajouter une photo du tableau<br/>de visiteurs</p><p className="text-[9px] text-slate-300 text-center">L'IA extraira automatiquement<br/>les visiteurs inscrits</p></>}
-                                                        <input type="file" className="hidden" accept="image/*" onChange={e=>e.target.files[0]&&analyzePhoto(tenue,e.target.files[0])} disabled={analyzing[tenue.id]}/>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* === SECTION FINANCES AGAPES === */}
+                                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                                        <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest pb-2">Finances agapes</p>
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                                            {/* Tickets de caisse */}
+                                            <div className="lg:col-span-2 space-y-3">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tickets de caisse</p>
+                                                {(tenue.agapesTickets||[]).map((t,i) => (
+                                                    <div key={i} className="flex items-center gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                                        <img src={t.data} alt="ticket" className="w-14 h-14 object-cover rounded-lg border border-slate-200 flex-shrink-0"/>
+                                                        <div className="flex-grow min-w-0">
+                                                            <p className="text-xs font-bold text-slate-700 truncate">{t.description||t.name}</p>
+                                                            <p className="text-lg font-black font-serif text-slate-800">{fmt(t.total)}</p>
+                                                        </div>
+                                                        {canEdit && <button onClick={()=>removeTicket(tenue,i)} className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0"><SmartIcon name="Trash2" size={14}/></button>}
+                                                    </div>
+                                                ))}
+                                                {canEdit && (
+                                                    <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-all ${analyzingTicket[tenue.id]?'border-green-300 bg-green-50/30':'border-slate-200 hover:border-green-400 hover:bg-green-50/20'}`}>
+                                                        {analyzingTicket[tenue.id]?<><SmartIcon name="Loader" size={18} className="text-green-500 animate-spin"/><p className="text-[10px] font-bold text-green-600 uppercase">Calcul du montant...</p></>:<><SmartIcon name="Receipt" size={18} className="text-slate-300"/><p className="text-[10px] font-bold text-slate-400 uppercase">Ajouter un ticket de caisse</p></>}
+                                                        <input type="file" className="hidden" accept="image/*" onChange={e=>e.target.files[0]&&analyzeTicket(tenue,e.target.files[0])} disabled={analyzingTicket[tenue.id]}/>
                                                     </label>
-                                                ) : <div className="flex flex-col items-center justify-center gap-2 border border-slate-100 rounded-xl p-8 bg-slate-50"><SmartIcon name="Camera" size={24} className="text-slate-200"/><p className="text-[10px] text-slate-300 italic">Aucune photo</p></div>
-                                            )}
-                                        </div>
+                                                )}
+                                                {(tenue.agapesTickets||[]).length > 0 && (
+                                                    <div className="flex justify-between items-center bg-slate-100 rounded-xl p-3 font-sans">
+                                                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Total achats nourriture</p>
+                                                        <p className="font-black text-slate-800 text-base">{fmt(cout)}</p>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                        {/* Résumé agapes */}
-                                        <div className="bg-amber-50/50 rounded-xl border border-amber-100 p-4 flex flex-col">
-                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-1"><SmartIcon name="Utensils" size={11}/>Restent aux agapes</p>
-                                            {(tenue.visitors||[]).filter(v=>v.agapes).length === 0 ? (
-                                                <p className="text-xs text-slate-400 italic flex-grow flex items-center">Aucun visiteur aux agapes</p>
-                                            ) : (
-                                                <ul className="space-y-1.5 flex-grow">
-                                                    {(tenue.visitors||[]).filter(v=>v.agapes).map((v,i) => (
-                                                        <li key={i} className="text-xs font-bold text-amber-800 flex items-center gap-1.5"><SmartIcon name="CheckCircle" size={12} className="text-amber-500 flex-shrink-0"/>{v.nom}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            <div className="mt-4 pt-3 border-t border-amber-200">
-                                                <p className="text-2xl font-black font-serif text-amber-600">{(tenue.visitors||[]).filter(v=>v.agapes).length}<span className="text-[10px] font-bold text-amber-400 ml-1 font-sans">/ {(tenue.visitors||[]).length}</span></p>
-                                                <p className="text-[9px] text-amber-500 uppercase font-bold tracking-widest">visiteurs aux agapes</p>
+                                            {/* Bilan financier */}
+                                            <div className="bg-slate-800 text-white rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bilan agapes</p>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Prix / personne</p>
+                                                            {canEdit ? (
+                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                    <input type="number" step="0.5" min="0" value={prixEdit[tenue.id] !== undefined ? prixEdit[tenue.id] : (prix||'')} placeholder="0,00"
+                                                                        onChange={e=>setPrixEdit(p=>({...p,[tenue.id]:e.target.value}))}
+                                                                        onBlur={e=>savePrix(tenue,e.target.value)}
+                                                                        className="bg-slate-700 text-white text-sm font-black w-20 px-2 py-1 rounded-lg outline-none focus:bg-slate-600 border border-slate-600"/>
+                                                                    <span className="text-slate-300 text-xs font-bold">€</span>
+                                                                </div>
+                                                            ) : <p className="font-black text-white text-base">{fmt(prix)}</p>}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Convives</p>
+                                                            <p className="font-black text-white text-base">{visitorsAgapes}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="border-t border-slate-700 pt-3 space-y-2">
+                                                        <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Recette</span><span className="font-black text-white">{fmt(recette)}</span></div>
+                                                        <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Achats</span><span className="font-black text-red-400">− {fmt(cout)}</span></div>
+                                                    </div>
+                                                    <div className={`rounded-xl p-3 flex justify-between items-center ${benefice >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/80">{benefice >= 0 ? 'Bénéfice' : 'Déficit'}</p>
+                                                        <p className="text-xl font-black text-white">{benefice >= 0 ? '+' : ''}{fmt(benefice)}</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Tableau */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between flex-wrap gap-2">
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Visiteurs ({(tenue.visitors||[]).length})</p>
-                                            {canEdit && <AddVisitorInline onAdd={v=>addVisitor(tenue,v)}/>}
-                                        </div>
-                                        {(tenue.visitors||[]).length === 0 ? (
-                                            <p className="text-xs text-slate-400 italic text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Aucun visiteur enregistré — uploadez la photo du tableau pour une extraction automatique.</p>
-                                        ) : (
-                                            <div className="overflow-x-auto rounded-xl border border-slate-100">
-                                                <table className="w-full text-xs font-sans">
-                                                    <thead><tr className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                                        <th className="text-left p-3 pl-4">Nom & Prénom</th>
-                                                        <th className="text-left p-3">Obédience</th>
-                                                        <th className="text-left p-3">Rite</th>
-                                                        <th className="text-left p-3">Grade</th>
-                                                        <th className="text-center p-3 whitespace-nowrap"><SmartIcon name="Utensils" size={10} className="inline mr-1"/>Agapes</th>
-                                                        {canEdit && <th className="p-3 w-8"></th>}
-                                                    </tr></thead>
-                                                    <tbody className="divide-y divide-slate-50">
-                                                        {(tenue.visitors||[]).map((v,idx) => (
-                                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                                <td className="p-3 pl-4 font-bold text-slate-800">{v.nom||'—'}</td>
-                                                                <td className="p-3 text-slate-500">{v.obedience||'—'}</td>
-                                                                <td className="p-3 text-slate-500">{v.rite||'—'}</td>
-                                                                <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${gradeColor(v.grade)}`}>{v.grade||'—'}</span></td>
-                                                                <td className="p-3 text-center"><input type="checkbox" checked={!!v.agapes} onChange={()=>canEdit&&toggleAgapes(tenue,idx)} className="w-4 h-4 accent-amber-600 cursor-pointer"/></td>
-                                                                {canEdit && <td className="p-3 text-right"><button onClick={()=>deleteVisitor(tenue,idx)} className="text-slate-200 hover:text-red-400 transition-colors"><SmartIcon name="Trash2" size={13}/></button></td>}
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             )}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             );
         }
