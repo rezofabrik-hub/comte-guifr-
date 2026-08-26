@@ -552,13 +552,13 @@
             };
 
             const [isEditingAgapes, setIsEditingAgapes] = useState(false);
-            const [agapesForm, setAgapesForm] = useState({ agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'' });
+            const [agapesForm, setAgapesForm] = useState({ agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', prix:'' });
             const [editingParticipantsId, setEditingParticipantsId] = useState(null);
             const [participantsInput, setParticipantsInput] = useState('');
 
             const openAgapesEdit = () => {
                 if(nextTenue) {
-                    setAgapesForm({ agapes: nextTenue.agapes||'', entree: nextTenue.entree||'', plat: nextTenue.plat||'', dessert: nextTenue.dessert||'', lienFramadate: nextTenue.lienFramadate||'' });
+                    setAgapesForm({ agapes: nextTenue.agapes||'', entree: nextTenue.entree||'', plat: nextTenue.plat||'', dessert: nextTenue.dessert||'', lienFramadate: nextTenue.lienFramadate||'', prix: nextTenue.prix||'' });
                     setIsEditingAgapes(true);
                 }
             };
@@ -568,7 +568,7 @@
             };
 
             const clearAgapes = async () => {
-                if(nextTenue) { await onUpdateAgenda(nextTenue.id, { agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'' }); setIsEditingAgapes(false); }
+                if(nextTenue) { await onUpdateAgenda(nextTenue.id, { agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', prix:'' }); setIsEditingAgapes(false); }
             };
 
             return (
@@ -750,6 +750,11 @@
                                         <input type="text" placeholder="Plat" value={agapesForm.plat} onChange={e=>setAgapesForm({...agapesForm, plat:e.target.value})} className="w-full border p-2 rounded-lg text-xs" />
                                         <input type="text" placeholder="Dessert" value={agapesForm.dessert} onChange={e=>setAgapesForm({...agapesForm, dessert:e.target.value})} className="w-full border p-2 rounded-lg text-xs" />
                                         <input type="url" placeholder="Lien Framadate (https://...)" value={agapesForm.lienFramadate} onChange={e=>setAgapesForm({...agapesForm, lienFramadate:e.target.value})} className="w-full border p-2 rounded-lg text-xs text-amber-600" />
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">Prix agapes</label>
+                                            <input type="number" step="0.5" min="0" placeholder="ex: 10" value={agapesForm.prix} onChange={e=>setAgapesForm({...agapesForm, prix:e.target.value})} className="border p-2 rounded-lg text-xs w-24 font-bold text-amber-700" />
+                                            <span className="text-xs text-slate-400">€</span>
+                                        </div>
                                         <div className="flex gap-2 pt-2">
                                             <button onClick={clearAgapes} className="flex-1 bg-red-100 text-red-600 py-1.5 rounded text-[10px] font-bold uppercase">Effacer</button>
                                             <button onClick={()=>setIsEditingAgapes(false)} className="flex-1 bg-slate-100 text-slate-600 py-1.5 rounded text-[10px] font-bold uppercase">Annuler</button>
@@ -760,8 +765,8 @@
                                     <div className="space-y-3">
                                         <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>Renée</strong> au <a href="tel:0621677999" className="text-amber-700 font-bold hover:underline font-sans">06 21 67 79 99</a> au moins <strong>48h à l'avance</strong>.</p>
                                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex justify-between items-center">
-                                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Prix</p>
-                                            <p className="text-xl font-black text-slate-900 font-serif">10,00 €</p>
+                                            <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Prix agapes</p>
+                                            <p className="text-xl font-black text-slate-900 font-serif">{nextTenue?.prix ? parseFloat(nextTenue.prix).toFixed(2).replace('.',',') + ' €' : '—'}</p>
                                         </div>
                                         {nextTenue && (nextTenue.agapes || nextTenue.entree || nextTenue.plat || nextTenue.dessert || nextTenue.lienFramadate) && (
                                             <div className="pt-2 border-t border-slate-100 mt-2 space-y-3 animate-fade">
@@ -1070,7 +1075,7 @@
         }
 
         function AgendaForm({ initialData, onSave, onCancel, apiKey }) {
-            const [f, s] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'Tenue Régulière', visibility:'Apprenti', sujet:'', agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', planches: [], odjFile:null });
+            const [f, s] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'Tenue Régulière', visibility:'Apprenti', sujet:'', agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', prix:'', planches: [], odjFile:null });
             const [loading, setLoading] = useState(false);
             const [analyzing, setAnalyzing] = useState(false);
             const [aiError, setAiError] = useState('');
@@ -1133,6 +1138,11 @@
                             <input type="text" placeholder="Dessert" value={f.dessert} onChange={e=>s({...f,dessert:e.target.value})} className="w-full border p-2 rounded-lg bg-white text-xs" />
                         </div>
                         <input type="url" placeholder="Lien Framadate pour les inscriptions (Optionnel)" value={f.lienFramadate} onChange={e=>s({...f,lienFramadate:e.target.value})} className="w-full border p-2 rounded-lg bg-white text-xs text-amber-600" />
+                        <div className="flex items-center gap-3">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Prix agapes</label>
+                            <input type="number" step="0.5" min="0" placeholder="ex: 10" value={f.prix||''} onChange={e=>s({...f,prix:e.target.value})} className="border p-2 rounded-lg bg-white text-xs w-24 font-bold text-amber-700" />
+                            <span className="text-xs text-slate-400">€</span>
+                        </div>
                     </div>
 
                     <textarea placeholder="Résumé de l'ordre du jour..." value={f.sujet} onChange={e=>s({...f,sujet:e.target.value})} className="w-full border p-4 rounded-xl h-24 outline-none focus:border-amber-500 shadow-inner font-serif" required></textarea>
