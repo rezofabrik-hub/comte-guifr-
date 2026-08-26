@@ -1,4 +1,6 @@
-// Règles Firestore – Loge Comte Guifré n°51 — v2
+// Règles Firestore — Velum Loge · Multi-tenant v3
+// Chaque loge est isolée par son appId (slug) dans le chemin Firestore.
+// Les emails suivent le format : grade@{slug}.velum.fr
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -6,81 +8,105 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    function email() {
+
+    function userEmail() {
       return request.auth.token.email;
     }
+
+    // Extrait le slug de la loge depuis l'email : vm@cg51.velum.fr → cg51
+    function emailLodgeId() {
+      return userEmail().split('@')[1].split('.velum.fr')[0];
+    }
+
+    // Vérifie que l'utilisateur appartient bien à la loge demandée
+    function ownLodge(appId) {
+      return emailLodgeId() == appId;
+    }
+
+    function hasRole(role) {
+      return userEmail().startsWith(role + '@') && userEmail().endsWith('.velum.fr');
+    }
+
     function isVMouArchitecte() {
-      return email() in ['vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+      return isSignedIn() && (hasRole('vm') || hasRole('architecte'));
     }
+
     function isTresorier() {
-      return isSignedIn() && email() in ['tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+      return isSignedIn() && (hasRole('tresorier') || hasRole('vm') || hasRole('architecte'));
     }
+
     function isGradeMember() {
-      return isSignedIn() && email() in ['apprenti@cg51-virtuel.fr','compagnon@cg51-virtuel.fr','maitre@cg51-virtuel.fr','tresorier@cg51-virtuel.fr','vm@cg51-virtuel.fr','architecte@cg51-virtuel.fr'];
+      return isSignedIn() && userEmail().endsWith('.velum.fr');
     }
 
-    // Tout le contenu de la loge : lecture pour tout membre, écriture VM ou Architecte uniquement
+    // ── Membres ──────────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/members/{memberId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte() || isTresorier();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
     }
 
+    // ── Agenda / Ordre des Travaux ────────────────────────────────────────────
     match /artifacts/{appId}/public/data/agenda/{itemId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
     }
 
+    // ── Planches ─────────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/planches/{docId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
     }
 
+    // ── Bibliothèque ──────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/bibliotheque/{docId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
     }
 
+    // ── Liens utiles ──────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/liens/{docId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isVMouArchitecte();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
     }
 
+    // ── Paramètres (identité, logo, mots de passe, welcome…) ─────────────────
     match /artifacts/{appId}/public/data/settings/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isVMouArchitecte();
+      allow read: if isSignedIn() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId);
     }
 
-    // Trésorerie : lecture membres de grade, écriture trésorier uniquement
+    // ── Trésorerie (accès Trésorier + VM + Architecte) ───────────────────────
     match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
-      allow read, write: if isTresorier();
+      allow read, write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_cotisations/{docId} {
-      allow read, write: if isTresorier();
+      allow read, write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_membres/{docId} {
-      allow read: if isGradeMember();
-      allow write: if isTresorier();
+      allow read: if isGradeMember() && ownLodge(appId);
+      allow write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_agapes/{docId} {
-      allow read: if isGradeMember();
-      allow write: if isTresorier();
+      allow read: if isGradeMember() && ownLodge(appId);
+      allow write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_planches/{docId} {
-      allow read: if isGradeMember();
-      allow write: if isTresorier();
+      allow read: if isGradeMember() && ownLodge(appId);
+      allow write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_presences/{docId} {
-      allow read: if isGradeMember();
-      allow write: if isTresorier();
+      allow read: if isGradeMember() && ownLodge(appId);
+      allow write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_settings/{docId} {
-      allow read: if isGradeMember();
-      allow write: if isTresorier();
+      allow read: if isGradeMember() && ownLodge(appId);
+      allow write: if isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_charges/{docId} {
-      allow read, write: if isTresorier();
+      allow read, write: if isTresorier() && ownLodge(appId);
     }
 
+    // ── Fallback : tout refuser ───────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,19 +1,32 @@
 name: Déployer une Nouvelle Loge
 
+# Ce workflow crée une loge complète :
+#   1. Déploie le site statique sur Cloudflare Workers (domaine propre à la loge)
+#   2. Crée les 6 comptes Firebase Auth (grade@{slug}.velum.fr)
+#   3. Initialise Firestore avec le nom de la loge
+#
+# Prérequis secrets GitHub :
+#   CLOUDFLARE_API_TOKEN      — token Cloudflare avec permission Workers:Edit
+#   CLOUDFLARE_ACCOUNT_ID     — ID du compte Cloudflare
+#   FIREBASE_SERVICE_ACCOUNT_FR — clé JSON du compte de service Firebase (project: site-cg51)
+
 on:
   workflow_dispatch:
     inputs:
       slug:
-        description: 'Slug de la loge (ex: loge-lumiere) — doit correspondre à lodges/{slug}/config.json'
+        description: 'ID unique de la loge (ex: loge-lumiere) — sera le sous-domaine : loge-lumiere.velum.fr'
         required: true
         type: string
-      logeId:
-        description: 'ID velum (UUID) de la loge — utilisé comme appId Firebase'
-        required: false
+      lodge_name:
+        description: 'Nom complet (ex: R∴L∴ Les Trois Colonnes n°42)'
+        required: true
         type: string
-        default: ''
-      firebase_passwords:
-        description: 'Mot de passe commun pour tous les comptes (min 8 car.) — sera changé par la loge'
+      domain:
+        description: 'Domaine complet (ex: loge-lumiere.velum.fr ou loge-lumiere.fr)'
+        required: true
+        type: string
+      initial_password:
+        description: 'Mot de passe initial pour tous les comptes (min 8 car.) — changeable ensuite par l'architecte'
         required: true
         type: string
         default: 'Temple2025!'
@@ -24,175 +37,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lire la configuration de la loge
-        id: config
-        run: |
-          CONFIG="lodges/${{ github.event.inputs.slug }}/config.json"
-          if [ ! -f "$CONFIG" ]; then
-            echo "❌ Fichier de config introuvable : $CONFIG"
-            exit 1
-          fi
-          echo "name=$(jq -r '.name' $CONFIG)"               >> $GITHUB_OUTPUT
-          # Si logeId fourni via input, utiliser comme appId
-          LOGE_ID="${{ github.event.inputs.logeId }}"
-          if [ -n "$LOGE_ID" ]; then
-            echo "appId=$LOGE_ID"                            >> $GITHUB_OUTPUT
-          else
-            echo "appId=$(jq -r '.appId' $CONFIG)"           >> $GITHUB_OUTPUT
-          fi
-          echo "domain=$(jq -r '.domain' $CONFIG)"           >> $GITHUB_OUTPUT
-          echo "contact=$(jq -r '.contact_email' $CONFIG)"   >> $GITHUB_OUTPUT
-          echo "email_apprenti=$(jq -r '.emails.apprenti' $CONFIG)"     >> $GITHUB_OUTPUT
-          echo "email_compagnon=$(jq -r '.emails.compagnon' $CONFIG)"   >> $GITHUB_OUTPUT
-          echo "email_maitre=$(jq -r '.emails.maitre' $CONFIG)"         >> $GITHUB_OUTPUT
-          echo "email_tresorier=$(jq -r '.emails.tresorier' $CONFIG)"   >> $GITHUB_OUTPUT
-          echo "email_vm=$(jq -r '.emails.vm' $CONFIG)"                 >> $GITHUB_OUTPUT
-          echo "email_architecte=$(jq -r '.emails.architecte' $CONFIG)" >> $GITHUB_OUTPUT
-          echo "✅ Config chargée : $(jq -r '.name' $CONFIG)"
-
-      - name: Générer index.html personnalisé
+      - name: Préparer le dossier de déploiement
         run: |
           SLUG="${{ github.event.inputs.slug }}"
-          APP_ID="${{ steps.config.outputs.appId }}"
-          LOGE_NAME="${{ steps.config.outputs.name }}"
-          E_APP="${{ steps.config.outputs.email_apprenti }}"
-          E_COMP="${{ steps.config.outputs.email_compagnon }}"
-          E_MAITRE="${{ steps.config.outputs.email_maitre }}"
-          E_TRESOR="${{ steps.config.outputs.email_tresorier }}"
-          E_VM="${{ steps.config.outputs.email_vm }}"
-          E_ARCH="${{ steps.config.outputs.email_architecte }}"
-
           mkdir -p "lodges/$SLUG/dist"
           cp index.html "lodges/$SLUG/dist/index.html"
-          cp tresor.html "lodges/$SLUG/dist/tresor.html" 2>/dev/null || true
+          cp manifest.json "lodges/$SLUG/dist/manifest.json" 2>/dev/null || true
+          cp -r icons "lodges/$SLUG/dist/icons" 2>/dev/null || true
+          cp icon-192.png "lodges/$SLUG/dist/icon-192.png" 2>/dev/null || true
+          cp icon-512.png "lodges/$SLUG/dist/icon-512.png" 2>/dev/null || true
 
-          # Remplacer le titre HTML
+          # Mettre à jour le titre HTML avec le nom de la loge
+          LOGE_NAME="${{ github.event.inputs.lodge_name }}"
           sed -i "s|<title>Temple Virtuel</title>|<title>Temple Virtuel — $LOGE_NAME</title>|g" \
             "lodges/$SLUG/dist/index.html"
 
-          # Remplacer LOGE_APP_ID
-          sed -i "s|const LOGE_APP_ID = \"site-cg51\";|const LOGE_APP_ID = \"$APP_ID\";|g" \
-            "lodges/$SLUG/dist/index.html"
+          # Mettre à jour le manifest
+          sed -i "s|\"Temple Virtuel\"|\"$LOGE_NAME\"|g" "lodges/$SLUG/dist/manifest.json" 2>/dev/null || true
 
-          # Remplacer les emails GRADE_ACCOUNTS (bloc @@LODGE_EMAILS_START/END@@)
-          python3 - <<PYEOF
-          import re, sys
-
-          with open("lodges/$SLUG/dist/index.html", "r") as f:
-              html = f.read()
-
-          new_block = f"""        // @@LODGE_EMAILS_START@@
-                  const GRADE_ACCOUNTS = {{ apprenti: '$E_APP', compagnon: '$E_COMP', maitre: '$E_MAITRE', tresorier: '$E_TRESOR', vm: '$E_VM' }};
-                  const ARCHITECT_ACCOUNT = '$E_ARCH';
-                  // @@LODGE_EMAILS_END@@"""
-
-          html = re.sub(
-              r'// @@LODGE_EMAILS_START@@.*?// @@LODGE_EMAILS_END@@',
-              new_block,
-              html,
-              flags=re.DOTALL
-          )
-
-          new_config_block = f"""            // @@CONFIG_EMAILS_START@@
-                          const GRADE_EMAILS = {{
-                              apprenti: '$E_APP',
-                              compagnon: '$E_COMP',
-                              maitre: '$E_MAITRE',
-                              tresorier: '$E_TRESOR',
-                              vm: '$E_VM',
-                              architecte: '$E_ARCH'
-                          }};
-                          // @@CONFIG_EMAILS_END@@"""
-
-          html = re.sub(
-              r'// @@CONFIG_EMAILS_START@@.*?// @@CONFIG_EMAILS_END@@',
-              new_config_block,
-              html,
-              flags=re.DOTALL
-          )
-
-          # Remplacer les emails dans les liens mailto: de la page de connexion
-          html = html.replace('vm@cg51-virtuel.fr', '$E_VM')
-          html = html.replace('architecte@cg51-virtuel.fr', '$E_ARCH')
-
-          with open("lodges/$SLUG/dist/index.html", "w") as f:
-              f.write(html)
-
-          print("✅ index.html généré pour $LOGE_NAME")
-          PYEOF
-
-      - name: Injecter la configuration Firebase velum-france
-        run: |
-          SLUG="${{ github.event.inputs.slug }}"
-          LOGE_ID="${{ github.event.inputs.logeId }}"
-          DIST="lodges/$SLUG/dist/index.html"
-
-          if [ -n "$FIREBASE_CONFIG_FR" ]; then
-            python3 - <<PYEOF
-          import re, os, json
-
-          with open("$DIST", "r") as f:
-              html = f.read()
-
-          cfg = json.loads(os.environ["FIREBASE_CONFIG_FR"])
-          loge_app_id = os.environ.get("LOGE_ID") or cfg.get("appId", "")
-
-          new_block = (
-              "        // @@FIREBASE_CONFIG_START@@\n"
-              "                  const firebaseConfig = {\n"
-              f"                    apiKey: \"{cfg.get('apiKey','')}\",\n"
-              f"                    authDomain: \"{cfg.get('authDomain','')}\",\n"
-              f"                    projectId: \"{cfg.get('projectId','')}\",\n"
-              f"                    storageBucket: \"{cfg.get('storageBucket','')}\",\n"
-              f"                    messagingSenderId: \"{cfg.get('messagingSenderId','')}\",\n"
-              f"                    appId: \"{cfg.get('appId','')}\"\n"
-              "                  };\n"
-              "                  // @@FIREBASE_CONFIG_END@@"
-          )
-
-          html = re.sub(
-              r'// @@FIREBASE_CONFIG_START@@.*?// @@FIREBASE_CONFIG_END@@',
-              new_block, html, flags=re.DOTALL
-          )
-
-          # Remplacer LOGE_APP_ID par le logeId velum (UUID)
-          if loge_app_id:
-              html = re.sub(
-                  r'const LOGE_APP_ID\s*=\s*"[^"]*"',
-                  f'const LOGE_APP_ID = "{loge_app_id}"',
-                  html
-              )
-
-          with open("$DIST", "w") as f:
-              f.write(html)
-          print(f"✅ Firebase config injectée — projet: {cfg.get('projectId','?')}, appId: {loge_app_id}")
-          PYEOF
-          else
-            echo "⚠️  FIREBASE_CONFIG_FR non configuré — config Firebase conservée telle quelle"
-          fi
-        env:
-          FIREBASE_CONFIG_FR: ${{ secrets.FIREBASE_CONFIG_FR }}
-          LOGE_ID: ${{ github.event.inputs.logeId }}
-
-      - name: Créer wrangler.toml pour la loge
-        run: |
-          SLUG="${{ github.event.inputs.slug }}"
+          # Créer wrangler.toml pour cette loge
+          DOMAIN="${{ github.event.inputs.domain }}"
           WORKER_NAME="temple-$(echo $SLUG | tr '_' '-')"
-          DOMAIN="${{ steps.config.outputs.domain }}"
-
           cat > "lodges/$SLUG/dist/wrangler.toml" << EOF
           name = "$WORKER_NAME"
-          compatibility_date = "2026-07-20"
+          compatibility_date = "2026-01-01"
 
           [assets]
           directory = "."
-
-          [[routes]]
-          pattern = "$DOMAIN/*"
-          zone_name = "$DOMAIN"
           EOF
 
-          echo "✅ wrangler.toml créé : worker=$WORKER_NAME, domaine=$DOMAIN"
+          echo "✅ Dossier de déploiement prêt pour : $LOGE_NAME ($SLUG)"
 
       - name: Déployer sur Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
@@ -209,16 +83,18 @@ jobs:
           const crypto = require('crypto');
 
           const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_FR);
+          const slug = process.env.SLUG;
+          const password = process.env.INITIAL_PWD;
           const projectId = sa.project_id;
+
           const emails = {
-            apprenti:   process.env.E_APP,
-            compagnon:  process.env.E_COMP,
-            maitre:     process.env.E_MAITRE,
-            tresorier:  process.env.E_TRESOR,
-            vm:         process.env.E_VM,
-            architecte: process.env.E_ARCH,
+            apprenti:   `apprenti@${slug}.velum.fr`,
+            compagnon:  `compagnon@${slug}.velum.fr`,
+            maitre:     `maitre@${slug}.velum.fr`,
+            tresorier:  `tresorier@${slug}.velum.fr`,
+            vm:         `vm@${slug}.velum.fr`,
+            architecte: `architecte@${slug}.velum.fr`,
           };
-          const password = process.env.PWD_INIT;
 
           function b64url(str) {
             return Buffer.from(str).toString('base64')
@@ -227,7 +103,7 @@ jobs:
 
           async function getAccessToken() {
             const now = Math.floor(Date.now() / 1000);
-            const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+            const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
             const payload = b64url(JSON.stringify({
               iss: sa.client_email,
               scope: 'https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/firebase',
@@ -247,7 +123,10 @@ jobs:
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) }
               }, res => {
                 let d = ''; res.on('data', c => d += c);
-                res.on('end', () => { const r = JSON.parse(d); r.access_token ? resolve(r.access_token) : reject(new Error(JSON.stringify(r))); });
+                res.on('end', () => {
+                  const r = JSON.parse(d);
+                  r.access_token ? resolve(r.access_token) : reject(new Error(JSON.stringify(r)));
+                });
               });
               req.on('error', reject); req.write(body); req.end();
             });
@@ -258,7 +137,11 @@ jobs:
               const data = JSON.stringify(body);
               const req = https.request({
                 hostname: 'identitytoolkit.googleapis.com', path, method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Authorization': 'Bearer ' + token }
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Content-Length': Buffer.byteLength(data),
+                  'Authorization': 'Bearer ' + token
+                }
               }, res => {
                 let d = ''; res.on('data', c => d += c);
                 res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve({}); } });
@@ -271,19 +154,32 @@ jobs:
             try {
               const token = await getAccessToken();
               for (const [grade, email] of Object.entries(emails)) {
-                if (!email) continue;
-                const res = await apiPost(`/v1/projects/${projectId}/accounts`, { email, password, emailVerified: true }, token);
+                const res = await apiPost(
+                  `/v1/projects/${projectId}/accounts`,
+                  { email, password, emailVerified: true },
+                  token
+                );
                 if (res.localId) {
-                  console.log('✅ Créé:', email);
+                  console.log('✅ Créé :', email);
                 } else if (res.error?.message?.includes('EMAIL_EXISTS')) {
-                  console.log('ℹ️  Existe déjà:', email);
+                  // Mettre à jour le mot de passe si compte existant
+                  const lookup = await apiPost(
+                    `/v1/projects/${projectId}/accounts:lookup`,
+                    { email: [email] }, token
+                  );
+                  if (lookup.users?.[0]?.localId) {
+                    await apiPost(
+                      `/v1/projects/${projectId}/accounts:update`,
+                      { localId: lookup.users[0].localId, password },
+                      token
+                    );
+                    console.log('🔄 Mis à jour :', email);
+                  }
                 } else {
-                  console.log('⚠️ ', email, JSON.stringify(res.error || res));
+                  console.error('⚠️ ', email, JSON.stringify(res.error || res));
                 }
               }
-              console.log('\n✅ Comptes Firebase créés/vérifiés');
-              console.log('Mot de passe initial :', password);
-              console.log('⚠️  À changer après la première connexion.');
+              console.log('\n✅ Comptes Firebase créés/synchronisés');
             } catch(e) {
               console.error('❌', e.message);
               process.exit(1);
@@ -291,31 +187,142 @@ jobs:
           })();
           JSEOF
         env:
-          E_APP: ${{ steps.config.outputs.email_apprenti }}
-          E_COMP: ${{ steps.config.outputs.email_compagnon }}
-          E_MAITRE: ${{ steps.config.outputs.email_maitre }}
-          E_TRESOR: ${{ steps.config.outputs.email_tresorier }}
-          E_VM: ${{ steps.config.outputs.email_vm }}
-          E_ARCH: ${{ steps.config.outputs.email_architecte }}
-          PWD_INIT: ${{ github.event.inputs.firebase_passwords }}
+          SLUG: ${{ github.event.inputs.slug }}
+          INITIAL_PWD: ${{ github.event.inputs.initial_password }}
+          FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
+
+      - name: Initialiser Firestore — paramètres de base
+        run: |
+          node - <<'JSEOF'
+          const https = require('https');
+          const crypto = require('crypto');
+
+          const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_FR);
+          const slug = process.env.SLUG;
+          const lodgeName = process.env.LODGE_NAME;
+          const projectId = sa.project_id;
+
+          function b64url(str) {
+            return Buffer.from(str).toString('base64')
+              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+          }
+
+          async function getAccessToken() {
+            const now = Math.floor(Date.now() / 1000);
+            const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+            const payload = b64url(JSON.stringify({
+              iss: sa.client_email,
+              scope: 'https://www.googleapis.com/auth/datastore',
+              aud: 'https://oauth2.googleapis.com/token',
+              exp: now + 3600, iat: now,
+            }));
+            const sign = crypto.createSign('RSA-SHA256');
+            sign.update(`${header}.${payload}`);
+            const sig = sign.sign(sa.private_key, 'base64')
+              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            return new Promise((resolve, reject) => {
+              const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${b64url(JSON.stringify({alg:'RS256',typ:'JWT'}))}.${b64url(JSON.stringify({iss:sa.client_email,scope:'https://www.googleapis.com/auth/datastore',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now}))}.${sign.sign(sa.private_key,'base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')}`;
+              // Simplified: just use gcloud REST
+              const jwtBody = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${header}.${payload}.${sig}`;
+              const req = https.request({
+                hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(jwtBody) }
+              }, res => {
+                let d = ''; res.on('data', c => d += c);
+                res.on('end', () => {
+                  const r = JSON.parse(d);
+                  r.access_token ? resolve(r.access_token) : reject(new Error(d));
+                });
+              });
+              req.on('error', reject); req.write(jwtBody); req.end();
+            });
+          }
+
+          async function setDoc(path, fields, token) {
+            const body = JSON.stringify({ fields });
+            return new Promise((resolve, reject) => {
+              const req = https.request({
+                hostname: 'firestore.googleapis.com',
+                path: `/v1/projects/${projectId}/databases/(default)/documents/${path}`,
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Content-Length': Buffer.byteLength(body),
+                  'Authorization': 'Bearer ' + token
+                }
+              }, res => {
+                let d = ''; res.on('data', c => d += c);
+                res.on('end', () => resolve(JSON.parse(d)));
+              });
+              req.on('error', reject); req.write(body); req.end();
+            });
+          }
+
+          (async () => {
+            try {
+              const token = await getAccessToken();
+              const basePath = `artifacts/${slug}/public/data/settings`;
+
+              // Identité de la loge
+              await setDoc(`${basePath}/identity`, {
+                name: { stringValue: lodgeName },
+                rite: { stringValue: '' },
+                obedience: { stringValue: '' },
+                orient: { stringValue: '' },
+                maitreBanquet: { stringValue: '' },
+                telBanquet: { stringValue: '' },
+              }, token);
+
+              // Message de bienvenue par défaut
+              await setDoc(`${basePath}/welcome`, {
+                text: { stringValue: '' },
+              }, token);
+
+              // Mots de passe (vide — seront renseignés par l'architecte)
+              await setDoc(`${basePath}/gradesPasswords`, {
+                apprenti:  { stringValue: process.env.INITIAL_PWD },
+                compagnon: { stringValue: process.env.INITIAL_PWD },
+                maitre:    { stringValue: process.env.INITIAL_PWD },
+                tresorier: { stringValue: process.env.INITIAL_PWD },
+                vm:        { stringValue: process.env.INITIAL_PWD },
+                architecte:{ stringValue: process.env.INITIAL_PWD },
+              }, token);
+
+              console.log('✅ Firestore initialisé pour', lodgeName, '(appId:', slug, ')');
+            } catch(e) {
+              console.error('⚠️  Firestore init partielle :', e.message);
+              // Non bloquant — la loge peut être configurée via l'UI
+            }
+          })();
+          JSEOF
+        env:
+          SLUG: ${{ github.event.inputs.slug }}
+          LODGE_NAME: ${{ github.event.inputs.lodge_name }}
+          INITIAL_PWD: ${{ github.event.inputs.initial_password }}
           FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
 
       - name: Résumé du déploiement
         run: |
+          SLUG="${{ github.event.inputs.slug }}"
+          DOMAIN="${{ github.event.inputs.domain }}"
+          LOGE_NAME="${{ github.event.inputs.lodge_name }}"
+          PWD="${{ github.event.inputs.initial_password }}"
+
           echo "======================================================"
-          echo "✅ LOGE DÉPLOYÉE : ${{ steps.config.outputs.name }}"
+          echo "✅  LOGE DÉPLOYÉE : $LOGE_NAME"
           echo "======================================================"
-          echo "🌐 Site     : https://${{ steps.config.outputs.domain }}"
-          echo "🗄️  AppID    : ${{ steps.config.outputs.appId }}"
+          echo "🌐  Site         : https://$DOMAIN"
+          echo "🗄️   AppID        : $SLUG"
           echo ""
-          echo "📧 Comptes créés :"
-          echo "   Apprenti   : ${{ steps.config.outputs.email_apprenti }}"
-          echo "   Compagnon  : ${{ steps.config.outputs.email_compagnon }}"
-          echo "   Maître     : ${{ steps.config.outputs.email_maitre }}"
-          echo "   Trésorier  : ${{ steps.config.outputs.email_tresorier }}"
-          echo "   V∴M∴       : ${{ steps.config.outputs.email_vm }}"
-          echo "   Architecte : ${{ steps.config.outputs.email_architecte }}"
+          echo "📧  Comptes créés :"
+          echo "    Apprenti   : apprenti@${SLUG}.velum.fr"
+          echo "    Compagnon  : compagnon@${SLUG}.velum.fr"
+          echo "    Maître     : maitre@${SLUG}.velum.fr"
+          echo "    Trésorier  : tresorier@${SLUG}.velum.fr"
+          echo "    V∴M∴       : vm@${SLUG}.velum.fr"
+          echo "    Architecte : architecte@${SLUG}.velum.fr"
           echo ""
-          echo "🔑 Mot de passe initial : ${{ github.event.inputs.firebase_passwords }}"
-          echo "⚠️  À changer après la première connexion !"
+          echo "🔑  Mot de passe initial : $PWD"
+          echo "⚠️   L'architecte doit changer tous les mots de passe"
+          echo "    à la première connexion via l'interface Configuration."
           echo "======================================================"

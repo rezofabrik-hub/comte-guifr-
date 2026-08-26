@@ -1,7 +1,7 @@
 {
-  "name": "Temple Virtuel — Comte Guifré n°51",
-  "short_name": "CG51",
-  "description": "Temple virtuel de la R∴L∴ Comte Guifré n°51",
+  "name": "Temple Virtuel",
+  "short_name": "Loge",
+  "description": "Temple virtuel maçonnique — plateforme Velum",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -27,7 +27,7 @@
     {
       "name": "Accueil",
       "url": "/",
-      "description": "Page d'accueil du Temple"
+      "description": "Parvis du Temple"
     }
   ]
 }
