@@ -2104,11 +2104,14 @@
                 setSaving('');
             };
 
+            const [currentPwds, setCurrentPwds] = useState({ apprenti:'', compagnon:'', maitre:'', tresorier:'', vm:'', architecte:'' });
+
             const changePassword = async (gradeKey) => {
                 const newPwd = pwds[gradeKey];
                 if (!newPwd || newPwd.length < 6) return flash('Mot de passe trop court (6 car. min)');
-                const oldPwd = savedPwds[gradeKey];
-                if (!oldPwd) return flash('Mot de passe actuel introuvable — initialisez d\'abord.');
+                // Use manually entered current pwd first, fallback to Firestore-stored
+                const oldPwd = currentPwds[gradeKey] || savedPwds[gradeKey];
+                if (!oldPwd) return flash('Entrez le mot de passe Firebase actuel dans le champ orange.');
                 setSaving('pwd_' + gradeKey);
                 try {
                     const r1 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`, {
@@ -2116,7 +2119,7 @@
                         body: JSON.stringify({email: GRADE_EMAILS[gradeKey], password: oldPwd, returnSecureToken:true})
                     });
                     const {idToken, error: e1} = await r1.json();
-                    if (!idToken) { setSaving(''); return flash('Ancien mot de passe incorrect : ' + (e1?.message || '')); }
+                    if (!idToken) { setSaving(''); return flash(`Mot de passe Firebase actuel incorrect pour ${GRADE_LABELS[gradeKey]}. Entrez le vrai mot de passe dans le champ orange.`); }
                     const r2 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_KEY}`, {
                         method:'POST', headers:{'Content-Type':'application/json'},
                         body: JSON.stringify({idToken, password: newPwd})
@@ -2127,6 +2130,7 @@
                     await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','gradesPasswords'), newSaved, {merge:true});
                     setSavedPwds(newSaved);
                     setPwds(p => ({...p, [gradeKey]: ''}));
+                    setCurrentPwds(p => ({...p, [gradeKey]: ''}));
                     setSaving(''); flash(`Mot de passe ${GRADE_LABELS[gradeKey]} changé ✓`);
                 } catch(e) { setSaving(''); flash('Erreur réseau'); }
             };
@@ -2296,22 +2300,39 @@
                                 <button onClick={initPasswords} className="ml-4 bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-lg">Initialiser</button>
                             </div>
                         )}
-                        <div className="space-y-3">
+                        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 font-sans">
+                            <strong>Si "Mot de passe incorrect" à la connexion :</strong> entrez le mot de passe Firebase actuel (celui qui existait avant) dans le champ <span className="text-orange-600 font-bold">orange</span>, puis tapez le nouveau mot de passe et confirmez.
+                        </div>
+                        <div className="space-y-4">
                             {Object.keys(GRADE_LABELS).map(g => {
                                 const [showCur, setShowCur] = React.useState(false);
                                 const [showNew, setShowNew] = React.useState(false);
+                                const [showFb, setShowFb] = React.useState(false);
                                 return (
-                                <div key={g} className="flex flex-wrap items-center gap-3">
-                                    <span className="w-36 text-xs font-bold uppercase text-slate-500 font-sans">{GRADE_LABELS[g]}</span>
-                                    <div className="relative flex items-center">
-                                        <input readOnly className="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 text-sm font-mono text-slate-600 w-36 pr-8" type={showCur?'text':'password'} value={savedPwds[g]||''} />
-                                        <button type="button" onClick={()=>setShowCur(v=>!v)} className="absolute right-2 text-slate-400 hover:text-amber-600"><SmartIcon name={showCur?'EyeOff':'Eye'} size={14}/></button>
+                                <div key={g} className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
+                                    <span className="text-xs font-bold uppercase text-slate-600 font-sans block">{GRADE_LABELS[g]}</span>
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        <div className="relative flex items-center">
+                                            <span className="text-[10px] text-slate-400 font-bold mr-1">Enregistré :</span>
+                                            <input readOnly className="border border-slate-200 bg-white rounded-lg px-2 py-1.5 text-xs font-mono text-slate-600 w-28 pr-7" type={showCur?'text':'password'} value={savedPwds[g]||'—'} />
+                                            <button type="button" onClick={()=>setShowCur(v=>!v)} className="absolute right-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name={showCur?'EyeOff':'Eye'} size={12}/></button>
+                                        </div>
                                     </div>
-                                    <div className="relative flex items-center flex-1">
-                                        <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-500 font-sans pr-8" type={showNew?'text':'password'} placeholder="Nouveau mot de passe..." value={pwds[g]} onChange={e=>setPwds(p=>({...p,[g]:e.target.value}))} />
-                                        <button type="button" onClick={()=>setShowNew(v=>!v)} className="absolute right-2 text-slate-400 hover:text-amber-600"><SmartIcon name={showNew?'EyeOff':'Eye'} size={14}/></button>
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        <div className="relative flex items-center">
+                                            <span className="text-[10px] text-orange-500 font-bold mr-1">Firebase actuel :</span>
+                                            <input className="border border-orange-300 bg-orange-50 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800 w-32 pr-7 outline-none focus:border-orange-500" type={showFb?'text':'password'} placeholder="si désynchronisé..." value={currentPwds[g]||''} onChange={e=>setCurrentPwds(p=>({...p,[g]:e.target.value}))} />
+                                            <button type="button" onClick={()=>setShowFb(v=>!v)} className="absolute right-1.5 text-orange-400 hover:text-orange-600"><SmartIcon name={showFb?'EyeOff':'Eye'} size={12}/></button>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">→</span>
+                                        <div className="relative flex items-center flex-1 min-w-32">
+                                            <span className="text-[10px] text-slate-400 font-bold mr-1">Nouveau :</span>
+                                            <input className="flex-1 border border-slate-200 bg-white rounded-lg px-2 py-1.5 text-xs outline-none focus:border-amber-500 font-sans pr-7" type={showNew?'text':'password'} placeholder="Nouveau mot de passe..." value={pwds[g]} onChange={e=>setPwds(p=>({...p,[g]:e.target.value}))} />
+                                            <button type="button" onClick={()=>setShowNew(v=>!v)} className="absolute right-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name={showNew?'EyeOff':'Eye'} size={12}/></button>
+                                        </div>
                                     </div>
                                     <button onClick={()=>changePassword(g)} disabled={saving==='pwd_'+g || !pwds[g]} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all font-sans disabled:opacity-30">{saving==='pwd_'+g?'...':'Confirmer'}</button>
+                                    </div>
                                 </div>
                                 );
                             })}
