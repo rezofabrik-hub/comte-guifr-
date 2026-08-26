@@ -1,14 +1,19 @@
 name: Déployer une Nouvelle Loge
 
-# Ce workflow crée une loge complète :
-#   1. Déploie le site statique sur Cloudflare Workers (domaine propre à la loge)
+# Architecture scalable — 1 Worker universel pour toutes les loges
+# Ce workflow :
+#   1. Crée l'entrée DNS (sous-domaine {slug}.velum.fr) sur Cloudflare
 #   2. Crée les 6 comptes Firebase Auth (grade@{slug}.velum.fr)
 #   3. Initialise Firestore avec le nom de la loge
 #
+# Le Worker Cloudflare universel (velum-temple) sert déjà *.velum.fr —
+# il n'y a donc RIEN à déployer côté code pour chaque nouvelle loge.
+#
 # Prérequis secrets GitHub :
-#   CLOUDFLARE_API_TOKEN      — token Cloudflare avec permission Workers:Edit
+#   CLOUDFLARE_API_TOKEN      — token avec permissions DNS:Edit + Zone:Read
 #   CLOUDFLARE_ACCOUNT_ID     — ID du compte Cloudflare
-#   FIREBASE_SERVICE_ACCOUNT_FR — clé JSON du compte de service Firebase (project: site-cg51)
+#   CLOUDFLARE_ZONE_ID        — ID de la zone velum.fr dans Cloudflare
+#   FIREBASE_SERVICE_ACCOUNT_FR — clé JSON du compte de service Firebase
 
 on:
   workflow_dispatch:
@@ -21,60 +26,48 @@ on:
         description: 'Nom complet (ex: R∴L∴ Les Trois Colonnes n°42)'
         required: true
         type: string
-      domain:
-        description: 'Domaine complet (ex: loge-lumiere.velum.fr ou loge-lumiere.fr)'
-        required: true
-        type: string
       initial_password:
-        description: 'Mot de passe initial pour tous les comptes (min 8 car.) — changeable ensuite par l'architecte'
+        description: 'Mot de passe initial pour tous les comptes (min 8 car.)'
         required: true
         type: string
         default: 'Temple2025!'
+      custom_domain:
+        description: 'Domaine propre optionnel (ex: loge-lumiere.fr) — laisser vide pour velum.fr uniquement'
+        required: false
+        type: string
 
 jobs:
-  deploy:
+  provision:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Préparer le dossier de déploiement
+      - name: Créer le sous-domaine DNS velum.fr
         run: |
           SLUG="${{ github.event.inputs.slug }}"
-          mkdir -p "lodges/$SLUG/dist"
-          cp index.html "lodges/$SLUG/dist/index.html"
-          cp manifest.json "lodges/$SLUG/dist/manifest.json" 2>/dev/null || true
-          cp -r icons "lodges/$SLUG/dist/icons" 2>/dev/null || true
-          cp icon-192.png "lodges/$SLUG/dist/icon-192.png" 2>/dev/null || true
-          cp icon-512.png "lodges/$SLUG/dist/icon-512.png" 2>/dev/null || true
+          ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
 
-          # Mettre à jour le titre HTML avec le nom de la loge
-          LOGE_NAME="${{ github.event.inputs.lodge_name }}"
-          sed -i "s|<title>Temple Virtuel</title>|<title>Temple Virtuel — $LOGE_NAME</title>|g" \
-            "lodges/$SLUG/dist/index.html"
+          # Créer l'enregistrement CNAME : {slug}.velum.fr → velum-temple.workers.dev
+          RESPONSE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"type\": \"CNAME\",
+              \"name\": \"${SLUG}.velum.fr\",
+              \"content\": \"velum-temple.workers.dev\",
+              \"ttl\": 1,
+              \"proxied\": true
+            }")
 
-          # Mettre à jour le manifest
-          sed -i "s|\"Temple Virtuel\"|\"$LOGE_NAME\"|g" "lodges/$SLUG/dist/manifest.json" 2>/dev/null || true
+          SUCCESS=$(echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'ok':r.errors?.[0]?.message||'error');})")
 
-          # Créer wrangler.toml pour cette loge
-          DOMAIN="${{ github.event.inputs.domain }}"
-          WORKER_NAME="temple-$(echo $SLUG | tr '_' '-')"
-          cat > "lodges/$SLUG/dist/wrangler.toml" << EOF
-          name = "$WORKER_NAME"
-          compatibility_date = "2026-01-01"
-
-          [assets]
-          directory = "."
-          EOF
-
-          echo "✅ Dossier de déploiement prêt pour : $LOGE_NAME ($SLUG)"
-
-      - name: Déployer sur Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4'
-          workingDirectory: lodges/${{ github.event.inputs.slug }}/dist
+          if [ "$SUCCESS" = "ok" ]; then
+            echo "✅ DNS créé : ${SLUG}.velum.fr"
+          elif echo "$SUCCESS" | grep -qi "already exists\|Record already"; then
+            echo "ℹ️  DNS déjà existant : ${SLUG}.velum.fr"
+          else
+            echo "⚠️  DNS : $SUCCESS"
+          fi
 
       - name: Créer les comptes Firebase Auth
         run: |
@@ -86,104 +79,70 @@ jobs:
           const slug = process.env.SLUG;
           const password = process.env.INITIAL_PWD;
           const projectId = sa.project_id;
+          const domain = `${slug}.velum.fr`;
 
-          const emails = {
-            apprenti:   `apprenti@${slug}.velum.fr`,
-            compagnon:  `compagnon@${slug}.velum.fr`,
-            maitre:     `maitre@${slug}.velum.fr`,
-            tresorier:  `tresorier@${slug}.velum.fr`,
-            vm:         `vm@${slug}.velum.fr`,
-            architecte: `architecte@${slug}.velum.fr`,
-          };
+          const grades = ['apprenti','compagnon','maitre','tresorier','vm','architecte'];
+          const emails = Object.fromEntries(grades.map(g => [g, `${g}@${domain}`]));
 
           function b64url(str) {
             return Buffer.from(str).toString('base64')
-              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
           }
 
-          async function getAccessToken() {
-            const now = Math.floor(Date.now() / 1000);
-            const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+          async function getToken() {
+            const now = Math.floor(Date.now()/1000);
+            const header  = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
             const payload = b64url(JSON.stringify({
               iss: sa.client_email,
               scope: 'https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/firebase',
               aud: 'https://oauth2.googleapis.com/token',
-              exp: now + 3600, iat: now,
+              exp: now+3600, iat: now,
             }));
             const sign = crypto.createSign('RSA-SHA256');
             sign.update(`${header}.${payload}`);
-            const sig = sign.sign(sa.private_key, 'base64')
-              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            const sig = sign.sign(sa.private_key,'base64')
+              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
             const jwt = `${header}.${payload}.${sig}`;
-
-            return new Promise((resolve, reject) => {
-              const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
+            const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
+            return new Promise((res,rej)=>{
               const req = https.request({
-                hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) }
-              }, res => {
-                let d = ''; res.on('data', c => d += c);
-                res.on('end', () => {
-                  const r = JSON.parse(d);
-                  r.access_token ? resolve(r.access_token) : reject(new Error(JSON.stringify(r)));
-                });
-              });
-              req.on('error', reject); req.write(body); req.end();
+                hostname:'oauth2.googleapis.com',path:'/token',method:'POST',
+                headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(body)}
+              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{const j=JSON.parse(d);j.access_token?res(j.access_token):rej(new Error(d));});});
+              req.on('error',rej);req.write(body);req.end();
             });
           }
 
-          function apiPost(path, body, token) {
-            return new Promise((resolve, reject) => {
-              const data = JSON.stringify(body);
-              const req = https.request({
-                hostname: 'identitytoolkit.googleapis.com', path, method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Content-Length': Buffer.byteLength(data),
-                  'Authorization': 'Bearer ' + token
-                }
-              }, res => {
-                let d = ''; res.on('data', c => d += c);
-                res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve({}); } });
-              });
-              req.on('error', reject); req.write(data); req.end();
+          function apiPost(path,body,token) {
+            return new Promise((res,rej)=>{
+              const data=JSON.stringify(body);
+              const req=https.request({
+                hostname:'identitytoolkit.googleapis.com',path,method:'POST',
+                headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'Authorization':'Bearer '+token}
+              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{res(JSON.parse(d));}catch(e){res({});}});});
+              req.on('error',rej);req.write(data);req.end();
             });
           }
 
-          (async () => {
+          (async()=>{
             try {
-              const token = await getAccessToken();
-              for (const [grade, email] of Object.entries(emails)) {
-                const res = await apiPost(
-                  `/v1/projects/${projectId}/accounts`,
-                  { email, password, emailVerified: true },
-                  token
-                );
-                if (res.localId) {
-                  console.log('✅ Créé :', email);
-                } else if (res.error?.message?.includes('EMAIL_EXISTS')) {
-                  // Mettre à jour le mot de passe si compte existant
-                  const lookup = await apiPost(
-                    `/v1/projects/${projectId}/accounts:lookup`,
-                    { email: [email] }, token
-                  );
-                  if (lookup.users?.[0]?.localId) {
-                    await apiPost(
-                      `/v1/projects/${projectId}/accounts:update`,
-                      { localId: lookup.users[0].localId, password },
-                      token
-                    );
-                    console.log('🔄 Mis à jour :', email);
+              const token = await getToken();
+              for (const [grade,email] of Object.entries(emails)) {
+                const r = await apiPost(`/v1/projects/${projectId}/accounts`,{email,password,emailVerified:true},token);
+                if (r.localId) {
+                  console.log('✅ Créé :',email);
+                } else if (r.error?.message?.includes('EMAIL_EXISTS')) {
+                  const lu = await apiPost(`/v1/projects/${projectId}/accounts:lookup`,{email:[email]},token);
+                  if (lu.users?.[0]?.localId) {
+                    await apiPost(`/v1/projects/${projectId}/accounts:update`,{localId:lu.users[0].localId,password},token);
+                    console.log('🔄 Mis à jour :',email);
                   }
                 } else {
-                  console.error('⚠️ ', email, JSON.stringify(res.error || res));
+                  console.error('⚠️',email,JSON.stringify(r.error||r));
                 }
               }
-              console.log('\n✅ Comptes Firebase créés/synchronisés');
-            } catch(e) {
-              console.error('❌', e.message);
-              process.exit(1);
-            }
+              console.log('\n✅ Comptes Firebase prêts');
+            } catch(e) { console.error('❌',e.message); process.exit(1); }
           })();
           JSEOF
         env:
@@ -191,7 +150,7 @@ jobs:
           INITIAL_PWD: ${{ github.event.inputs.initial_password }}
           FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
 
-      - name: Initialiser Firestore — paramètres de base
+      - name: Initialiser Firestore
         run: |
           node - <<'JSEOF'
           const https = require('https');
@@ -200,98 +159,72 @@ jobs:
           const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_FR);
           const slug = process.env.SLUG;
           const lodgeName = process.env.LODGE_NAME;
+          const pwd = process.env.INITIAL_PWD;
           const projectId = sa.project_id;
 
           function b64url(str) {
             return Buffer.from(str).toString('base64')
-              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
           }
 
-          async function getAccessToken() {
-            const now = Math.floor(Date.now() / 1000);
-            const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+          async function getToken() {
+            const now = Math.floor(Date.now()/1000);
+            const header  = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
             const payload = b64url(JSON.stringify({
               iss: sa.client_email,
               scope: 'https://www.googleapis.com/auth/datastore',
               aud: 'https://oauth2.googleapis.com/token',
-              exp: now + 3600, iat: now,
+              exp: now+3600, iat: now,
             }));
             const sign = crypto.createSign('RSA-SHA256');
             sign.update(`${header}.${payload}`);
-            const sig = sign.sign(sa.private_key, 'base64')
-              .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-            return new Promise((resolve, reject) => {
-              const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${b64url(JSON.stringify({alg:'RS256',typ:'JWT'}))}.${b64url(JSON.stringify({iss:sa.client_email,scope:'https://www.googleapis.com/auth/datastore',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now}))}.${sign.sign(sa.private_key,'base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')}`;
-              // Simplified: just use gcloud REST
-              const jwtBody = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${header}.${payload}.${sig}`;
-              const req = https.request({
-                hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(jwtBody) }
-              }, res => {
-                let d = ''; res.on('data', c => d += c);
-                res.on('end', () => {
-                  const r = JSON.parse(d);
-                  r.access_token ? resolve(r.access_token) : reject(new Error(d));
-                });
-              });
-              req.on('error', reject); req.write(jwtBody); req.end();
+            const sig = sign.sign(sa.private_key,'base64')
+              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+            const jwt = `${header}.${payload}.${sig}`;
+            const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
+            return new Promise((res,rej)=>{
+              const req=https.request({
+                hostname:'oauth2.googleapis.com',path:'/token',method:'POST',
+                headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(body)}
+              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{const j=JSON.parse(d);j.access_token?res(j.access_token):rej(new Error(d));});});
+              req.on('error',rej);req.write(body);req.end();
             });
           }
 
-          async function setDoc(path, fields, token) {
-            const body = JSON.stringify({ fields });
-            return new Promise((resolve, reject) => {
-              const req = https.request({
-                hostname: 'firestore.googleapis.com',
-                path: `/v1/projects/${projectId}/databases/(default)/documents/${path}`,
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Content-Length': Buffer.byteLength(body),
-                  'Authorization': 'Bearer ' + token
-                }
-              }, res => {
-                let d = ''; res.on('data', c => d += c);
-                res.on('end', () => resolve(JSON.parse(d)));
-              });
-              req.on('error', reject); req.write(body); req.end();
+          function setDoc(path,fields,token) {
+            const body=JSON.stringify({fields});
+            return new Promise((res,rej)=>{
+              const req=https.request({
+                hostname:'firestore.googleapis.com',
+                path:`/v1/projects/${projectId}/databases/(default)/documents/${path}`,
+                method:'PATCH',
+                headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body),'Authorization':'Bearer '+token}
+              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>res(JSON.parse(d)));});
+              req.on('error',rej);req.write(body);req.end();
             });
           }
 
-          (async () => {
+          (async()=>{
             try {
-              const token = await getAccessToken();
-              const basePath = `artifacts/${slug}/public/data/settings`;
+              const token = await getToken();
+              const base = `artifacts/${slug}/public/data/settings`;
+              const sv = v => ({stringValue: v});
 
-              // Identité de la loge
-              await setDoc(`${basePath}/identity`, {
-                name: { stringValue: lodgeName },
-                rite: { stringValue: '' },
-                obedience: { stringValue: '' },
-                orient: { stringValue: '' },
-                maitreBanquet: { stringValue: '' },
-                telBanquet: { stringValue: '' },
-              }, token);
+              await setDoc(`${base}/identity`,{
+                name:sv(lodgeName), rite:sv(''), obedience:sv(''), orient:sv(''),
+                maitreBanquet:sv(''), telBanquet:sv(''),
+              },token);
 
-              // Message de bienvenue par défaut
-              await setDoc(`${basePath}/welcome`, {
-                text: { stringValue: '' },
-              }, token);
+              await setDoc(`${base}/welcome`,{text:sv('')},token);
 
-              // Mots de passe (vide — seront renseignés par l'architecte)
-              await setDoc(`${basePath}/gradesPasswords`, {
-                apprenti:  { stringValue: process.env.INITIAL_PWD },
-                compagnon: { stringValue: process.env.INITIAL_PWD },
-                maitre:    { stringValue: process.env.INITIAL_PWD },
-                tresorier: { stringValue: process.env.INITIAL_PWD },
-                vm:        { stringValue: process.env.INITIAL_PWD },
-                architecte:{ stringValue: process.env.INITIAL_PWD },
-              }, token);
+              await setDoc(`${base}/gradesPasswords`,{
+                apprenti:sv(pwd), compagnon:sv(pwd), maitre:sv(pwd),
+                tresorier:sv(pwd), vm:sv(pwd), architecte:sv(pwd),
+              },token);
 
-              console.log('✅ Firestore initialisé pour', lodgeName, '(appId:', slug, ')');
+              console.log('✅ Firestore initialisé pour',lodgeName,'— appId:',slug);
             } catch(e) {
-              console.error('⚠️  Firestore init partielle :', e.message);
-              // Non bloquant — la loge peut être configurée via l'UI
+              console.error('⚠️  Firestore partiel :',e.message);
             }
           })();
           JSEOF
@@ -301,28 +234,31 @@ jobs:
           INITIAL_PWD: ${{ github.event.inputs.initial_password }}
           FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
 
-      - name: Résumé du déploiement
+      - name: Résumé
         run: |
           SLUG="${{ github.event.inputs.slug }}"
-          DOMAIN="${{ github.event.inputs.domain }}"
-          LOGE_NAME="${{ github.event.inputs.lodge_name }}"
+          LOGE="${{ github.event.inputs.lodge_name }}"
           PWD="${{ github.event.inputs.initial_password }}"
+          CUSTOM="${{ github.event.inputs.custom_domain }}"
 
           echo "======================================================"
-          echo "✅  LOGE DÉPLOYÉE : $LOGE_NAME"
+          echo "✅  LOGE PROVISIONNÉE : $LOGE"
           echo "======================================================"
-          echo "🌐  Site         : https://$DOMAIN"
-          echo "🗄️   AppID        : $SLUG"
+          echo "🌐  URL principale  : https://${SLUG}.velum.fr"
+          if [ -n "$CUSTOM" ]; then
+          echo "🌐  Domaine propre  : https://${CUSTOM} (à configurer manuellement)"
+          fi
+          echo "🗄️   AppID (Firestore): $SLUG"
           echo ""
           echo "📧  Comptes créés :"
-          echo "    Apprenti   : apprenti@${SLUG}.velum.fr"
-          echo "    Compagnon  : compagnon@${SLUG}.velum.fr"
-          echo "    Maître     : maitre@${SLUG}.velum.fr"
-          echo "    Trésorier  : tresorier@${SLUG}.velum.fr"
-          echo "    V∴M∴       : vm@${SLUG}.velum.fr"
-          echo "    Architecte : architecte@${SLUG}.velum.fr"
+          for g in apprenti compagnon maitre tresorier vm architecte; do
+            echo "    ${g}@${SLUG}.velum.fr"
+          done
           echo ""
           echo "🔑  Mot de passe initial : $PWD"
           echo "⚠️   L'architecte doit changer tous les mots de passe"
-          echo "    à la première connexion via l'interface Configuration."
+          echo "    à la première connexion via Configuration."
+          echo ""
+          echo "⏱️   Temps de provisioning : ~30 secondes"
+          echo "    (vs ~2 min avant — plus de déploiement Worker)"
           echo "======================================================"
