@@ -1118,27 +1118,38 @@
             const [saveError, setSaveError] = useState('');
             const [aiError, setAiError] = useState('');
 
-            const handleAI = async (e) => {
+            const [pendingFile, setPendingFile] = useState(null);
+
+            const handleFileChange = async (e) => {
                 const file = e.target.files[0]; if(!file) return;
-                setLoading(true); setAiError(''); setAnalyzing(false);
+                setPendingFile(file);
+                setLoading(true); setAiError('');
                 try {
                     const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/agenda-odj`);
                     s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
-                    if (apiKey) {
-                        setAnalyzing(true);
-                        const result = await analyzeODJWithAI(file, apiKey);
-                        s(prev => ({
-                            ...prev,
-                            date: result.date || prev.date,
-                            visibility: result.visibility || prev.visibility,
-                            sujet: result.sujet || prev.sujet,
-                            planches: result.planche_auteur ? [{title: result.planche_titre || '', author: result.planche_auteur, grade: result.visibility}] : prev.planches
-                        }));
-                    }
+                } catch(err) {
+                    setAiError("Erreur fichier : " + (err?.message || String(err)));
+                } finally { setLoading(false); }
+            };
+
+            const handleAnalyzeAI = async () => {
+                if (!pendingFile && !f.odjFile) return;
+                setAnalyzing(true); setAiError('');
+                try {
+                    const fileToAnalyze = pendingFile || new File([], f.odjFile.name);
+                    if (!pendingFile) { setAiError('Rechargez le fichier pour l\'analyse IA.'); setAnalyzing(false); return; }
+                    const result = await analyzeODJWithAI(pendingFile, apiKey);
+                    s(prev => ({
+                        ...prev,
+                        date: result.date || prev.date,
+                        visibility: result.visibility || prev.visibility,
+                        sujet: result.sujet || prev.sujet,
+                        planches: result.planche_auteur ? [{title: result.planche_titre || '', author: result.planche_auteur, grade: result.visibility}] : prev.planches
+                    }));
                 } catch(err) {
                     console.error("Erreur analyse ODJ", err);
-                    setAiError("Analyse IA échouée : " + (err?.message || String(err)) + " — vérifiez la clé API ou remplissez manuellement.");
-                } finally { setLoading(false); setAnalyzing(false); }
+                    setAiError("Analyse IA échouée : " + (err?.message || String(err)));
+                } finally { setAnalyzing(false); }
             };
 
             return (
@@ -1146,14 +1157,17 @@
                     <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                         <label className="text-[10px] font-black text-amber-800 uppercase block mb-2 flex items-center font-sans"><SmartIcon name="FileText" size={16} className="mr-2"/>Ordre du jour (PDF)</label>
                         {!f.odjFile ? (
-                            <input type="file" accept=".pdf" onChange={handleAI} className="text-xs w-full shadow-sm bg-white p-2 rounded-xl" />
+                            <input type="file" accept=".pdf" onChange={handleFileChange} className="text-xs w-full shadow-sm bg-white p-2 rounded-xl" />
                         ) : (
                             <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-amber-200">
                                 <div className="flex items-center text-amber-800 font-bold font-sans"><SmartIcon name="FileText" className="mr-2"/>{f.odjFile.name}</div>
-                                <button type="button" onClick={()=>s({...f, odjFile: null})} className="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase underline">Retirer le fichier</button>
+                                <button type="button" onClick={()=>{s({...f, odjFile: null}); setPendingFile(null);}} className="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase underline">Retirer le fichier</button>
                             </div>
                         )}
-                        {loading && !analyzing && <p className="mt-2 text-[10px] font-bold text-amber-600 animate-pulse uppercase tracking-widest font-serif">Envoi du fichier...</p>}
+                        {f.odjFile && apiKey && !analyzing && (
+                            <button type="button" onClick={handleAnalyzeAI} className="mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase underline">✨ Analyser avec l'IA</button>
+                        )}
+                        {loading && <p className="mt-2 text-[10px] font-bold text-amber-600 animate-pulse uppercase tracking-widest font-serif">Envoi du fichier...</p>}
                         {analyzing && <p className="mt-2 text-[10px] font-bold text-blue-600 animate-pulse uppercase tracking-widest font-serif">Analyse IA en cours...</p>}
                         {aiError && <p className="mt-2 text-[10px] font-bold text-red-500 uppercase">{aiError}</p>}
                     </div>
