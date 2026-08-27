@@ -43,6 +43,11 @@
             ? 'site-cg51' : (_h.split('.')[0] || 'site-cg51');
         window.LOGE_APP_ID = LOGE_APP_ID;
 
+        // Si chargé en iframe depuis index.html (même domaine), hérite du Firebase parent déjà authentifié
+        try {
+            const p = window.parent?.FB_API;
+            if (p && p.auth?.currentUser) { window.FB_API = p; }
+        } catch(e) {}
         if (!window.FB_API) {
             const firebaseConfig = {
                 apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
