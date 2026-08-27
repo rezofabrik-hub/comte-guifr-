@@ -180,7 +180,7 @@
 
         function LoginScreen({ onLogin, onArchitectLogin, error, logo, logeName }) {
             const [mode, setMode] = useState('member');
-            const [n, sN] = useState(''); const [grade, setGrade] = useState(''); const [p, sP] = useState('');
+            const [n, sN] = useState(''); const [grade, setGrade] = useState(''); const [p, sP] = useState(''); const [genre, setGenre] = useState('frere');
             const [archPwd, setArchPwd] = useState('');
             const [showPwd, setShowPwd] = useState(false);
             const [showForgot, setShowForgot] = useState(false);
@@ -234,7 +234,7 @@
                         <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-10 italic font-sans">À la Gloire du Grand Architecte de l'Univers</p>
                         {error && <div className="bg-red-500/10 border border-red-500 text-red-200 p-4 rounded-xl text-xs mb-8 flex items-center gap-3 text-left font-sans font-bold"><SmartIcon name="AlertTriangle" />{error}</div>}
                         {mode === 'member' ? (
-                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade || 'apprenti', p); }} className="space-y-6 text-left font-sans">
+                            <form onSubmit={(e)=>{ e.preventDefault(); onLogin(n, grade || 'apprenti', p, genre); }} className="space-y-6 text-left font-sans">
                                 <div>
                                     <label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Nom complet</label>
                                     <input type="text" required placeholder="Votre nom..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner" value={n} onChange={e=>sN(e.target.value)} />
@@ -252,6 +252,13 @@
                                     </select>
                                 </div>
                                 <div><label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Clé de Grade</label><div className="relative"><input type={showPwd?'text':'password'} required placeholder="Mot de passe..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl text-white outline-none focus:border-amber-500 shadow-inner pr-12" value={p} onChange={e=>sP(e.target.value)} /><button type="button" onClick={()=>setShowPwd(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1"><SmartIcon name={showPwd?'EyeOff':'Eye'} size={18}/></button></div></div>
+                                <div>
+                                    <label className="text-xs text-slate-400 uppercase font-bold tracking-widest ml-1 mb-2 block font-sans">Je suis</label>
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={()=>setGenre('frere')} className={`flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all ${genre==='frere' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-900 border-slate-600 text-slate-400 hover:border-blue-500'}`}>Frère</button>
+                                        <button type="button" onClick={()=>setGenre('soeur')} className={`flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all ${genre==='soeur' ? 'bg-pink-600 border-pink-500 text-white' : 'bg-slate-900 border-slate-600 text-slate-400 hover:border-pink-500'}`}>Sœur</button>
+                                    </div>
+                                </div>
                                 <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-all shadow-lg mt-4 font-serif">FRAPPER À LA PORTE</button>
                                 <button type="button" onClick={()=>setShowForgot(v=>!v)} className="w-full text-slate-400 hover:text-amber-400 text-[10px] font-bold uppercase tracking-widest mt-2 text-center">Mot de passe oublié ?</button>
                                 {showForgot && (
@@ -2499,7 +2506,7 @@
                 return () => { unsubAuth(); stopData(); };
             }, [api]);
 
-            const handleLogin = async (n, gradeKey, p) => {
+            const handleLogin = async (n, gradeKey, p, genre) => {
                 try {
                     await api.signInWithEmailAndPassword(api.auth, GRADE_ACCOUNTS[gradeKey], p.trim());
                 } catch (e) {
@@ -2515,6 +2522,7 @@
                 setLoginGradeKey(gradeKey);
                 setMemberName(n.trim());
                 setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : '');
+                setMemberGenre(genre || 'frere');
                 setPendingNameMatch(n.trim());
                 setIsLogged(true); setFbError(null);
             };
@@ -2637,7 +2645,7 @@
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
                             </div>
                         )}
-                        {activeView === 'configuration' && isArchitect && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
+                        {activeView === 'configuration' && (isArchitect || isVM) && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'visite' && <VisiteView items={agendaItems} canEdit={canEdit} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
