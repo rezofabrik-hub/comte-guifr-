@@ -116,16 +116,19 @@
             const base64 = btoa(binary);
             const prompt = `Analyse cet ordre du jour maçonnique et retourne UNIQUEMENT un objet JSON valide (sans markdown) avec ces champs:\n- "date": date au format YYYY-MM-DD (l'année maçonnique ex: 6026=2026, 6025=2025)\n- "visibility": "Apprenti" si Premier degré, "Compagnon" si Deuxième degré, "Maître" si Troisième degré\n- "planche_auteur": nom complet de l'auteur de la planche (null si aucune planche explicite)\n- "planche_titre": titre exact de la planche entre guillemets (null si aucune)\n- "sujet": résumé en une phrase de l'objet principal des travaux`;
             const body = JSON.stringify({ contents: [{parts: [{inline_data: {mime_type: 'application/pdf', data: base64}}, {text: prompt}]}], generationConfig: { temperature: 0, maxOutputTokens: 512 } });
-            // Essaye plusieurs modèles dans l'ordre jusqu'à succès
-            const models = [
-                'v1beta/models/gemini-2.0-flash',
-                'v1beta/models/gemini-2.0-flash-lite',
-                'v1beta/models/gemini-1.5-flash',
-                'v1/models/gemini-1.5-flash-001',
-            ];
-            let lastErr = '';
-            for (const model of models) {
-                const res = await fetch(`https://generativelanguage.googleapis.com/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+            // Découvrir les modèles disponibles pour cette clé
+            const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            let modelNames = ['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash','gemini-1.5-pro'];
+            if (listRes.ok) {
+                const listData = await listRes.json();
+                const available = (listData.models || [])
+                    .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
+                    .map(m => m.name.replace('models/',''));
+                if (available.length > 0) modelNames = available;
+            }
+            let lastErr = 'Aucun modèle disponible';
+            for (const name of modelNames) {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
                 if (res.ok) {
                     const data = await res.json();
                     let jsonStr = data.candidates[0].content.parts[0].text.trim();
@@ -133,8 +136,8 @@
                     return JSON.parse(jsonStr);
                 }
                 const errBody = await res.json().catch(()=>({}));
-                lastErr = 'Gemini ' + res.status + ' (' + model + '): ' + (errBody?.error?.message || '');
-                if (res.status !== 404) break; // Erreur autre que 404 = inutile de continuer
+                lastErr = 'Gemini ' + res.status + ' (' + name + '): ' + (errBody?.error?.message || '');
+                if (res.status === 400 || res.status === 401 || res.status === 403) break;
             }
             throw new Error(lastErr);
         };
