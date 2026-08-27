@@ -974,7 +974,7 @@
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
             return (
-                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); await onSave({...fd, name:fd.name, nom:fd.name}); sS(false);}} className="space-y-4">
+                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); try{await onSave({...fd, name:fd.name, nom:fd.name});}finally{sS(false);}}} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex gap-2 items-center">
                             <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm flex-grow" required />
@@ -1008,7 +1008,7 @@
             const gc = gradeClr[member.grade] || 'bg-slate-100 text-slate-600';
             if (isE) return (
                 <div className="col-span-full bg-white p-6 rounded-xl border-2 border-amber-300 shadow-xl">
-                    <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);sE(false);}} onCancel={()=>sE(false)} onDelete={async()=>await onDelete(member.id)} />
+                    <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);sE(false);}} onCancel={()=>sE(false)} onDelete={async()=>{await onDelete(member.id);sE(false);}} />
                 </div>
             );
             if (view === 'list') return (
@@ -1047,6 +1047,8 @@
         function AdherentsView({ members, onAdd, onUpdate, onDelete, canEdit }) {
             const [isAdding, sA] = useState(false);
             const [v, sV] = useState('grid');
+            const [msg, setMsg] = useState(null);
+            const toast = (text, type) => { setMsg({text,type}); setTimeout(()=>setMsg(null),3500); };
 
             const officiers = members.filter(m => isOfficierRole(m.role)).sort((a,b) => OFFICER_RANK(a.role) - OFFICER_RANK(b.role));
             const byGrade = g => {
@@ -1070,6 +1072,7 @@
 
             return (
                 <div className="space-y-4">
+                    {msg && <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-bold animate-fade ${msg.type==='err'?'bg-red-500':'bg-emerald-500'}`}>{msg.text}</div>}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-2xl border mb-2 shadow-sm">
                         <div><h2 className="text-2xl font-serif">Tableau de Loge</h2><p className="text-slate-500 text-sm">{members.length} membres · Registre hiérarchique de la Loge.</p></div>
                         <div className="flex gap-2">
@@ -1077,7 +1080,7 @@
                             {canEdit && <button onClick={()=>sA(!isAdding)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 hover:bg-amber-700">{isAdding?<SmartIcon name="X" size={18}/>:<SmartIcon name="Plus" size={18}/>}<span>{isAdding?'Annuler':'Ajouter'}</span></button>}
                         </div>
                     </div>
-                    {isAdding && <div className="bg-white p-6 rounded-2xl border shadow-lg mb-6"><MemberForm onSave={async(d)=>{await onAdd(d);sA(false);}} onCancel={()=>sA(false)}/></div>}
+                    {isAdding && <div className="bg-white p-6 rounded-2xl border shadow-lg mb-6"><MemberForm onSave={async(d)=>{try{await onAdd(d);sA(false);toast&&toast('Membre enregistré !','ok');}catch(e){toast&&toast('Erreur : '+(e?.code||e?.message||'impossible d\'enregistrer'),'err');}}} onCancel={()=>sA(false)}/></div>}
                     <Section title="Collège des Officiers" color="text-amber-700 border-amber-300" list={officiers} showGrade={false} logo={
                         <svg viewBox="0 0 80 80" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="40" cy="40" r="13" fill="#b45309"/>
@@ -2447,11 +2450,8 @@
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), d => d.exists() ? setWelcomeText(d.data().text||DEFAULT_WELCOME) : setWelcomeText(DEFAULT_WELCOME)),
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), d => d.exists() ? setReglementFile(d.data()) : setReglementFile(null)),
                         api.onSnapshot(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'), d => { if(d.exists()){setClaudeApiKey(d.data().key||'');setApiKeyInput(d.data().key||'');} }),
-                        api.onSnapshot(path('members'), async s => {
-                            if (s.empty) {
-                                try { const b=api.writeBatch(api.db); LOGE_MEMBERS_INIT.forEach(m=>b.set(api.doc(path('members')),{...m,phone:'',email:'',profession:'',photoData:''})); await b.commit(); }
-                                catch(e) { setFbError('Erreur init membres : '+(e?.code||e?.message||'')); }
-                            } else { setMembers(s.docs.map(d=>({id:d.id,...d.data()}))); }
+                        api.onSnapshot(path('members'), s => {
+                            setMembers(s.docs.map(d=>({id:d.id,...d.data()})));
                         }, onErr),
                         api.onSnapshot(path('agenda'), s => setAgendaItems(s.docs.map(d=>({id:d.id,...d.data()}))), onErr),
                         api.onSnapshot(path('planches'), s => setPlanches(s.docs.map(d=>({id:d.id,...d.data()}))), onErr),
