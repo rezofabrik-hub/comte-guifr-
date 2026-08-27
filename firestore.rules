@@ -13,9 +13,12 @@ service cloud.firestore {
       return request.auth.token.email;
     }
 
-    // Extrait le slug de la loge depuis l'email : vm@cg51.velum.fr → cg51
+    // Extrait le slug de la loge depuis l'email
+    // Formats supportés : vm@cg51.velum.fr → cg51 | maitre@cg51-virtuel.fr → site-cg51
     function emailLodgeId() {
-      return userEmail().split('@')[1].split('.velum.fr')[0];
+      let domain = userEmail().split('@')[1];
+      // Domaine legacy lcg51.fr → site-cg51
+      return domain == 'cg51-virtuel.fr' ? 'site-cg51' : domain.split('.velum.fr')[0];
     }
 
     // Vérifie que l'utilisateur appartient bien à la loge demandée
@@ -24,7 +27,8 @@ service cloud.firestore {
     }
 
     function hasRole(role) {
-      return userEmail().startsWith(role + '@') && userEmail().endsWith('.velum.fr');
+      return userEmail().startsWith(role + '@') &&
+             (userEmail().endsWith('.velum.fr') || userEmail().endsWith('cg51-virtuel.fr'));
     }
 
     function isVMouArchitecte() {
@@ -36,7 +40,7 @@ service cloud.firestore {
     }
 
     function isGradeMember() {
-      return isSignedIn() && userEmail().endsWith('.velum.fr');
+      return isSignedIn() && (userEmail().endsWith('.velum.fr') || userEmail().endsWith('cg51-virtuel.fr'));
     }
 
     // ── Membres ──────────────────────────────────────────────────────────────

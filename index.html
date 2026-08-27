@@ -65,6 +65,7 @@
             };
             const LOGE_APP_ID = window.LOGE_APP_ID = (() => {
                 const h = window.location.hostname;
+                if (h === 'lcg51.fr') return 'site-cg51';
                 if (h === 'localhost' || h === '127.0.0.1' || h.includes('pages.dev') || h.includes('workers.dev')) return 'site-cg51';
                 return h.split('.')[0] || 'site-cg51';
             })();
