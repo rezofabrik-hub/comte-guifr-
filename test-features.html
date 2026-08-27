@@ -50,7 +50,7 @@
   import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
   const _h = window.location.hostname;
-  const LOGE_APP_ID = (_h==='localhost'||_h==='127.0.0.1'||_h.includes('pages.dev')||_h.includes('workers.dev')) ? 'site-cg51' : (_h.split('.')[0]||'site-cg51');
+  const LOGE_APP_ID = (_h==='lcg51.fr'||_h==='localhost'||_h==='127.0.0.1'||_h.includes('pages.dev')||_h.includes('workers.dev')) ? 'site-cg51' : (_h.split('.')[0]||'site-cg51');
   window.LOGE_APP_ID = LOGE_APP_ID;
 
   if (!window.FB_API) {
