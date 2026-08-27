@@ -132,7 +132,7 @@
                     generationConfig: { temperature: 0, maxOutputTokens: 512 }
                 })
             });
-            if (!res.ok) throw new Error('Erreur API Gemini ' + res.status);
+            if (!res.ok) { const errBody = await res.json().catch(()=>({})); throw new Error('Gemini ' + res.status + ': ' + (errBody?.error?.message || JSON.stringify(errBody))); }
             const data = await res.json();
             let jsonStr = data.candidates[0].content.parts[0].text.trim();
             if (jsonStr.startsWith('```')) jsonStr = jsonStr.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
