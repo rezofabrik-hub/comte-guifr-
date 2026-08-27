@@ -1,0 +1,87 @@
+name: Réparer liaison domaine lcg51.fr
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier et lier lcg51.fr au Worker comte-guifr
+        run: |
+          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          WORKER="comte-guifr"
+          DOMAIN="lcg51.fr"
+
+          echo "=== Domaines actuels du Worker $WORKER ==="
+          CURRENT=$(curl -s \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${TOKEN}")
+          echo "$CURRENT" | node -e "
+            process.stdin.on('data',d=>{
+              const r=JSON.parse(d);
+              if(r.result) r.result.forEach(x=>console.log(' -',x.hostname,'→',x.service));
+              else console.log(JSON.stringify(r));
+            })"
+
+          echo ""
+          echo "=== Liaison $DOMAIN → $WORKER ==="
+          ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID }}"
+
+          RESP=$(curl -s -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"hostname\": \"${DOMAIN}\",
+              \"service\": \"${WORKER}\",
+              \"zone_id\": \"${ZONE_ID}\"
+            }")
+
+          SUCCESS=$(echo "$RESP" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'ok':JSON.stringify(r.errors||r));})")
+
+          if [ "$SUCCESS" = "ok" ]; then
+            echo "✅ $DOMAIN est maintenant lié au Worker $WORKER"
+          else
+            echo "⚠️  Résultat : $SUCCESS"
+            echo "Réponse complète : $RESP"
+          fi
+
+      - name: Supprimer l'ancien Worker velum-temple (nettoyage)
+        run: |
+          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          echo "=== Suppression du Worker velum-temple ==="
+          RESP=$(curl -s -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/velum-temple" \
+            -H "Authorization: Bearer ${TOKEN}")
+
+          echo "$RESP" | node -e "process.stdin.on('data',d=>{
+            const r=JSON.parse(d);
+            console.log(r.success ? '✅ velum-temple supprimé' : '⚠️  '+JSON.stringify(r.errors||r));
+          })"
+
+      - name: Purger le cache Cloudflare pour lcg51.fr
+        run: |
+          ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          echo "=== Purge cache Cloudflare ==="
+          RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+
+          echo "$RESP" | node -e "process.stdin.on('data',d=>{
+            const r=JSON.parse(d);
+            console.log(r.success ? '✅ Cache purgé' : '⚠️  '+JSON.stringify(r.errors||r));
+          })"
+
+          echo ""
+          echo "======================================================"
+          echo "✅ Réparation terminée — lcg51.fr devrait fonctionner"
+          echo "   Attendre 30 secondes puis tester : https://lcg51.fr"
+          echo "======================================================"
