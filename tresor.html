@@ -43,7 +43,16 @@
             ? 'site-cg51' : (_h.split('.')[0] || 'site-cg51');
         window.LOGE_APP_ID = LOGE_APP_ID;
 
-        {
+        // Hérite du Firebase parent (même domaine, déjà authentifié)
+        try {
+            const p = window.parent?.FB_API;
+            if (p && p.auth && p.db) {
+                window.FB_API = { ...p, appId: LOGE_APP_ID };
+            }
+        } catch(e) {}
+
+        // Fallback : crée une instance propre si pas de parent
+        if (!window.FB_API) {
             const firebaseConfig = {
                 apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
                 authDomain: "site-cg51.firebaseapp.com",
