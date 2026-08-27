@@ -63,7 +63,7 @@
                 messagingSenderId: "532992433947",
                 appId: "1:532992433947:web:0ad401c53e6feeb0663dbe"
             };
-            const LOGE_APP_ID = (() => {
+            const LOGE_APP_ID = window.LOGE_APP_ID = (() => {
                 const h = window.location.hostname;
                 if (h === 'localhost' || h === '127.0.0.1' || h.includes('pages.dev') || h.includes('workers.dev')) return 'site-cg51';
                 return h.split('.')[0] || 'site-cg51';
