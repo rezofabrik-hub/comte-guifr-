@@ -15,4 +15,4 @@ jobs:
       - name: Deploy Firestore Rules
         run: |
           npm install -g firebase-tools
-          firebase deploy --only firestore:rules --project site-cg51 --token "${{ secrets.FIREBASE_TOKEN }}"
+          firebase deploy --only firestore:rules,storage --project site-cg51 --token "${{ secrets.FIREBASE_TOKEN }}"
