@@ -2139,6 +2139,8 @@
             const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
 
             const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
+            const isTresorUser = true;
+            const visibleGrades = ['Apprenti','Compagnon','Maître'];
 
             useEffect(()=>{
                 if(!api) return;
@@ -2164,9 +2166,6 @@
             };
 
             const handleLogout = () => api.signOut(api.auth);
-            const isTresorUser = true;
-            const visibleGrades = ['Apprenti','Compagnon','Maître'];
-
             useEffect(()=>{
                 if(!api||!ready) return;
                 const unsubs = [];
