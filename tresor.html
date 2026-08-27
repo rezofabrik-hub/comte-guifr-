@@ -46,7 +46,9 @@
         // Si chargé en iframe depuis index.html (même domaine), hérite du Firebase parent déjà authentifié
         try {
             const p = window.parent?.FB_API;
-            if (p && p.auth?.currentUser) { window.FB_API = p; }
+            if (p && p.auth?.currentUser && AUTHORIZED_EMAILS.includes(p.auth.currentUser.email)) {
+                window.FB_API = p;
+            }
         } catch(e) {}
         if (!window.FB_API) {
             const firebaseConfig = {
@@ -2251,8 +2253,6 @@
             if(!authChecked) return null;
             const loader = document.getElementById('loading-screen');
             if(loader) loader.style.display='none';
-
-            if(!user) return <LoginScreen onLogin={handleLogin} error={loginError} loading={loginLoading}/>;
 
             if(!ready) return null;
 
