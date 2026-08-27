@@ -123,7 +123,9 @@
                 const listData = await listRes.json();
                 const available = (listData.models || [])
                     .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
-                    .map(m => m.name.replace('models/',''));
+                    .map(m => m.name.replace('models/',''))
+                    .filter(n => n.includes('flash') || n.includes('pro'))
+                    .filter(n => !n.includes('embed') && !n.includes('aqa'));
                 if (available.length > 0) modelNames = available;
             }
             let lastErr = 'Aucun modèle disponible';
