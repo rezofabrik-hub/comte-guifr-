@@ -640,6 +640,19 @@
             const [annee, setAnnee] = useState(String(new Date().getFullYear()));
             const [payModal, setPayModal] = useState(null);
             const [expanded, setExpanded] = useState(null);
+            const [initializing, setInitializing] = useState(false);
+
+            const initAnnee = async () => {
+                if (!settings.montantCotis || membres.length === 0) return;
+                if (!confirm(`Initialiser les cotisations ${annee} pour les ${membres.length} membres ?\nMontant: ${settings.montantCotis}€/membre\n\nCela créera une entrée annuelle pour chaque membre qui n'a pas encore de versement cette année.`)) return;
+                setInitializing(true);
+                const dejaPaies = new Set(cotisations.filter(c=>String(c.annee)===annee).map(c=>c.membreId));
+                const aInitialiser = membres.filter(m=>!dejaPaies.has(m.id));
+                for (const m of aInitialiser) {
+                    await onAddVersement(m.id, annee, null, 0, 'À encaisser');
+                }
+                setInitializing(false);
+            };
             const years = useMemo(()=>{
                 const ys=new Set(cotisations.map(c=>String(c.annee)));
                 ys.add(String(new Date().getFullYear()));
@@ -668,11 +681,16 @@
                     <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                         <div>
                             <h2 className="text-2xl font-bold font-serif text-slate-800">Cotisations</h2>
-                            <p className="text-slate-500 text-sm font-sans mt-1">Versements mensuels par membre</p>
+                            <p className="text-slate-500 text-sm font-sans mt-1">Versements annuels par membre — {membres.length} membre{membres.length!==1?'s':''} configurés</p>
                         </div>
-                        <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-amber-500">
-                            {years.map(y=><option key={y}>{y}</option>)}
-                        </select>
+                        <div className="flex items-center gap-3">
+                            <button onClick={initAnnee} disabled={initializing||membres.length===0||!settings.montantCotis} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest shadow font-serif transition-all">
+                                {initializing ? '...' : `⚡ Initialiser ${annee}`}
+                            </button>
+                            <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-amber-500">
+                                {years.map(y=><option key={y}>{y}</option>)}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -2203,10 +2221,9 @@
             const deleteTx = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id));
 
             const addVersement = async (membreId,annee,mois,montant,note) => {
-                await api.addDoc(path('tresor_cotisations'),{
-                    membreId, annee:parseInt(annee), mois, montant, note,
-                    datePaiement: todayISO()
-                });
+                const data = { membreId, annee:parseInt(annee), montant, note };
+                if (mois !== null) { data.mois = mois; data.datePaiement = todayISO(); }
+                await api.addDoc(path('tresor_cotisations'), data);
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
