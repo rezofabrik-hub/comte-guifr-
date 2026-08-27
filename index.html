@@ -2439,7 +2439,7 @@
             const [loginGradeKey, setLoginGradeKey] = useState('');
             const [pendingNameMatch, setPendingNameMatch] = useState('');
 
-            const isVM = loginGradeKey === 'vm' || (memberRole || '').toLowerCase().includes('vénérable') || (memberRole || '').toLowerCase().includes('venerable');
+            const isVM = loginGradeKey === 'vm';
 
             // canEdit : écriture réservée au Vénérable Maître et à l'Architecte uniquement
             const canEdit = isVM || isArchitect;
