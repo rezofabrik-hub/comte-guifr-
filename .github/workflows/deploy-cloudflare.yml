@@ -17,40 +17,44 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4'
 
-      - name: Lier lcg51.fr au Worker comte-guifr + purger cache
+      - name: Configurer la Worker Route lcg51.fr → comte-guifr
         run: |
-          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
           TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          ZONE_ID="27ebe52773ea37f19a1cc29b41ff4cb5"
 
-          # Trouver la zone lcg51.fr
-          ZONE=$(curl -s "https://api.cloudflare.com/client/v4/zones?name=lcg51.fr" \
+          echo "=== Routes Worker actuelles pour lcg51.fr ==="
+          ROUTES=$(curl -s "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/workers/routes" \
             -H "Authorization: Bearer ${TOKEN}")
-          ZONE_ID=$(echo "$ZONE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.result?.[0]?.id||'');});")
+          echo "$ROUTES"
 
-          if [ -z "$ZONE_ID" ]; then
-            echo "⚠️  Zone lcg51.fr introuvable — vérifier le token Cloudflare"
-            exit 0
+          # Chercher si une route lcg51.fr/* existe déjà
+          ROUTE_ID=$(echo "$ROUTES" | node -e "
+            process.stdin.on('data',d=>{
+              const r=JSON.parse(d);
+              const route=(r.result||[]).find(x=>x.pattern==='lcg51.fr/*'||x.pattern==='*lcg51.fr/*');
+              console.log(route?.id||'');
+            })")
+
+          if [ -n "$ROUTE_ID" ]; then
+            echo "Route existante ($ROUTE_ID) — mise à jour vers comte-guifr"
+            RESP=$(curl -s -X PUT \
+              "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/workers/routes/${ROUTE_ID}" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"pattern":"lcg51.fr/*","script":"comte-guifr"}')
+          else
+            echo "Aucune route — création lcg51.fr/* → comte-guifr"
+            RESP=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/workers/routes" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"pattern":"lcg51.fr/*","script":"comte-guifr"}')
           fi
 
-          echo "Zone lcg51.fr : $ZONE_ID"
-
-          # Lier le domaine au Worker
-          RESP=$(curl -s -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data "{\"hostname\":\"lcg51.fr\",\"service\":\"comte-guifr\",\"zone_id\":\"$ZONE_ID\"}")
-
-          echo "$RESP" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'✅ lcg51.fr lié à comte-guifr':'⚠️  '+JSON.stringify(r.errors||r));});"
-
-          # Purger le cache Cloudflare
-          PURGE=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}')
-
-          echo "$PURGE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'✅ Cache purgé':'⚠️  cache: '+JSON.stringify(r.errors||r));});"
+          echo "$RESP" | node -e "process.stdin.on('data',d=>{
+            const r=JSON.parse(d);
+            console.log(r.success?'✅ Route lcg51.fr/* → comte-guifr OK':'⚠️  '+JSON.stringify(r.errors||r));
+          });"
 
       - name: Nettoyer Worker velum-temple (si présent)
         run: |
