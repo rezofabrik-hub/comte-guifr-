@@ -1,7 +1,7 @@
 // Règles Firestore — Velum Loge · Multi-tenant v3
 // Chaque loge est isolée par son appId (slug) dans le chemin Firestore.
 // Les emails suivent le format : grade@{slug}.velum.fr
-// v2026-08-27
+// v2026-08-27b — fix: remplace startsWith/endsWith (invalides) par split('@') et matches()
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -27,9 +27,12 @@ service cloud.firestore {
       return emailLodgeId() == appId;
     }
 
+    // startsWith/endsWith ne sont pas supportés en Firestore rules → utiliser split('@') et matches()
     function hasRole(role) {
-      return userEmail().startsWith(role + '@') &&
-             (userEmail().endsWith('.velum.fr') || userEmail().endsWith('cg51-virtuel.fr'));
+      let parts = userEmail().split('@');
+      let domain = parts[1];
+      return parts[0] == role &&
+             (domain == 'cg51-virtuel.fr' || domain.matches('.*\\.velum\\.fr'));
     }
 
     function isVMouArchitecte() {
@@ -41,7 +44,8 @@ service cloud.firestore {
     }
 
     function isGradeMember() {
-      return isSignedIn() && (userEmail().endsWith('.velum.fr') || userEmail().endsWith('cg51-virtuel.fr'));
+      let domain = userEmail().split('@')[1];
+      return isSignedIn() && (domain == 'cg51-virtuel.fr' || domain.matches('.*\\.velum\\.fr'));
     }
 
     // ── Membres ──────────────────────────────────────────────────────────────
