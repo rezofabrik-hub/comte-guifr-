@@ -178,26 +178,41 @@ function DonutChart({value, total, color='#f59e0b', label=''}) {
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── 1. DASHBOARD ──────────────────────────────────────────────────────────
-function Dashboard({members, agenda, toast}) {
+function Dashboard({members, agenda, toast, user}) {
   const now = new Date();
   const prochaine = agenda.filter(t=>t.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
   const daysTo = prochaine ? Math.ceil((new Date(prochaine.date)-now)/(1000*60*60*24)) : null;
+  const isTresorier = user?.email?.startsWith('tresorier@') || user?.email?.startsWith('vm@') || user?.email?.startsWith('architecte@');
   const stats = [
     {label:'Membres', value: members.length, icon:'members', color:'#3b82f6'},
     {label:'Tenues prévues', value: agenda.filter(t=>t.date>=today()).length, icon:'agenda', color:'#f59e0b'},
-    {label:'Prochaine tenue', value: daysTo!==null?`J-${daysTo}`:'—', icon:'agenda', color:'#10b981'},
-    {label:'Taux présence moy.', value:'73%', icon:'presence', color:'#8b5cf6'},
+    {label:'Présence moy.', value:'73%', icon:'presence', color:'#10b981'},
+    ...(isTresorier ? [{label:'Cotisations en retard', value:'3', icon:'euro', color:'#ef4444'}] : []),
   ];
   const gradeData = [
     {l:'App.', v: members.filter(m=>m.grade==='Apprenti').length},
     {l:'Comp.', v: members.filter(m=>m.grade==='Compagnon').length},
     {l:'Maître', v: members.filter(m=>['Maître','Maitre'].includes(m.grade)).length},
   ];
+  const activity = [
+    {dot:'#10b981', title:"Planche déposée — F∴ Dupont", meta:"« Du compas et de l'équerre » · il y a 2 jours", badge:'Maître', badgeCls:'rgba(16,185,129,.15)', badgeColor:'#10b981'},
+    {dot:'#f59e0b', title:"Tenue du 7 août — CR ajouté", meta:"Ordre des travaux mis à jour · il y a 4 jours", badge:'Agenda', badgeCls:'rgba(245,158,11,.15)', badgeColor:'#f59e0b'},
+    {dot:'#3b82f6', title:"Nouveau membre — F∴ Martin", meta:"Initié le 21 juillet 2026", badge:'Apprenti', badgeCls:'rgba(59,130,246,.15)', badgeColor:'#3b82f6'},
+    ...(isTresorier ? [{dot:'#ef4444', title:"Cotisation en retard — F∴ Bernard", meta:"Échéance dépassée depuis 32 jours", badge:'Trésorerie', badgeCls:'rgba(239,68,68,.15)', badgeColor:'#ef4444'}] : []),
+  ];
   return <div className="fade p-4 space-y-4">
     <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Tableau de bord</h2>
 
+    {prochaine && <div className="rounded-2xl p-4" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)'}}>
+      <p className="text-xs font-bold mb-1" style={{color:'#f59e0b',letterSpacing:'.12em'}}>PROCHAINE TENUE</p>
+      <p className="font-serif font-bold text-base text-white">{prochaine.title || prochaine.type}</p>
+      <p className="text-xs mt-0.5 text-white opacity-70">{new Date(prochaine.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+      {daysTo === 0 && <span className="inline-block mt-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold pulse">Aujourd'hui !</span>}
+      {daysTo === 1 && <span className="inline-block mt-1 text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">Demain !</span>}
+    </div>}
+
     <div className="grid grid-cols-2 gap-3">
-      {stats.map((s,i) => <div key={i} className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      {stats.map((s,i) => <div key={i} className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:`1px solid ${s.color==='#ef4444'?'rgba(239,68,68,.3)':'var(--border)'}`}}>
         <div className="flex items-center gap-2 mb-1">
           <Icon n={s.icon} size={14} cls="opacity-70"/>
           <span className="text-xs" style={{color:'var(--text2)'}}>{s.label}</span>
@@ -206,26 +221,23 @@ function Dashboard({members, agenda, toast}) {
       </div>)}
     </div>
 
-    {prochaine && <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
-      <p className="text-xs font-bold mb-1" style={{color:'var(--accent)'}}>PROCHAINE TENUE</p>
-      <p className="font-bold text-sm">{prochaine.title || prochaine.type}</p>
-      <p className="text-xs mt-0.5" style={{color:'var(--text2)'}}>{new Date(prochaine.date+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
-      {daysTo === 0 && <span className="inline-block mt-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold pulse">Aujourd'hui !</span>}
-      {daysTo === 1 && <span className="inline-block mt-1 text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">Demain !</span>}
-    </div>}
-
     <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
       <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>RÉPARTITION PAR GRADE</p>
       <BarChart data={gradeData} color="#f59e0b" height={80}/>
     </div>
 
     <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
-      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>ACTIVITÉ — TENUES PAR MOIS</p>
-      <BarChart data={[
-        {l:'Sep',v:2},{l:'Oct',v:3},{l:'Nov',v:2},{l:'Déc',v:1},
-        {l:'Jan',v:3},{l:'Fév',v:2},{l:'Mar',v:4},{l:'Avr',v:3},
-        {l:'Mai',v:2},{l:'Jun',v:1},{l:'Jul',v:0},{l:'Aoû',v:0}
-      ]} color="#3b82f6" height={80} label="Exercice maçonnique 2024-2025"/>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>ACTIVITÉ RÉCENTE</p>
+      <div className="space-y-0">
+        {activity.map((a,i) => <div key={i} className="flex items-center gap-3 py-2" style={{borderBottom: i<activity.length-1 ? '1px solid var(--border)' : 'none'}}>
+          <div className="w-2 h-2 rounded-full shrink-0" style={{background:a.dot}}/>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate" style={{color:'var(--text)'}}>{a.title}</p>
+            <p className="text-xs" style={{color:'var(--text3)'}}>{a.meta}</p>
+          </div>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{background:a.badgeCls,color:a.badgeColor}}>{a.badge}</span>
+        </div>)}
+      </div>
     </div>
 
     <div className="grid grid-cols-3 gap-3">
@@ -275,10 +287,20 @@ function MembersSearch({members, toast}) {
 }
 
 // ── 3. PRÉSENCES AUX TENUES ──────────────────────────────────────────────
+const MEMBER_STATS = [
+  {name:'F∴ Dupont', pct:95},{name:'F∴ Martin', pct:88},{name:'F∴ Bernard', pct:83},
+  {name:'F∴ Petit', pct:79},{name:'F∴ Robert', pct:75},{name:'F∴ Leroy', pct:67},
+  {name:'F∴ Moreau', pct:58},{name:'F∴ Simon', pct:46},
+];
+const MONTHLY_PRESENCE = [
+  {l:'Sep',v:72},{l:'Oct',v:85},{l:'Nov',v:65},{l:'Déc',v:90},
+  {l:'Jan',v:75},{l:'Fév',v:80},{l:'Mar',v:70},{l:'Avr',v:88},
+];
+
 function Presences({members, agenda, toast}) {
   const [sel, setSel] = useState('');
   const [presMap, setPresMap] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState('tenue'); // 'tenue' | 'stats'
   const tenuesPassees = agenda.filter(t=>t.date<=today()).sort((a,b)=>b.date.localeCompare(a.date));
   const tenue = tenuesPassees.find(t=>t.id===sel) || tenuesPassees[0];
 
@@ -308,39 +330,73 @@ function Presences({members, agenda, toast}) {
   const total = members.length;
 
   return <div className="fade p-4 space-y-4">
-    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Feuille de Présences</h2>
-    <select value={sel||tenue?.id||''} onChange={e=>setSel(e.target.value)} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>
-      {tenuesPassees.map(t=><option key={t.id} value={t.id}>{t.date} — {t.title||t.type}</option>)}
-    </select>
+    <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Présences</h2>
 
-    {tenue && <>
-      <div className="flex items-center justify-between rounded-xl p-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
-        <span className="text-sm font-bold">{presents} / {total} présents</span>
-        <DonutChart value={presents} total={total||1} color="#10b981" label=""/>
-      </div>
+    {/* Vue par mois */}
+    <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>PRÉSENCE PAR MOIS (%)</p>
+      <BarChart data={MONTHLY_PRESENCE} color="#f59e0b" height={80} label="Saison 2025/2026"/>
+    </div>
 
-      <div className="space-y-2">
-        {members.map(m=>{
-          const present = !!presMap[m.id||m.name];
-          return <div key={m.id||m.name} onClick={()=>toggle(m.id||m.name)}
-            className="rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all"
-            style={{background: present ? 'rgba(16,185,129,0.1)' : 'var(--card)', border:`1px solid ${present?'#10b981':'var(--border)'}`}}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${present?'bg-emerald-500 text-white':'opacity-40'}`}
-              style={present?{}:{background:'var(--border)',color:'var(--text)'}}>
-              {present ? <Icon n="check" size={14}/> : (m.name||'?')[0].toUpperCase()}
+    {/* Onglets */}
+    <div className="flex rounded-xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
+      {[{id:'tenue',label:'Par tenue'},{id:'stats',label:'Par membre'}].map(v=>
+        <button key={v.id} onClick={()=>setView(v.id)} className="flex-1 py-2 text-xs font-bold transition-all"
+          style={{background:view===v.id?'var(--accent)':'var(--card)', color:view===v.id?'#0f172a':'var(--text2)'}}>
+          {v.label}
+        </button>
+      )}
+    </div>
+
+    {view==='tenue' && <>
+      <select value={sel||tenue?.id||''} onChange={e=>setSel(e.target.value)} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>
+        {tenuesPassees.map(t=><option key={t.id} value={t.id}>{t.date} — {t.title||t.type}</option>)}
+      </select>
+
+      {tenue && <>
+        <div className="flex items-center justify-between rounded-xl p-3" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
+          <span className="text-sm font-bold">{presents} / {total} présents</span>
+          <DonutChart value={presents} total={total||1} color="#10b981" label=""/>
+        </div>
+
+        <div className="space-y-2">
+          {members.map(m=>{
+            const present = !!presMap[m.id||m.name];
+            return <div key={m.id||m.name} onClick={()=>toggle(m.id||m.name)}
+              className="rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all"
+              style={{background: present ? 'rgba(16,185,129,0.1)' : 'var(--card)', border:`1px solid ${present?'#10b981':'var(--border)'}`}}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{background:present?'#10b981':'var(--border)',color:present?'white':'var(--text)'}}>
+                {present ? <Icon n="check" size={14}/> : (m.name||'?')[0].toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm">{m.name}</p>
+                <p className="text-xs" style={{color:'var(--text2)'}}>{m.grade}</p>
+              </div>
+              <span className="text-xs font-bold" style={{color:present?'#10b981':'var(--text3)'}}>
+                {present?'Présent':'Absent'}
+              </span>
+            </div>;
+          })}
+        </div>
+      </>}
+    </>}
+
+    {view==='stats' && <div className="rounded-2xl p-4 shadow-sm" style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+      <p className="text-xs font-bold mb-3" style={{color:'var(--text2)'}}>TAUX DE PRÉSENCE — SAISON 2025/2026</p>
+      <div className="space-y-0">
+        {MEMBER_STATS.map((m,i) => {
+          const color = m.pct>=80?'#10b981':m.pct>=60?'#f59e0b':'#ef4444';
+          return <div key={i} className="flex items-center gap-3 py-2" style={{borderBottom:i<MEMBER_STATS.length-1?'1px solid var(--border)':'none'}}>
+            <span className="text-sm font-medium" style={{color:'var(--text)',minWidth:110}}>{m.name}</span>
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'var(--border)'}}>
+              <div className="h-full rounded-full transition-all" style={{width:`${m.pct}%`,background:color}}/>
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm">{m.name}</p>
-              <p className="text-xs" style={{color:'var(--text2)'}}>{m.grade}</p>
-            </div>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${present?'text-emerald-500':'opacity-40'}`}
-              style={present?{}:{color:'var(--text3)'}}>
-              {present?'Présent':'Absent'}
-            </span>
+            <span className="text-xs font-bold w-8 text-right" style={{color,fontVariantNumeric:'tabular-nums'}}>{m.pct}%</span>
           </div>;
         })}
       </div>
-    </>}
+    </div>}
   </div>;
 }
 
@@ -565,11 +621,116 @@ function Sondages({user, members, toast}) {
   </div>;
 }
 
+// ── PDF VIEWER INLINE ─────────────────────────────────────────────────────
+const PDF_DEMO_PAGES = {
+  tresor: [
+    `<div style="text-align:center;padding-bottom:16px;margin-bottom:16px;border-bottom:2px solid #f59e0b">
+       <div style="font-family:serif;font-size:18px;font-weight:700;color:#f59e0b">Loge Comte Guifr'</div>
+       <div style="font-size:10px;letter-spacing:.15em;color:#888;margin-top:4px">TEMPLE VIRTUEL · ORIENT DE PARIS</div>
+     </div>
+     <div style="font-family:serif;font-size:14px;font-weight:700;text-align:center;margin-bottom:16px">Bilan Financier — Saison 2025/2026</div>
+     <table style="width:100%;border-collapse:collapse;font-size:12px">
+       <tr><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;letter-spacing:.1em;color:#888">RECETTES</th><th style="text-align:right;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">MONTANT</th></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Cotisations membres (21/24)</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">4 200 €</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Banquet de Saint-Jean</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">840 €</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Dons et offrandes</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">320 €</td></tr>
+       <tr style="font-weight:700"><td style="padding:7px;border-top:2px solid #e2e8f0">Total recettes</td><td style="padding:7px;border-top:2px solid #e2e8f0;text-align:right">5 360 €</td></tr>
+     </table>
+     <div style="text-align:center;font-size:10px;color:#aaa;margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0">Page 1 sur 2 — Confidentiel</div>`,
+    `<div style="text-align:center;padding-bottom:16px;margin-bottom:16px;border-bottom:2px solid #f59e0b">
+       <div style="font-family:serif;font-size:18px;font-weight:700;color:#f59e0b">Loge Comte Guifr'</div>
+       <div style="font-size:10px;letter-spacing:.15em;color:#888;margin-top:4px">TEMPLE VIRTUEL · ORIENT DE PARIS</div>
+     </div>
+     <div style="font-family:serif;font-size:14px;font-weight:700;text-align:center;margin-bottom:16px">Dépenses — Saison 2025/2026</div>
+     <table style="width:100%;border-collapse:collapse;font-size:12px">
+       <tr><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">DÉPENSES</th><th style="text-align:right;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">MONTANT</th></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Location temple</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">2 400 €</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Agapes (8 tenues)</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">1 200 €</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Fournitures rituelles</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">380 €</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">Cotisation Obédience</td><td style="padding:7px;border-bottom:1px solid #e2e8f0;text-align:right">600 €</td></tr>
+       <tr style="font-weight:700"><td style="padding:7px;border-top:2px solid #e2e8f0">Total dépenses</td><td style="padding:7px;border-top:2px solid #e2e8f0;text-align:right">4 580 €</td></tr>
+     </table>
+     <div style="margin-top:12px;padding:10px;background:rgba(16,185,129,.1);border-radius:8px;font-size:12px;color:#10b981;font-weight:700;text-align:center">Solde net : + 780 € ✓</div>
+     <div style="text-align:center;font-size:10px;color:#aaa;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0">Page 2 sur 2 — Confidentiel</div>`
+  ],
+  odj: [
+    `<div style="text-align:center;padding-bottom:16px;margin-bottom:16px;border-bottom:2px solid #f59e0b">
+       <div style="font-family:serif;font-size:18px;font-weight:700;color:#f59e0b">Loge Comte Guifr'</div>
+       <div style="font-size:10px;letter-spacing:.15em;color:#888;margin-top:4px">TENUE D'INSTRUCTION · 5 SEPTEMBRE 2026</div>
+     </div>
+     <div style="font-family:serif;font-size:14px;font-weight:700;text-align:center;margin-bottom:16px">Ordre du Jour</div>
+     <table style="width:100%;border-collapse:collapse;font-size:12px">
+       <tr><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">HEURE</th><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">POINT</th></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0;color:#f59e0b;font-weight:700">20h00</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Ouverture des travaux</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0;color:#f59e0b;font-weight:700">20h15</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Lecture du compte-rendu précédent</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0;color:#f59e0b;font-weight:700">20h30</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Planche au 3e degré — F∴ Dupont</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0;color:#f59e0b;font-weight:700">21h15</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Questions diverses</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0;color:#f59e0b;font-weight:700">21h30</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Fermeture des travaux</td></tr>
+       <tr><td style="padding:7px;color:#f59e0b;font-weight:700">21h45</td><td style="padding:7px">Agapes fraternelles</td></tr>
+     </table>
+     <div style="text-align:center;font-size:10px;color:#aaa;margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0">Diffusion réservée aux membres</div>`
+  ],
+  membres: [
+    `<div style="text-align:center;padding-bottom:16px;margin-bottom:16px;border-bottom:2px solid #f59e0b">
+       <div style="font-family:serif;font-size:18px;font-weight:700;color:#f59e0b">Loge Comte Guifr'</div>
+       <div style="font-size:10px;letter-spacing:.15em;color:#888;margin-top:4px">TABLEAU DE LOGE · 2025/2026</div>
+     </div>
+     <div style="font-family:serif;font-size:14px;font-weight:700;text-align:center;margin-bottom:16px">Liste des Membres</div>
+     <table style="width:100%;border-collapse:collapse;font-size:12px">
+       <tr><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">FRÈRE</th><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">GRADE</th><th style="text-align:left;padding:7px;border-bottom:1px solid #e2e8f0;font-size:10px;color:#888">FONCTION</th></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">F∴ Dupont</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Maître</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Vénérable Maître</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">F∴ Martin</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Maître</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">1er Surveillant</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">F∴ Bernard</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Maître</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">2e Surveillant</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">F∴ Petit</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Maître</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Secrétaire</td></tr>
+       <tr><td style="padding:7px;border-bottom:1px solid #e2e8f0">F∴ Robert</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Compagnon</td><td style="padding:7px;border-bottom:1px solid #e2e8f0">Trésorier</td></tr>
+       <tr><td style="padding:7px">F∴ Leroy</td><td style="padding:7px">Compagnon</td><td style="padding:7px">Frère Servant</td></tr>
+     </table>
+     <div style="text-align:center;font-size:10px;color:#aaa;margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0">Confidentiel — Ne pas diffuser</div>`
+  ],
+};
+
+function PdfViewer({titre, docKey, onClose}) {
+  const [page, setPage] = useState(1);
+  const [zoom, setZoom] = useState(100);
+  const pages = PDF_DEMO_PAGES[docKey] || [];
+  const total = pages.length;
+  return <div className="fixed inset-0 z-50 flex flex-col no-print" style={{background:'var(--bg)'}}>
+    {/* Toolbar */}
+    <div className="flex items-center justify-between px-4 py-3" style={{background:'var(--bg2)',borderBottom:'1px solid var(--border)'}}>
+      <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>
+        <Icon n="x" size={13}/>
+      </button>
+      <span className="font-serif text-xs font-bold truncate mx-3 flex-1 text-center" style={{color:'var(--accent)'}}>{titre}</span>
+      <div className="flex items-center gap-2">
+        <button onClick={()=>setZoom(z=>Math.max(70,z-10))} className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>−</button>
+        <span className="text-xs w-10 text-center" style={{color:'var(--text2)'}}>{zoom}%</span>
+        <button onClick={()=>setZoom(z=>Math.min(150,z+10))} className="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style={{background:'var(--bg)',border:'1px solid var(--border)'}}>+</button>
+      </div>
+    </div>
+    {/* Page */}
+    <div className="flex-1 overflow-auto p-4">
+      <div style={{transform:`scale(${zoom/100})`,transformOrigin:'top center',transition:'transform .2s'}}>
+        <div className="rounded-2xl p-6 mx-auto max-w-md" style={{background:'white',color:'#1a1612',boxShadow:'0 4px 32px rgba(0,0,0,.2)',minHeight:480}}
+          dangerouslySetInnerHTML={{__html: pages[page-1] || ''}}/>
+      </div>
+    </div>
+    {/* Page nav */}
+    {total > 1 && <div className="flex items-center justify-center gap-4 px-4 py-3" style={{background:'var(--bg2)',borderTop:'1px solid var(--border)'}}>
+      <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}
+        className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)',opacity:page===1?.4:1}}>‹</button>
+      <span className="text-xs" style={{color:'var(--text2)'}}>Page {page} / {total}</span>
+      <button onClick={()=>setPage(p=>Math.min(total,p+1))} disabled={page===total}
+        className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'var(--bg)',border:'1px solid var(--border)',opacity:page===total?.4:1}}>›</button>
+    </div>}
+  </div>;
+}
+
 // ── 7. DOCUMENTS ─────────────────────────────────────────────────────────
 function Documents({user, toast}) {
   const [docs, setDocs] = useState([]);
   const [form, setForm] = useState({titre:'',type:'Rituel',description:''});
   const [show, setShow] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(null); // {titre, docKey}
   const types = ['Rituel','Procès-verbal','Planche','Règlement','Autre'];
 
   useEffect(()=>{
@@ -597,6 +758,8 @@ function Documents({user, toast}) {
   const typeIcons = {Rituel:'star',Procès_verbal:'log','Procès-verbal':'log',Planche:'docs',Règlement:'lock',Autre:'docs'};
   const typeColors = {Rituel:'#f59e0b','Procès-verbal':'#3b82f6',Planche:'#8b5cf6',Règlement:'#10b981',Autre:'#94a3b8'};
 
+  if (pdfOpen) return <PdfViewer titre={pdfOpen.titre} docKey={pdfOpen.docKey} onClose={()=>setPdfOpen(null)}/>;
+
   return <div className="fade p-4 space-y-4">
     <div className="flex items-center justify-between">
       <h2 className="font-serif text-lg" style={{color:'var(--accent)'}}>Bibliothèque</h2>
@@ -604,6 +767,29 @@ function Documents({user, toast}) {
         style={{background:'var(--accent)',color:'#0f172a'}}>
         <Icon n={show?'x':'plus'} size={14}/>
       </button>
+    </div>
+
+    {/* Documents démo avec aperçu plein écran */}
+    <div className="rounded-2xl overflow-hidden" style={{border:'1px solid var(--border)'}}>
+      <div className="px-4 py-2" style={{background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
+        <p className="text-xs font-bold uppercase tracking-widest" style={{color:'var(--text3)'}}>Aperçu disponible</p>
+      </div>
+      {[
+        {titre:"Bilan Trésorerie 2025/2026", docKey:'tresor', type:'Trésorerie'},
+        {titre:"Ordre du Jour — 5 sept. 2026", docKey:'odj', type:'Agenda'},
+        {titre:"Tableau de Loge 2025/2026", docKey:'membres', type:'Membres'},
+      ].map((d,i,arr) => <div key={d.docKey} className="flex items-center gap-3 px-4 py-3" style={{borderBottom:i<arr.length-1?'1px solid var(--border)':'none',background:'var(--card)'}}>
+        <Icon n="pdf" size={18} cls="opacity-60"/>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm truncate">{d.titre}</p>
+          <p className="text-xs" style={{color:'var(--text3)'}}>{d.type}</p>
+        </div>
+        <button onClick={()=>setPdfOpen({titre:d.titre, docKey:d.docKey})}
+          className="text-xs px-3 py-1.5 rounded-xl font-bold"
+          style={{background:'rgba(245,158,11,.15)',color:'var(--accent)',border:'1px solid rgba(245,158,11,.3)'}}>
+          Aperçu
+        </button>
+      </div>)}
     </div>
 
     {show && <div className="rounded-2xl p-4 space-y-3 fade" style={{background:'var(--card)',border:'1px solid var(--border)'}}>
@@ -1156,7 +1342,7 @@ function App() {
   const renderSection = () => {
     if (showOnboard) return <Onboarding toast={toast} onDone={()=>setShowOnboard(false)}/>;
     switch(section) {
-      case 'dash': return <Dashboard members={members} agenda={agenda} toast={toast}/>;
+      case 'dash': return <Dashboard members={members} agenda={agenda} toast={toast} user={user}/>;
       case 'search': return <MembersSearch members={members} toast={toast}/>;
       case 'presence': return <Presences members={members} agenda={agenda} toast={toast}/>;
       case 'qr': return <QRCode agenda={agenda} toast={toast}/>;
