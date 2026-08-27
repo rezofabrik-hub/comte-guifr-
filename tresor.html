@@ -43,14 +43,7 @@
             ? 'site-cg51' : (_h.split('.')[0] || 'site-cg51');
         window.LOGE_APP_ID = LOGE_APP_ID;
 
-        // Si chargé en iframe depuis index.html (même domaine), hérite du Firebase parent déjà authentifié
-        try {
-            const p = window.parent?.FB_API;
-            if (p && p.auth?.currentUser && AUTHORIZED_EMAILS.includes(p.auth.currentUser.email)) {
-                window.FB_API = p;
-            }
-        } catch(e) {}
-        if (!window.FB_API) {
+        {
             const firebaseConfig = {
                 apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
                 authDomain: "site-cg51.firebaseapp.com",
@@ -2149,17 +2142,10 @@
 
             useEffect(()=>{
                 if(!api) return;
-                const unsub = api.onAuthStateChanged(api.auth, u => {
-                    if(u && AUTHORIZED_EMAILS.includes(u.email)) {
-                        setUser(u);
-                        setReady(true);
-                    } else {
-                        setUser(null);
-                        setReady(false);
-                    }
-                    setAuthChecked(true);
-                });
-                return ()=>unsub();
+                // Accès direct sans vérification d'identité
+                setReady(true);
+                setAuthChecked(true);
+                setUser({ email: 'architecte@site-cg51.velum.fr' });
             },[api]);
 
             const handleLogin = async (email, password) => {
@@ -2178,8 +2164,8 @@
             };
 
             const handleLogout = () => api.signOut(api.auth);
-            const isTresorUser = user ? TRESOR_EMAILS.includes(user.email) : false;
-            const visibleGrades = user ? getVisibleGrades(user.email) : [];
+            const isTresorUser = true;
+            const visibleGrades = ['Apprenti','Compagnon','Maître'];
 
             useEffect(()=>{
                 if(!api||!ready) return;
@@ -2250,11 +2236,8 @@
                 alert('Remise à zéro effectuée.');
             };
 
-            if(!authChecked) return null;
             const loader = document.getElementById('loading-screen');
             if(loader) loader.style.display='none';
-
-            if(!ready) return null;
 
             const navItems = [
                 {id:'parametres',icon:'settings',label:'Tableau'},
