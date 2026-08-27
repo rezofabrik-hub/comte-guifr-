@@ -1100,6 +1100,8 @@
             const [f, s] = useState(initialData || { date: new Date().toISOString().split('T')[0], type:'Tenue Régulière', visibility:'Apprenti', sujet:'', agapes:'', entree:'', plat:'', dessert:'', lienFramadate:'', prix:'', planches: [], odjFile:null });
             const [loading, setLoading] = useState(false);
             const [analyzing, setAnalyzing] = useState(false);
+            const [saving, setSaving] = useState(false);
+            const [saveError, setSaveError] = useState('');
             const [aiError, setAiError] = useState('');
 
             const handleAI = async (e) => {
@@ -1126,7 +1128,7 @@
             };
 
             return (
-                <form onSubmit={async(e)=>{e.preventDefault(); await onSave(f);}} className="space-y-6 font-sans text-sm text-slate-800 animate-fade">
+                <form onSubmit={async(e)=>{e.preventDefault(); setSaving(true); setSaveError(''); try { await onSave({...f, sujet: f.sujet || f.type || 'Tenue'}); } catch(err) { setSaveError('Erreur lors de l\'enregistrement : ' + (err?.message || '')); } finally { setSaving(false); }}} className="space-y-6 font-sans text-sm text-slate-800 animate-fade">
                     <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                         <label className="text-[10px] font-black text-amber-800 uppercase block mb-2 flex items-center font-sans"><SmartIcon name="FileText" size={16} className="mr-2"/>Ordre du jour (PDF)</label>
                         {!f.odjFile ? (
@@ -1167,7 +1169,7 @@
                         </div>
                     </div>
 
-                    <textarea placeholder="Résumé de l'ordre du jour..." value={f.sujet} onChange={e=>s({...f,sujet:e.target.value})} className="w-full border p-4 rounded-xl h-24 outline-none focus:border-amber-500 shadow-inner font-serif" required></textarea>
+                    <textarea placeholder="Résumé de l'ordre du jour (facultatif)..." value={f.sujet} onChange={e=>s({...f,sujet:e.target.value})} className="w-full border p-4 rounded-xl h-24 outline-none focus:border-amber-500 shadow-inner font-serif"></textarea>
                     {f.planches && f.planches.length > 0 && (
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 animate-fade">
                             <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-3 font-sans">Planche détectée automatiquement</p>
@@ -1183,7 +1185,8 @@
                             <button type="button" onClick={()=>s({...f,planches:[]})} className="mt-2 text-red-400 text-[10px] font-bold uppercase hover:underline">Effacer</button>
                         </div>
                     )}
-                    <div className="flex justify-end gap-4 uppercase font-bold text-[10px] tracking-widest font-sans font-bold"><button type="button" onClick={onCancel} className="text-slate-400 font-sans">Annuler</button><button type="submit" className="bg-amber-600 text-white px-10 py-3 rounded-xl shadow-lg hover:bg-amber-700 font-serif">Enregistrer la tenue</button></div>
+                    {saveError && <p className="text-red-500 text-xs font-bold text-center">{saveError}</p>}
+                    <div className="flex justify-end gap-4 uppercase font-bold text-[10px] tracking-widest font-sans font-bold"><button type="button" onClick={onCancel} className="text-slate-400 font-sans">Annuler</button><button type="submit" disabled={saving||loading} className={`text-white px-10 py-3 rounded-xl shadow-lg font-serif transition-all ${saving||loading?'bg-slate-400 cursor-not-allowed':'bg-amber-600 hover:bg-amber-700'}`}>{saving ? 'Enregistrement...' : 'Enregistrer la tenue'}</button></div>
                 </form>
             );
         }
