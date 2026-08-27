@@ -87,14 +87,8 @@
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
-                        // Stockage base64 dans Firestore (pas besoin de Firebase Storage)
-                        if (file.size > 900 * 1024) throw new Error('Fichier trop grand (max 900 Ko). Compresse le PDF avant envoi.');
-                        return await new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = e => resolve(e.target.result);
-                            reader.onerror = () => reject(new Error('Lecture fichier impossible'));
-                            reader.readAsDataURL(file);
-                        });
+                        // Retourne juste le nom du fichier — le PDF reste en mémoire uniquement pour l'IA
+                        return file.name;
                     }
                 };
             } catch (e) { console.error("Firebase fail", e); }
@@ -1120,16 +1114,10 @@
 
             const [pendingFile, setPendingFile] = useState(null);
 
-            const handleFileChange = async (e) => {
+            const handleFileChange = (e) => {
                 const file = e.target.files[0]; if(!file) return;
                 setPendingFile(file);
-                setLoading(true); setAiError('');
-                try {
-                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/agenda-odj`);
-                    s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
-                } catch(err) {
-                    setAiError("Erreur fichier : " + (err?.message || String(err)));
-                } finally { setLoading(false); }
+                s(prev => ({...prev, odjFile: { name: file.name, data: file.name }}));
             };
 
             const handleAnalyzeAI = async () => {
