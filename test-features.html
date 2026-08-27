@@ -1013,7 +1013,7 @@ function Onboarding({toast, onDone}) {
     {title:'Bienvenue dans Velum', icon:'velum', desc:"Configurons ensemble votre loge en 4 étapes rapides."},
     {title:'Identité de la loge', icon:'star', desc:"Comment s'appelle votre loge ?"},
     {title:'Vénérable Maître', icon:'user', desc:"Qui dirige la loge cette année ?"},
-    {title:'C'est prêt !', icon:'ok', desc:"Votre temple virtuel est configuré."},
+    {title:"C'est prêt !", icon:'ok', desc:"Votre temple virtuel est configuré."},
   ];
   const s = steps[step];
   const next = () => { if(step<steps.length-1) setStep(step+1); else { toast('Configuration terminée !','ok'); onDone(); } };
