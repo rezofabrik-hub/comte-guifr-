@@ -9,9 +9,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Deploy with Wrangler
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4'
+
+      - name: Lier lcg51.fr au Worker comte-guifr + purger cache
+        run: |
+          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          # Trouver la zone lcg51.fr
+          ZONE=$(curl -s "https://api.cloudflare.com/client/v4/zones?name=lcg51.fr" \
+            -H "Authorization: Bearer ${TOKEN}")
+          ZONE_ID=$(echo "$ZONE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.result?.[0]?.id||'');});")
+
+          if [ -z "$ZONE_ID" ]; then
+            echo "⚠️  Zone lcg51.fr introuvable — vérifier le token Cloudflare"
+            exit 0
+          fi
+
+          echo "Zone lcg51.fr : $ZONE_ID"
+
+          # Lier le domaine au Worker
+          RESP=$(curl -s -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"hostname\":\"lcg51.fr\",\"service\":\"comte-guifr\",\"zone_id\":\"$ZONE_ID\"}")
+
+          echo "$RESP" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'✅ lcg51.fr lié à comte-guifr':'⚠️  '+JSON.stringify(r.errors||r));});"
+
+          # Purger le cache Cloudflare
+          PURGE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+
+          echo "$PURGE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'✅ Cache purgé':'⚠️  cache: '+JSON.stringify(r.errors||r));});"
+
+      - name: Nettoyer Worker velum-temple (si présent)
+        run: |
+          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+
+          RESP=$(curl -s -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/velum-temple" \
+            -H "Authorization: Bearer ${TOKEN}")
+
+          echo "$RESP" | node -e "process.stdin.on('data',d=>{
+            const r=JSON.parse(d);
+            if(r.success) console.log('✅ velum-temple supprimé');
+            else if(JSON.stringify(r).includes('10007')||JSON.stringify(r).includes('not found')) console.log('ℹ️  velum-temple déjà absent');
+            else console.log('⚠️  ',JSON.stringify(r.errors||r));
+          });"
