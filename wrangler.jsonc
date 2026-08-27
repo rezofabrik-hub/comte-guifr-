@@ -1,17 +1,7 @@
 {
-  // Worker universel Velum — sert TOUTES les loges
-  // Une seule instance gère *.velum.fr (illimité)
-  // Le slug est détecté depuis le sous-domaine dans index.html
-  "name": "velum-temple",
+  "name": "comte-guifr",
   "compatibility_date": "2026-07-20",
   "assets": {
     "directory": "."
-  },
-  // Routes : couvre tous les sous-domaines velum.fr
-  // À configurer dans le dashboard Cloudflare :
-  //   *.velum.fr/* → velum-temple
-  "routes": [
-    { "pattern": "*.velum.fr/*", "zone_name": "velum.fr" },
-    { "pattern": "velum.fr/*", "zone_name": "velum.fr" }
-  ]
+  }
 }
