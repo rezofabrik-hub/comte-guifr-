@@ -1218,7 +1218,7 @@
                                     
                                     {i.planches && i.planches.length > 0 && (
                                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
-                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-2 font-sans">Planches détectées :</p>
+                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-2 font-sans">Planches à l'ordre du jour :</p>
                                             <div className="space-y-1.5">
                                                 {i.planches.map((p, idx) => {
                                                     const gradeLabel = p.grade || i.visibility;
@@ -1231,6 +1231,13 @@
                                                     );
                                                 })}
                                             </div>
+                                        </div>
+                                    )}
+                                    {i.odjFile && (
+                                        <div className="mt-2">
+                                            <a href={i.odjFile.data} download={i.odjFile.name} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
+                                                <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
+                                            </a>
                                         </div>
                                     )}
 
