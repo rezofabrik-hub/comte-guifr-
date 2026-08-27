@@ -2431,6 +2431,8 @@
             const [claudeApiKey, setClaudeApiKey] = useState('');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
             const [apiKeyInput, setApiKeyInput] = useState('');
+            const [savingKey, setSavingKey] = useState(false);
+            const [keyError, setKeyError] = useState('');
             const [selectedPlanche, setSelectedPlanche] = useState(null);
             const [isArchitect, setIsArchitect] = useState(false);
             const [isTresorier, setIsTresorier] = useState(false);
@@ -2630,11 +2632,12 @@
                             <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
                                 <h2 className="text-xl font-serif font-bold mb-2">Clé API Intelligence Artificielle</h2>
                                 <p className="text-slate-500 text-sm mb-6">Permet l'analyse automatique des ODJ (grade, planche, auteur). Clé gratuite sur <strong>aistudio.google.com/app/apikey</strong>.</p>
-                                <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)} placeholder="AIza..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
+                                <input type="password" value={apiKeyInput} onChange={e=>{setApiKeyInput(e.target.value);setKeyError('');}} placeholder="AIza..." className="w-full border-2 p-3 rounded-xl text-sm outline-none focus:border-amber-500 font-mono mb-4" />
+                                {keyError && <p className="text-red-500 text-xs font-bold mb-3">{keyError}</p>}
                                 <div className="flex gap-3">
-                                    <button onClick={()=>setShowApiKeyModal(false)} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl">Annuler</button>
+                                    <button onClick={()=>{setShowApiKeyModal(false);setKeyError('');}} className="flex-1 text-slate-400 font-bold text-xs uppercase py-3 border rounded-xl">Annuler</button>
                                     {claudeApiKey && <ConfirmButton onConfirm={async()=>{ await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:''}); setShowApiKeyModal(false); }} className="text-red-400 font-bold text-xs uppercase py-3 px-4 border border-red-200 rounded-xl" label="Supprimer" />}
-                                    <button onClick={async(e)=>{ const btn=e.target; btn.textContent='...'; btn.disabled=true; try { await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:apiKeyInput.trim()}); setShowApiKeyModal(false); } catch(err) { btn.textContent='Enregistrer'; btn.disabled=false; alert('Erreur : ' + (err?.message||err?.code||'')); } }} className="flex-1 bg-amber-600 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md">Enregistrer</button>
+                                    <button disabled={savingKey||!apiKeyInput.trim()} onClick={async()=>{ setSavingKey(true); setKeyError(''); try { await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','claudeapi'),{key:apiKeyInput.trim()}); setShowApiKeyModal(false); setKeyError(''); } catch(err){ setKeyError('Erreur : '+(err?.message||err?.code||'permission refusée')); } finally { setSavingKey(false); } }} className={`flex-1 text-white font-bold text-xs uppercase py-3 rounded-xl shadow-md transition-all ${savingKey||!apiKeyInput.trim()?'bg-slate-400 cursor-not-allowed':'bg-amber-600 hover:bg-amber-700'}`}>{savingKey?'Enregistrement...':'Enregistrer'}</button>
                                 </div>
                             </div>
                         </div>
