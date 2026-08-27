@@ -1003,6 +1003,7 @@
         function MemberCard({ member, view, onUpdate, onDelete, canEdit, showGrade }) {
             const [isE, sE] = useState(false);
             const phone = member.telephone || member.phone || '';
+            const displayName = (member.name || '').replace(/^(fr[eè]re|s[oœ]eur|f∴|s∴|f\.\s*|s\.\s*)\s*/i, '').trim();
             const isOfficier = isOfficierRole(member.role);
             const gradeClr = { 'Maître':'bg-amber-100 text-amber-800','Compagnon':'bg-emerald-100 text-emerald-800','Apprenti':'bg-blue-100 text-blue-800' };
             const gc = gradeClr[member.grade] || 'bg-slate-100 text-slate-600';
@@ -1016,7 +1017,7 @@
                     <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center border">
                         {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={14} className="text-slate-300"/>}
                     </div>
-                    <span className="font-bold flex-1">{member.name}</span>
+                    <span className="font-bold flex-1">{displayName}</span>
                     <div className="flex gap-1 flex-wrap">
                         {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
                         {isOfficier && <span className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</span>}
@@ -1031,7 +1032,7 @@
                         <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-2 border-2 border-white shadow-sm flex-shrink-0">
                             {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
                         </div>
-                        <h4 className="font-bold text-xs leading-tight mb-1">{member.name}</h4>
+                        <h4 className="font-bold text-xs leading-tight mb-1">{displayName}</h4>
                         {isOfficier && <p className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100 mb-1">{member.role}</p>}
                         {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
                     </div>
