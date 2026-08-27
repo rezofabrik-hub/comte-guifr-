@@ -2060,18 +2060,21 @@
         // ==============================
         const _SLUG = window.LOGE_APP_ID || 'site-cg51';
         const _DOM = `${_SLUG}.velum.fr`;
+        // Domaine legacy pour site-cg51 (lcg51.fr)
+        const _DOM2 = _SLUG === 'site-cg51' ? 'cg51-virtuel.fr' : null;
+        const _allEmails = (grade) => _DOM2 ? [`${grade}@${_DOM}`, `${grade}@${_DOM2}`] : [`${grade}@${_DOM}`];
         const AUTHORIZED_EMAILS = [
-            `apprenti@${_DOM}`, `compagnon@${_DOM}`, `maitre@${_DOM}`,
-            `tresorier@${_DOM}`, `vm@${_DOM}`, `architecte@${_DOM}`
+            ..._allEmails('apprenti'), ..._allEmails('compagnon'), ..._allEmails('maitre'),
+            ..._allEmails('tresorier'), ..._allEmails('vm'), ..._allEmails('architecte')
         ];
-        const TRESOR_EMAILS = [`tresorier@${_DOM}`, `vm@${_DOM}`, `architecte@${_DOM}`];
+        const TRESOR_EMAILS = [..._allEmails('tresorier'), ..._allEmails('vm'), ..._allEmails('architecte')];
         const ReadOnlyCtx = React.createContext(false);
         const VisibleGradesCtx = React.createContext(['Apprenti','Compagnon','Maître']);
 
         function getVisibleGrades(email) {
             if (!email) return [];
-            if (email === `apprenti@${_DOM}`) return ['Apprenti'];
-            if (email === `compagnon@${_DOM}`) return ['Apprenti','Compagnon'];
+            if (_allEmails('apprenti').includes(email)) return ['Apprenti'];
+            if (_allEmails('compagnon').includes(email)) return ['Apprenti','Compagnon'];
             return ['Apprenti','Compagnon','Maître'];
         }
 
