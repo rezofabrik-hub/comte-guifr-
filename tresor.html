@@ -2144,10 +2144,13 @@
 
             useEffect(()=>{
                 if(!api) return;
-                // Accès direct sans vérification d'identité
-                setReady(true);
-                setAuthChecked(true);
-                setUser({ email: 'architecte@site-cg51.velum.fr' });
+                // Attend que Firebase restaure la session depuis localStorage, puis ouvre l'accès
+                const unsub = api.onAuthStateChanged(api.auth, u => {
+                    setUser(u || { email: 'vm@site-cg51.velum.fr' });
+                    setReady(true);
+                    setAuthChecked(true);
+                });
+                return ()=>unsub();
             },[api]);
 
             const handleLogin = async (email, password) => {
