@@ -1,3 +1,4 @@
+// v2026-08-27c — trigger deploy avec storage inclus
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
