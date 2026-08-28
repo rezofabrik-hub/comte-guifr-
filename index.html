@@ -1318,11 +1318,18 @@
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-slate-800">
                         <input type="date" value={f.date} onChange={e=>s({...f,date:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold font-serif" required />
                         <input type="text" placeholder="Nature" value={f.type} onChange={e=>s({...f,type:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold font-serif" required />
-                        <select value={f.visibility} onChange={e=>s({...f,visibility:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold text-amber-700 font-serif">
-                            <option value="Maître">Maître (Tous les grades)</option>
-                            <option value="Compagnon">Compagnon (Compagnons & Apprentis)</option>
-                            <option value="Apprenti">Apprenti (Apprentis seulement)</option>
-                        </select>
+                        <div>
+                            <select value={f.visibility} onChange={e=>s({...f,visibility:e.target.value})} className="border p-3 rounded-xl bg-slate-50 font-bold text-amber-700 font-serif w-full">
+                                <option value="Maître">Maître (Tous les grades)</option>
+                                <option value="Compagnon">Compagnon (Compagnons & Maîtres)</option>
+                                <option value="Apprenti">Apprenti (Tous les membres)</option>
+                            </select>
+                            <p className="text-[10px] text-slate-400 mt-1.5 font-sans px-1">
+                                {f.visibility === 'Apprenti' && '👁 Tous les membres de la loge verront cette tenue et son ODJ.'}
+                                {f.visibility === 'Compagnon' && '👁 Seuls les Compagnons et Maîtres verront cette tenue et son ODJ.'}
+                                {f.visibility === 'Maître' && '👁 Seuls les Maîtres verront cette tenue et son ODJ.'}
+                            </p>
+                        </div>
                     </div>
                     
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
