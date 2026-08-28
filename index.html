@@ -85,8 +85,11 @@
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
-                        // Retourne juste le nom du fichier — le PDF reste en mémoire uniquement pour l'IA
-                        return file.name;
+                        const { ref: sRef, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js");
+                        const path = `${LOGE_APP_ID}/${folder}/${Date.now()}_${file.name}`;
+                        const r = sRef(storage, path);
+                        await uploadBytes(r, file);
+                        return await getDownloadURL(r);
                     }
                 };
             } catch (e) { console.error("Firebase fail", e); }
@@ -701,7 +704,7 @@
                                                             </div>
                                                         </div>
                                                         {tenue.odjFile && (
-                                                            <a href={tenue.odjFile.data} download={tenue.odjFile.name} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
+                                                            <a href={tenue.odjFile.data} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
                                                                 <SmartIcon name="Download" size={14}/> PDF ODJ
                                                             </a>
                                                         )}
@@ -1247,12 +1250,18 @@
 
             const [pendingFile, setPendingFile] = useState(null);
 
-            const handleFileChange = (e) => {
+            const handleFileChange = async (e) => {
                 const file = e.target.files[0]; if(!file) return;
                 setPendingFile(file);
-                const reader = new FileReader();
-                reader.onload = () => s(prev => ({...prev, odjFile: { name: file.name, data: reader.result }}));
-                reader.readAsDataURL(file);
+                setSaving(true);
+                try {
+                    const url = await api.uploadFile(file, 'agenda-odj');
+                    s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
+                } catch(err) {
+                    setSaveError('Erreur upload : ' + (err?.message || err));
+                } finally {
+                    setSaving(false);
+                }
             };
 
             const handleAnalyzeAI = async () => {
@@ -1390,7 +1399,7 @@
                                     )}
                                     {i.odjFile && (
                                         <div className="mt-2">
-                                            <a href={i.odjFile.data} download={i.odjFile.name} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
+                                            <a href={i.odjFile.data} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
                                                 <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
                                             </a>
                                         </div>
@@ -1491,7 +1500,7 @@
                                         <div className="flex-grow min-w-0 font-serif font-bold"><p className="leading-tight truncate">{new Date(f.date).toLocaleDateString('fr-FR')}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-1 truncate font-sans">{f.type}</p></div>
                                     </div>
                                     <div className="flex items-center gap-2 border-t pt-4 mt-auto font-sans">
-                                        <a href={f.odjFile.data} download={f.odjFile.name} className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</a>
+                                        <a href={f.odjFile.data} target="_blank" rel="noopener noreferrer" className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</a>
                                         {canEdit && (
                                             <ConfirmButton onConfirm={async()=>{ await handleRemoveFile(f.id); }} className="p-2.5 text-slate-300 hover:text-red-500 transition-colors font-sans" size={18} />
                                         )}
