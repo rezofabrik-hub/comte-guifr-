@@ -981,7 +981,7 @@
         }
 
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
-            const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'', genre:'frere' });
+            const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'', genre:'frere', adresse:'', cp:'', ville:'', dateNaissance:'' });
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
             return (
@@ -998,7 +998,11 @@
                         <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm" />
                         <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
                         <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm md:col-span-1" />
-                        <div className="flex items-center gap-3">
+                        <input type="text" placeholder="Date de naissance (ex: 26 Mai)" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" />
+                        <input type="text" placeholder="Adresse (rue)" value={fd.adresse||''} onChange={e=>sFd({...fd,adresse:e.target.value})} className="border p-2 rounded text-sm md:col-span-2" />
+                        <input type="text" placeholder="Code postal" value={fd.cp||''} onChange={e=>sFd({...fd,cp:e.target.value})} className="border p-2 rounded text-sm" />
+                        <input type="text" placeholder="Ville" value={fd.ville||''} onChange={e=>sFd({...fd,ville:e.target.value})} className="border p-2 rounded text-sm" />
+                        <div className="flex items-center gap-3 md:col-span-2">
                             <label className="text-[10px] font-bold text-slate-500 uppercase">Photo sautoir</label>
                             <input type="file" accept="image/*" onChange={hp} className="text-xs" />
                         </div>
@@ -1011,48 +1015,120 @@
             );
         }
 
-        function MemberCard({ member, view, onUpdate, onDelete, canEdit, showGrade }) {
-            const [isE, sE] = useState(false);
+        function MemberDetailModal({ member, onClose, onUpdate, onDelete, canEdit }) {
+            const [isEditing, setIsEditing] = useState(false);
             const phone = member.telephone || member.phone || '';
             const displayName = (member.name || '').replace(/^(fr[eè]re|s[oœ]eur|f∴|s∴|f\.\s*|s\.\s*)\s*/i, '').trim();
             const isOfficier = isOfficierRole(member.role);
             const gradeClr = { 'Maître':'bg-amber-100 text-amber-800','Compagnon':'bg-emerald-100 text-emerald-800','Apprenti':'bg-blue-100 text-blue-800' };
             const gc = gradeClr[member.grade] || 'bg-slate-100 text-slate-600';
-            if (isE) return (
-                <div className="col-span-full bg-white p-6 rounded-xl border-2 border-amber-300 shadow-xl">
-                    <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);sE(false);}} onCancel={()=>sE(false)} onDelete={async()=>{await onDelete(member.id);sE(false);}} />
+
+            const Row = ({icon, label, value}) => value ? (
+                <div className="flex items-start gap-3 py-2.5 border-b border-slate-50 last:border-0">
+                    <SmartIcon name={icon} size={14} className="text-amber-500 flex-shrink-0 mt-0.5"/>
+                    <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+                        <p className="text-sm text-slate-700 font-medium break-all">{value}</p>
+                    </div>
                 </div>
+            ) : null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"/>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-fade" onClick={e=>e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
+                            <h3 className="font-bold text-slate-800 font-serif text-lg">Coordonnées</h3>
+                            <div className="flex gap-2">
+                                {canEdit && !isEditing && (
+                                    <button onClick={()=>setIsEditing(true)} className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 hover:bg-amber-100 flex items-center gap-1">
+                                        <SmartIcon name="Edit2" size={12}/> Modifier
+                                    </button>
+                                )}
+                                <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100">
+                                    <SmartIcon name="X" size={16}/>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            {isEditing ? (
+                                <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);setIsEditing(false);}} onCancel={()=>setIsEditing(false)} onDelete={onDelete ? async()=>{await onDelete(member.id);onClose();} : undefined}/>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center border-2 border-slate-200 flex-shrink-0">
+                                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 text-lg leading-tight">{displayName}</h4>
+                                            <div className="flex gap-1.5 flex-wrap mt-1">
+                                                {isOfficier && <span className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</span>}
+                                                {member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-0">
+                                        <Row icon="Phone" label="Téléphone" value={phone}/>
+                                        <Row icon="Mail" label="Email" value={member.email}/>
+                                        <Row icon="Calendar" label="Date de naissance" value={member.dateNaissance}/>
+                                        <Row icon="MapPin" label="Adresse" value={[member.adresse, member.cp && member.ville ? `${member.cp} ${member.ville}` : (member.cp||member.ville)].filter(Boolean).join(', ')}/>
+                                    </div>
+                                    {!phone && !member.email && !member.dateNaissance && !member.adresse && canEdit && (
+                                        <p className="text-center text-slate-400 text-sm py-4 italic">Aucune coordonnée renseignée. Cliquez sur « Modifier » pour en ajouter.</p>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function MemberCard({ member, view, onUpdate, onDelete, canEdit, showGrade }) {
+            const [showModal, setShowModal] = useState(false);
+            const phone = member.telephone || member.phone || '';
+            const displayName = (member.name || '').replace(/^(fr[eè]re|s[oœ]eur|f∴|s∴|f\.\s*|s\.\s*)\s*/i, '').trim();
+            const isOfficier = isOfficierRole(member.role);
+            const gradeClr = { 'Maître':'bg-amber-100 text-amber-800','Compagnon':'bg-emerald-100 text-emerald-800','Apprenti':'bg-blue-100 text-blue-800' };
+            const gc = gradeClr[member.grade] || 'bg-slate-100 text-slate-600';
+            const modal = showModal && (
+                <MemberDetailModal member={member} onClose={()=>setShowModal(false)} onUpdate={onUpdate} onDelete={onDelete} canEdit={canEdit}/>
             );
             if (view === 'list') return (
-                <div className="bg-white p-3 rounded-lg border flex items-center justify-between text-xs hover:border-amber-300 gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center border">
-                        {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={14} className="text-slate-300"/>}
+                <>
+                    {modal}
+                    <div className="bg-white p-3 rounded-lg border flex items-center justify-between text-xs hover:border-amber-300 gap-3 cursor-pointer" onClick={()=>setShowModal(true)}>
+                        <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center border">
+                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={14} className="text-slate-300"/>}
+                        </div>
+                        <span className="font-bold flex-1">{displayName}</span>
+                        <div className="flex gap-1 flex-wrap">
+                            {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
+                            {isOfficier && <span className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</span>}
+                        </div>
+                        <div className="text-slate-400 hidden md:block truncate max-w-[160px]">{member.email}</div>
+                        <SmartIcon name="ChevronRight" size={14} className="text-slate-300 flex-shrink-0"/>
                     </div>
-                    <span className="font-bold flex-1">{displayName}</span>
-                    <div className="flex gap-1 flex-wrap">
-                        {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
-                        {isOfficier && <span className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">{member.role}</span>}
-                    </div>
-                    <div className="text-slate-400 hidden md:block truncate max-w-[160px]">{member.email}</div>
-                    {canEdit && <button onClick={()=>sE(true)} className="p-1 text-slate-300 hover:text-amber-600 flex-shrink-0"><SmartIcon name="Edit2" size={14}/></button>}
-                </div>
+                </>
             );
             return (
-                <div className="bg-white rounded-xl border animate-fade overflow-hidden flex flex-col">
-                    <div className="p-4 flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-2 border-2 border-white shadow-sm flex-shrink-0">
-                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                <>
+                    {modal}
+                    <div className="bg-white rounded-xl border animate-fade overflow-hidden flex flex-col cursor-pointer hover:shadow-md hover:border-amber-200 transition-all" onClick={()=>setShowModal(true)}>
+                        <div className="p-4 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-2 border-2 border-white shadow-sm flex-shrink-0">
+                                {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                            </div>
+                            <h4 className="font-bold text-xs leading-tight mb-1">{displayName}</h4>
+                            {isOfficier && <p className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100 mb-1">{member.role}</p>}
+                            {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
                         </div>
-                        <h4 className="font-bold text-xs leading-tight mb-1">{displayName}</h4>
-                        {isOfficier && <p className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100 mb-1">{member.role}</p>}
-                        {showGrade && member.grade && <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${gc}`}>{member.grade}</span>}
+                        <div className="border-t bg-slate-50 px-3 py-2 text-[10px] text-slate-600 flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5"><SmartIcon name="Phone" size={10} className="text-slate-400 flex-shrink-0"/><span className="truncate">{phone||<span className="text-slate-300 italic">—</span>}</span></div>
+                            <div className="flex items-center gap-1.5"><SmartIcon name="Mail" size={10} className="text-slate-400 flex-shrink-0"/><span className="truncate">{member.email||<span className="text-slate-300 italic">—</span>}</span></div>
+                        </div>
                     </div>
-                    <div className="border-t bg-slate-50 px-3 py-2 text-[10px] text-slate-600 flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5"><SmartIcon name="Phone" size={10} className="text-slate-400 flex-shrink-0"/><span className="truncate">{phone||<span className="text-slate-300 italic">—</span>}</span></div>
-                        <div className="flex items-center gap-1.5"><SmartIcon name="Mail" size={10} className="text-slate-400 flex-shrink-0"/><span className="truncate">{member.email||<span className="text-slate-300 italic">—</span>}</span></div>
-                        {canEdit && <button onClick={()=>sE(true)} className="mt-1 self-end p-1 text-slate-300 hover:text-amber-600"><SmartIcon name="Edit2" size={12}/></button>}
-                    </div>
-                </div>
+                </>
             );
         }
 
