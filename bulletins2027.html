@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bulletins 2027 — Comte Guifred</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #1e293b; }
+        #status { text-align: center; padding: 20px; color: #64748b; }
+        #genBtn { display: block; margin: 20px auto; padding: 14px 36px; background: #b45309; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        #genBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+        #log { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 16px; font-size: 13px; color: #334155; line-height: 1.8; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+<h1>📋 Bulletins d'adhésion 2027</h1>
+<div id="status">Chargement Firebase…</div>
+<button id="genBtn" disabled>⬇ Générer les bulletins PDF</button>
+<div id="log"></div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { initializeAuth, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20",
+    authDomain: "site-cg51.firebaseapp.com",
+    projectId: "site-cg51",
+    storageBucket: "site-cg51.firebasestorage.app",
+    messagingSenderId: "532992433947",
+    appId: "1:532992433947:web:0ad401c53e6feeb0663dbe"
+};
+
+// Hérite du parent si iframe, sinon init propre
+let auth, db;
+try {
+    const p = window.parent?.FB_API;
+    if (p && p.auth && p.db) { auth = p.auth; db = p.db; }
+} catch(e) {}
+
+if (!auth) {
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    auth = initializeAuth(app, { persistence: browserLocalPersistence });
+    db = getFirestore(app);
+}
+
+const APPID = 'site-cg51';
+const statusEl = document.getElementById('status');
+const btn = document.getElementById('genBtn');
+const log = document.getElementById('log');
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        statusEl.textContent = '⚠️ Non connecté — ouvrez d\'abord le site principal puis revenez ici.';
+        return;
+    }
+    statusEl.textContent = `✅ Connecté : ${user.email}`;
+
+    // Charger les membres
+    const snap = await getDocs(collection(db, 'artifacts', APPID, 'public', 'data', 'members'));
+    const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    membres.sort((a,b)=>(a.nom||a.name||'').localeCompare(b.nom||b.name||'','fr'));
+
+    if (membres.length === 0) {
+        statusEl.textContent = '⚠️ Aucun membre trouvé dans Firestore.';
+        return;
+    }
+
+    log.innerHTML = membres.map((m,i) => {
+        const nom = m.nom || m.name || '—';
+        const tel = m.telephone || m.phone || m.tel || '';
+        return `<div>${i+1}. <b>${nom}</b>${tel ? ' — ' + tel : ' <span style="color:#ef4444">☎ pas de téléphone</span>'}</div>`;
+    }).join('');
+
+    statusEl.textContent = `✅ ${membres.length} membres chargés — prêt à générer`;
+    btn.disabled = false;
+
+    btn.onclick = () => genererPDFs(membres);
+});
+
+async function genererPDFs(membres) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Génération…';
+
+    // Charger jsPDF
+    await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+    });
+
+    const { jsPDF } = window.jspdf;
+
+    for (let i = 0; i < membres.length; i++) {
+        const m = membres[i];
+        const nom = (m.nom || m.name || '').trim();
+        const prenom = (m.prenom || m.firstName || '').trim();
+        const tel = (m.telephone || m.phone || m.tel || '').trim();
+
+        const nomComplet = prenom ? `${nom} ${prenom}` : nom;
+        const parts = nom.includes(' ') && !prenom ? nom.split(' ') : null;
+        const nomSeul = parts ? parts[0] : nom;
+        const prenomSeul = parts ? parts.slice(1).join(' ') : prenom;
+
+        btn.textContent = `⏳ ${i+1}/${membres.length} — ${nomComplet}`;
+
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const W = 210, H = 297;
+
+        // ── EN-TÊTE ──────────────────────────────────────────────────────
+        doc.setFontSize(13); doc.setFont('helvetica','bold');
+        doc.text('COMTE GUIFRED FONDATEUR CATALOGNE', W/2, 14, { align:'center' });
+        doc.setFontSize(9); doc.setFont('helvetica','normal');
+        doc.text('Association loi 1901', W/2, 19, { align:'center' });
+        doc.text('Siège social : .......................................................', W/2, 23, { align:'center' });
+
+        // Année coin droit
+        doc.setFontSize(10); doc.setFont('helvetica','bold');
+        doc.text('ANNÉE 2027', 195, 14, { align:'right' });
+        doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text('Exercice du 1er janvier au 31 décembre', 195, 19, { align:'right' });
+        doc.text('2027', 195, 23, { align:'right' });
+
+        // Ligne séparatrice
+        doc.setLineWidth(0.4); doc.line(10, 26, 200, 26);
+
+        // Titre
+        doc.setFontSize(14); doc.setFont('helvetica','bold');
+        doc.text("BULLETIN D'ADHÉSION ET DE RÈGLEMENT", W/2, 33, { align:'center' });
+        doc.setFontSize(9); doc.setFont('helvetica','normal');
+        doc.text('Règlement par chèque ou par virement', W/2, 38, { align:'center' });
+
+        // ── SECTION 1 : IDENTITÉ ─────────────────────────────────────────
+        doc.setFillColor(30, 41, 59); doc.setTextColor(255,255,255);
+        doc.rect(10, 41, 190, 6, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('1 — IDENTITÉ DU MEMBRE', 12, 45.5);
+        doc.setTextColor(0,0,0);
+
+        // Champs Nom / Prénom
+        doc.setFontSize(9); doc.setFont('helvetica','normal');
+        doc.text('Nom :', 12, 53);
+        doc.line(22, 54, 100, 54);
+        doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.text(nomSeul || nom, 23, 53);
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text('Prénom :', 105, 53);
+        doc.line(120, 54, 200, 54);
+        doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.text(prenomSeul, 121, 53);
+
+        // Date de naissance / Téléphone
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text('Date de naissance :', 12, 61);
+        doc.line(46, 62, 100, 62);
+
+        doc.text('Téléphone :', 105, 61);
+        doc.line(122, 62, 200, 62);
+        doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.text(tel, 123, 61);
+
+        // Adresse
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text('Adresse postale :', 12, 69);
+        doc.line(43, 70, 200, 70);
+
+        doc.text('Code postal :', 12, 77);
+        doc.line(36, 78, 100, 78);
+        doc.text('Ville :', 105, 77);
+        doc.line(116, 78, 200, 78);
+
+        doc.text('Adresse e-mail :', 12, 85);
+        doc.line(41, 86, 200, 86);
+
+        // ── SECTION 2 : MODE DE RÈGLEMENT ────────────────────────────────
+        doc.setFillColor(30, 41, 59); doc.setTextColor(255,255,255);
+        doc.rect(10, 89, 190, 6, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('2 — MODE DE RÈGLEMENT', 12, 93.5);
+        doc.setTextColor(0,0,0);
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.rect(14, 98, 4, 4); doc.text('Chèque bancaire', 20, 101.5);
+        doc.rect(74, 98, 4, 4); doc.text('Virement bancaire', 80, 101.5);
+        doc.rect(140, 98, 4, 4); doc.text('Règlement à l\'année', 146, 101.5);
+
+        // ── SECTION 3 : SUIVI DES RÈGLEMENTS ─────────────────────────────
+        doc.setFillColor(30, 41, 59); doc.setTextColor(255,255,255);
+        doc.rect(10, 106, 190, 6, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('3 — SUIVI DES RÈGLEMENTS — ANNÉE 2027', 12, 110.5);
+        doc.setTextColor(0,0,0);
+
+        // En-tête tableau
+        doc.setFillColor(240,240,240);
+        doc.rect(10, 113, 190, 6, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(8);
+        doc.text('Mois 2027', 55, 117.2, { align:'center' });
+        doc.text('Montant du règlement', 120, 117.2, { align:'center' });
+        doc.text('Date du règlement', 175, 117.2, { align:'center' });
+        doc.line(10, 113, 200, 113); doc.line(10, 119, 200, 119);
+        doc.line(10, 113, 10, 119); doc.line(100, 113, 100, 119); doc.line(150, 113, 150, 119); doc.line(200, 113, 200, 119);
+
+        const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        mois.forEach((m2, idx) => {
+            const y = 119 + idx * 8;
+            doc.text(m2, 12, y + 5.5);
+            doc.line(10, y, 200, y);
+            doc.line(10, y+8, 200, y+8);
+            doc.line(10, y, 10, y+8);
+            doc.line(100, y, 100, y+8);
+            doc.line(150, y, 150, y+8);
+            doc.line(200, y, 200, y+8);
+        });
+
+        const afterTable = 119 + 12*8; // = 215
+
+        // ── SECTION 4 : COORDONNÉES DE PAIEMENT ──────────────────────────
+        doc.setFillColor(30, 41, 59); doc.setTextColor(255,255,255);
+        doc.rect(10, afterTable, 190, 6, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('4 — COORDONNÉES DE PAIEMENT DE L\'ASSOCIATION', 12, afterTable + 4.5);
+        doc.setTextColor(0,0,0);
+
+        const p4y = afterTable + 8;
+        doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text('Par chèque', 12, p4y);
+        doc.setFont('helvetica','normal');
+        doc.text('À libeller à l\'ordre de :', 12, p4y+5);
+        doc.setFont('helvetica','bold');
+        doc.text('COMTE GUIFRED FONDATEUR CATALOGNE', 12, p4y+10);
+        doc.setFont('helvetica','normal');
+        doc.text('À remettre ou à adresser à :', 12, p4y+15);
+        doc.text('............................................', 12, p4y+20);
+        doc.text('Inscrire au dos les nom, prénom et le(s) mois concerné(s).', 12, p4y+25);
+
+        doc.line(105, p4y-3, 105, p4y+28);
+        doc.setFont('helvetica','bold');
+        doc.text('Par virement', 108, p4y);
+        doc.setFont('helvetica','normal');
+        doc.text('Titulaire : COMTE GUIFRED FONDATEUR CATALOGNE', 108, p4y+5);
+        doc.text('IBAN : FR76 1005 7192 6300 0203 5400 143', 108, p4y+10);
+        doc.text('BIC : CMCIFRPP — Domiciliation : CIC SAINT ESTEVE', 108, p4y+15);
+        doc.text('Libellé du virement : NOM Prénom + mois concerné(s).', 108, p4y+20);
+
+        // Cadre section 4
+        doc.rect(10, p4y-3, 190, 32);
+
+        // ── SECTION 5 : ENGAGEMENT ────────────────────────────────────────
+        const p5y = p4y + 32;
+        doc.setFillColor(30, 41, 59); doc.setTextColor(255,255,255);
+        doc.rect(10, p5y, 190, 6, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('5 — ENGAGEMENT ET SIGNATURE DU MEMBRE', 12, p5y + 4.5);
+        doc.setTextColor(0,0,0);
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+        doc.rect(12, p5y+8, 4, 4);
+        doc.text('Je soussigné(e), membre de l\'association, certifie exactes les informations portées ci-dessus, déclare avoir pris', 18, p5y+11);
+        doc.text('connaissance des statuts et du règlement intérieur, et m\'engage à régler les sommes dues au titre de l\'année 2027.', 18, p5y+16);
+
+        doc.setFontSize(9);
+        doc.text('Fait à :', 12, p5y+26);
+        doc.line(28, p5y+27, 100, p5y+27);
+        doc.text('Le :', 12, p5y+34);
+        doc.line(20, p5y+35, 100, p5y+35);
+
+        doc.setFont('helvetica','bold');
+        doc.text('Signature du membre', 140, p5y+26);
+        doc.setFont('helvetica','italic'); doc.setFontSize(8);
+        doc.text('(précédée de la mention « Lu et approuvé »)', 140, p5y+31);
+        doc.rect(130, p5y+24, 70, 18);
+
+        // Pied de page
+        const pfY = H - 18;
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
+        doc.text('Cadre réservé à l\'association : reçu n° ____________ • Enregistré le ____ / ____ / 2027 • Visa du trésorier ____________', 10, pfY);
+        doc.setFontSize(6.5);
+        doc.text('Les informations recueillies sont destinées au seul usage interne de l\'association (gestion des adhésions et de la comptabilité). Conformément au', 10, pfY+5);
+        doc.text('RGPD, vous disposez d\'un droit d\'accès, de rectification et de suppression des données vous concernant.', 10, pfY+9);
+
+        doc.save(`Bulletin_2027_${nomComplet.replace(/\s+/g,'_')}.pdf`);
+
+        // Petite pause pour ne pas bloquer le navigateur
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    btn.textContent = `✅ ${membres.length} PDF téléchargés !`;
+    btn.disabled = false;
+}
+</script>
+</body>
+</html>
