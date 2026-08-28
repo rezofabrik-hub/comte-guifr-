@@ -2642,17 +2642,21 @@
         }
 
         function MembresComptesSection({ api, FB_KEY }) {
-            const [membres, setMembres] = React.useState([]);
+            const [membres, setMembres] = React.useState([]); // [{id, ...data}]
             const [statuts, setStatuts] = React.useState({});
             const [creerTout, setCreerTout] = React.useState(false);
+            const [editPwd, setEditPwd] = React.useState({}); // {docId: newPwd}
+            const [showPwd, setShowPwd] = React.useState({});
 
-            React.useEffect(() => {
+            const loadMembres = React.useCallback(() => {
                 const col = api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'members');
                 api.getDocs(col).then(snap => {
-                    const list = snap.docs.map(d => d.data()).filter(m => m.name);
+                    const list = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => m.name);
                     setMembres(list);
                 }).catch(()=>{});
             }, [api]);
+
+            React.useEffect(() => { loadMembres(); }, [loadMembres]);
 
             const normEmail = (name) => name.trim().toLowerCase()
                 .normalize("NFD").replace(/[̀-ͯ]/g,"")
@@ -2664,7 +2668,7 @@
                 const gradeKey = grade.includes('maitre')||grade.includes('matre') ? 'maitre'
                     : grade.includes('compagnon') ? 'compagnon'
                     : grade.includes('tresor') ? 'tresorier' : 'apprenti';
-                return { email: `${gradeKey}.${normEmail(m.name)}@${LOGE_EMAIL_DOMAIN}`, gradeKey };
+                return `${gradeKey}.${normEmail(m.name)}@${LOGE_EMAIL_DOMAIN}`;
             };
 
             const genPwd = (name) => {
@@ -2672,23 +2676,77 @@
                 return parts.map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join('')+'27!';
             };
 
+            const fbSignIn = async (email, pwd) => {
+                const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`,{
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ email, password: pwd, returnSecureToken: true })
+                });
+                return r.json();
+            };
+
             const creerCompte = async (m) => {
-                const id = m.name;
+                const id = m.id;
                 setStatuts(s=>({...s,[id]:'...'}));
-                const { email } = genEmail(m);
-                const pwd = genPwd(m.name);
+                const email = m.accountEmail || genEmail(m);
+                const pwd = m.accountPwd || genPwd(m.name);
                 try {
                     const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_KEY}`,{
                         method:'POST', headers:{'Content-Type':'application/json'},
                         body: JSON.stringify({ email, password: pwd, returnSecureToken: true })
                     });
                     const d = await r.json();
-                    if (d.error) {
-                        if (d.error.message === 'EMAIL_EXISTS') setStatuts(s=>({...s,[id]:'existe'}));
-                        else setStatuts(s=>({...s,[id]:'err:'+d.error.message}));
-                    } else {
-                        setStatuts(s=>({...s,[id]:'ok'}));
+                    if (d.error && d.error.message !== 'EMAIL_EXISTS') {
+                        setStatuts(s=>({...s,[id]:'err:'+d.error.message}));
+                        return;
                     }
+                    // Sauvegarder email+pwd dans le doc membre
+                    await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountEmail: email, accountPwd: pwd });
+                    setStatuts(s=>({...s,[id]: d.error ? 'existe' : 'ok'}));
+                    loadMembres();
+                } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
+            };
+
+            const changerMotDePasse = async (m) => {
+                const id = m.id;
+                const newPwd = (editPwd[id]||'').trim();
+                if (!newPwd || newPwd.length < 6) return alert('Mot de passe trop court (min 6 caractères).');
+                setStatuts(s=>({...s,[id]:'pwd...'}));
+                const email = m.accountEmail || genEmail(m);
+                const currentPwd = m.accountPwd || genPwd(m.name);
+                try {
+                    const sign = await fbSignIn(email, currentPwd);
+                    if (!sign.idToken) { setStatuts(s=>({...s,[id]:'err:connexion'})); return; }
+                    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_KEY}`,{
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ idToken: sign.idToken, password: newPwd, returnSecureToken: true })
+                    });
+                    const d = await r.json();
+                    if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
+                    await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountPwd: newPwd });
+                    setEditPwd(e=>({...e,[id]:''}));
+                    setStatuts(s=>({...s,[id]:'pwd_ok'}));
+                    loadMembres();
+                } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
+            };
+
+            const supprimerCompte = async (m) => {
+                if (!confirm(`Supprimer le compte de ${m.name} ?`)) return;
+                const id = m.id;
+                setStatuts(s=>({...s,[id]:'del...'}));
+                const email = m.accountEmail || genEmail(m);
+                const pwd = m.accountPwd || genPwd(m.name);
+                try {
+                    const sign = await fbSignIn(email, pwd);
+                    if (!sign.idToken) { setStatuts(s=>({...s,[id]:'err:connexion'})); return; }
+                    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FB_KEY}`,{
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ idToken: sign.idToken })
+                    });
+                    const d = await r.json();
+                    if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
+                    await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountEmail: '', accountPwd: '' });
+                    setStatuts(s=>({...s,[id]:'del_ok'}));
+                    loadMembres();
                 } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
             };
 
@@ -2714,22 +2772,46 @@
                         </button>
                     </div>
                     <div className="text-[10px] text-slate-500 font-sans bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        Email : <strong>grade.prenom.nom@{LOGE_EMAIL_DOMAIN}</strong> · Mot de passe : <strong>PrenomNom27!</strong><br/>
-                        Les comptes Architecte et VM sont exclus — ils gardent leurs identifiants actuels.
+                        Email généré : <strong>grade.prenom.nom@{LOGE_EMAIL_DOMAIN}</strong> · Mot de passe initial : <strong>PrenomNom27!</strong><br/>
+                        Les comptes Architecte et VM gardent leurs identifiants actuels.
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {membres.map(m => {
-                            const { email } = genEmail(m);
-                            const pwd = genPwd(m.name);
-                            const st = statuts[m.name];
+                            const email = m.accountEmail || genEmail(m);
+                            const pwd = m.accountPwd || genPwd(m.name);
+                            const hasAccount = !!(m.accountEmail && m.accountEmail.length > 0);
+                            const st = statuts[m.id] || '';
+                            const isShowPwd = showPwd[m.id];
                             return (
-                                <div key={m.name} className="flex flex-wrap items-center gap-2 border border-slate-100 rounded-xl px-3 py-2 text-xs font-sans">
-                                    <span className="font-bold text-slate-700 w-32 truncate">{m.name}</span>
-                                    <span className="text-blue-600 font-mono text-[10px] flex-1 min-w-32">{email}</span>
-                                    <span className="text-slate-400 font-mono text-[10px]">{pwd}</span>
-                                    <button onClick={()=>creerCompte(m)} disabled={!!st} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all font-sans disabled:opacity-40">
-                                        {st === 'ok' ? '✓ Créé' : st === 'existe' ? '✓ Existe' : st === '...' ? '...' : st?.startsWith('err') ? '✗ Erreur' : 'Créer'}
-                                    </button>
+                                <div key={m.id} className="border border-slate-100 rounded-xl px-3 py-3 space-y-2 text-xs font-sans">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-bold text-slate-700 w-28 truncate">{m.name}</span>
+                                        <span className="text-blue-600 font-mono text-[10px] flex-1 min-w-32">{email}</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-mono text-[10px] text-slate-500">{isShowPwd ? pwd : '••••••••'}</span>
+                                            <button type="button" onClick={()=>setShowPwd(s=>({...s,[m.id]:!s[m.id]}))} className="text-slate-300 hover:text-amber-600 text-[10px] px-1">👁</button>
+                                        </div>
+                                        {!hasAccount
+                                            ? <button onClick={()=>creerCompte(m)} disabled={st==='...'} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40">
+                                                {st==='...'?'...':st==='ok'?'✓ Créé':st==='existe'?'✓ Existe':st.startsWith('err')?'✗ Erreur':'Créer'}
+                                              </button>
+                                            : <span className="text-green-600 text-[10px] font-bold">✓ Actif</span>
+                                        }
+                                        {hasAccount && <button onClick={()=>supprimerCompte(m)} disabled={st.includes('...')} className="text-red-400 hover:text-red-600 font-bold text-[10px] px-2 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all disabled:opacity-40">
+                                            {st==='del...'?'...':st==='del_ok'?'✓ Supprimé':'Supprimer'}
+                                        </button>}
+                                    </div>
+                                    {hasAccount && (
+                                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-50">
+                                            <span className="text-[10px] text-slate-400">Nouveau mdp :</span>
+                                            <input type="text" placeholder="Nouveau mot de passe..." value={editPwd[m.id]||''} onChange={e=>setEditPwd(p=>({...p,[m.id]:e.target.value}))}
+                                                className="flex-1 min-w-32 border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:border-amber-400" />
+                                            <button onClick={()=>changerMotDePasse(m)} disabled={!editPwd[m.id] || st==='pwd...'} className="bg-slate-700 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40">
+                                                {st==='pwd...'?'...':st==='pwd_ok'?'✓ Modifié':'Modifier'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {st.startsWith('err') && <div className="text-red-500 text-[10px]">{st.replace('err:','Erreur : ')}</div>}
                                 </div>
                             );
                         })}
