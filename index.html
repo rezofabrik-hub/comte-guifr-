@@ -106,6 +106,21 @@
         // @@LODGE_EMAILS_END@@
         const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
+        const downloadFile = async (url, name) => {
+            try {
+                const resp = await fetch(url);
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+            } catch(e) {
+                window.open(url, '_blank');
+            }
+        };
+
         const analyzeODJWithAI = async (file, apiKey) => {
             const ab = await file.arrayBuffer();
             const bytes = new Uint8Array(ab);
@@ -273,8 +288,8 @@
                                         <p className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2"><SmartIcon name="KeyRound" size={14}/> Récupération d'accès</p>
                                         <p className="text-slate-300 text-xs leading-relaxed mb-3">Contactez le <strong className="text-white">Vénérable Maître</strong> ou l'<strong className="text-white">Architecte du Temple</strong> pour récupérer vos identifiants :</p>
                                         <div className="space-y-2">
-                                            <a href={`mailto:${GRADE_ACCOUNTS.vm}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {GRADE_ACCOUNTS.vm}</a>
-                                            <a href={`mailto:${ARCHITECT_ACCOUNT}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {ARCHITECT_ACCOUNT}</a>
+                                            <a href={`mailto:${GRADE_ACCOUNTS.vm}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {GRADE_ACCOUNTS.vm}</button>
+                                            <a href={`mailto:${ARCHITECT_ACCOUNT}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {ARCHITECT_ACCOUNT}</button>
                                         </div>
                                     </div>
                                 )}
@@ -704,9 +719,9 @@
                                                             </div>
                                                         </div>
                                                         {tenue.odjFile && (
-                                                            <a href={tenue.odjFile.data} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
+                                                            <button onClick={()=>downloadFile(tenue.odjFile.data, tenue.odjFile.name)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
                                                                 <SmartIcon name="Download" size={14}/> PDF ODJ
-                                                            </a>
+                                                            </button>
                                                         )}
                                                     </div>
                                                     
@@ -794,7 +809,7 @@
                                             const contact = nextTenue?.agapes || logeIdentity?.maitreBanquet;
                                             const tel = logeIdentity?.telBanquet;
                                             if (!contact) return null;
-                                            return <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>{contact}</strong>{tel ? <> au <a href={`tel:${tel.replace(/\s/g,'')}`} className="text-amber-700 font-bold hover:underline font-sans">{tel}</a></> : ''} au moins <strong>48h à l'avance</strong>.</p>;
+                                            return <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>{contact}</strong>{tel ? <> au <a href={`tel:${tel.replace(/\s/g,'')}`} className="text-amber-700 font-bold hover:underline font-sans">{tel}</button></> : ''} au moins <strong>48h à l'avance</strong>.</p>;
                                         })()}
                                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex justify-between items-center">
                                             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Prix agapes</p>
@@ -812,7 +827,7 @@
                                                     <a href={nextTenue.lienFramadate} target="_blank" rel="noopener noreferrer" className="block w-full bg-amber-100 hover:bg-amber-200 text-amber-800 text-center py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors shadow-sm font-sans">
                                                         <SmartIcon name="ExternalLink" size={12} className="inline mr-2" />
                                                         S'inscrire aux Agapes
-                                                    </a>
+                                                    </button>
                                                 )}
                                                 {(nextTenue.entree || nextTenue.plat || nextTenue.dessert) && (
                                                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 font-sans">
@@ -1399,9 +1414,9 @@
                                     )}
                                     {i.odjFile && (
                                         <div className="mt-2">
-                                            <a href={i.odjFile.data} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
+                                            <button onClick={()=>downloadFile(i.odjFile.data, i.odjFile.name)} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
                                                 <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
-                                            </a>
+                                            </button>
                                         </div>
                                     )}
 
@@ -1500,7 +1515,7 @@
                                         <div className="flex-grow min-w-0 font-serif font-bold"><p className="leading-tight truncate">{new Date(f.date).toLocaleDateString('fr-FR')}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-1 truncate font-sans">{f.type}</p></div>
                                     </div>
                                     <div className="flex items-center gap-2 border-t pt-4 mt-auto font-sans">
-                                        <a href={f.odjFile.data} target="_blank" rel="noopener noreferrer" className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</a>
+                                        <button onClick={()=>downloadFile(f.odjFile.data, f.odjFile.name)} className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</button>
                                         {canEdit && (
                                             <ConfirmButton onConfirm={async()=>{ await handleRemoveFile(f.id); }} className="p-2.5 text-slate-300 hover:text-red-500 transition-colors font-sans" size={18} />
                                         )}
@@ -1919,14 +1934,14 @@
                                     <div className="flex flex-col items-end gap-2">
                                         <a href={reglementFile.data} download={reglementFile.name} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
                                             <SmartIcon name="Download" size={16} className="mr-2"/> TÉLÉCHARGER LE PDF
-                                        </a>
+                                        </button>
                                         {reglementFile.modifiedAt && <p className="text-slate-500 text-[10px]">Mis à jour le {new Date(reglementFile.modifiedAt).toLocaleDateString('fr-FR')}</p>}
                                         {reglementFile.history && reglementFile.history.length > 0 && (
                                             <details className="text-[10px] text-slate-400 text-right">
                                                 <summary className="cursor-pointer hover:text-amber-400">Historique ({reglementFile.history.length} version{reglementFile.history.length>1?'s':''})</summary>
                                                 <div className="mt-1 space-y-1">
                                                     {reglementFile.history.slice(-5).reverse().map((v,i)=>(
-                                                        <div key={i}><a href={v.data} download={v.name} className="text-amber-400 hover:underline">{v.name}</a> — {new Date(v.modifiedAt).toLocaleDateString('fr-FR')}</div>
+                                                        <div key={i}><a href={v.data} download={v.name} className="text-amber-400 hover:underline">{v.name}</button> — {new Date(v.modifiedAt).toLocaleDateString('fr-FR')}</div>
                                                     ))}
                                                 </div>
                                             </details>
@@ -1980,7 +1995,7 @@
                                                     <a href={b.docFile.data} download={b.docFile.name} className="mt-2 mb-4 block w-full bg-slate-800 hover:bg-slate-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
                                                         <SmartIcon name="Download" size={12} className="inline mr-2" />
                                                         Télécharger le Document
-                                                    </a>
+                                                    </button>
                                                 )}
 
                                                 <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
@@ -2043,7 +2058,7 @@
                                 <p className="text-slate-300 text-sm mb-10 leading-relaxed italic font-serif">"Création, assistance et maintenance de la Loge Virtuelle. Toujours sur les colonnes en cas de besoin."</p>
                                 <a href="tel:0684059255" className="inline-flex items-center bg-amber-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-widest shadow-lg hover:bg-amber-500 transition-colors">
                                     <SmartIcon name="Phone" size={18} className="mr-3"/> 06 84 05 92 55
-                                </a>
+                                </button>
                             </div>
                         </div>
                     )}
@@ -2077,7 +2092,7 @@
                                         <p className="text-sm text-slate-500 mt-3 flex-grow leading-relaxed font-serif italic">"{l.d}"</p>
                                         <a href={l.u} target="_blank" rel="noopener noreferrer" className="mt-5 pt-4 border-t border-slate-100 text-amber-600 font-bold text-[10px] tracking-widest flex items-center uppercase hover:text-amber-800 w-fit">
                                             VISITER LE SITE <SmartIcon name="ExternalLink" size={12} className="ml-2"/>
-                                        </a>
+                                        </button>
                                     </>
                                 )}
                             </div>
@@ -2135,7 +2150,7 @@
                             <div className="relative z-10"><div className="flex gap-2 mb-4"><span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase">{planche.docType==='tracee'?'PV':'PLANCHE'}</span><span className="bg-slate-700 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase">{planche.grade}</span></div>
                             <h1 className="text-3xl font-serif font-bold mb-4">{planche.title}</h1><div className="text-slate-400 text-sm flex gap-6"><span>{new Date(planche.date).toLocaleDateString('fr-FR')}</span><span>PAR {planche.author}</span></div></div>
                         </div>
-                        <div className="p-10">{planche.pdfFile && <div className="mb-8 p-4 bg-slate-50 border rounded-xl flex items-center justify-between"><div className="flex items-center space-x-3 text-sm font-bold"><SmartIcon name="FileText" className="text-red-500"/><span className="truncate max-w-xs">{planche.pdfFile.name}</span></div><a href={planche.pdfFile.data} download={planche.pdfFile.name} className="bg-amber-600 text-white px-6 py-2 rounded-lg font-bold text-xs">TÉLÉCHARGER LE PDF</a></div>}
+                        <div className="p-10">{planche.pdfFile && <div className="mb-8 p-4 bg-slate-50 border rounded-xl flex items-center justify-between"><div className="flex items-center space-x-3 text-sm font-bold"><SmartIcon name="FileText" className="text-red-500"/><span className="truncate max-w-xs">{planche.pdfFile.name}</span></div><a href={planche.pdfFile.data} download={planche.pdfFile.name} className="bg-amber-600 text-white px-6 py-2 rounded-lg font-bold text-xs">TÉLÉCHARGER LE PDF</button></div>}
                         <div className="prose prose-slate max-w-none text-slate-800 whitespace-pre-wrap font-serif leading-relaxed text-lg">{planche.content}</div></div>
                         {isA && !planche.fromTenue && <div className="p-6 bg-slate-50 border-t flex justify-end">{!s ? <button onClick={()=>sS(true)} className="text-red-500 text-xs font-bold flex items-center"><SmartIcon name="Trash2" size={12} className="mr-1"/> SUPPRIMER</button> : <div className="flex gap-3 items-center text-xs"><span className="font-bold text-red-800">SÛR ?</span><button onClick={()=>sS(false)} className="underline">NON</button><button onClick={async()=>await onDelete(planche.id)} className="bg-red-600 text-white px-4 py-1 rounded font-bold">OUI</button></div>}</div>}
                         {planche.fromTenue && planche.tenueDate && <div className="p-4 bg-amber-50 border-t text-xs text-amber-700 font-bold flex items-center gap-2"><SmartIcon name="Calendar" size={12}/> Planche présentée lors de la tenue du {new Date(planche.tenueDate+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</div>}
