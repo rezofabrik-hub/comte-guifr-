@@ -1929,7 +1929,7 @@
                                     <div className="flex flex-col items-end gap-2">
                                         <a href={reglementFile.data} download={reglementFile.name} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
                                             <SmartIcon name="Download" size={16} className="mr-2"/> TÉLÉCHARGER LE PDF
-                                        </button>
+                                        </a>
                                         {reglementFile.modifiedAt && <p className="text-slate-500 text-[10px]">Mis à jour le {new Date(reglementFile.modifiedAt).toLocaleDateString('fr-FR')}</p>}
                                         {reglementFile.history && reglementFile.history.length > 0 && (
                                             <details className="text-[10px] text-slate-400 text-right">
@@ -2053,7 +2053,7 @@
                                 <p className="text-slate-300 text-sm mb-10 leading-relaxed italic font-serif">"Création, assistance et maintenance de la Loge Virtuelle. Toujours sur les colonnes en cas de besoin."</p>
                                 <a href="tel:0684059255" className="inline-flex items-center bg-amber-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-widest shadow-lg hover:bg-amber-500 transition-colors">
                                     <SmartIcon name="Phone" size={18} className="mr-3"/> 06 84 05 92 55
-                                </button>
+                                </a>
                             </div>
                         </div>
                     )}
@@ -2087,7 +2087,7 @@
                                         <p className="text-sm text-slate-500 mt-3 flex-grow leading-relaxed font-serif italic">"{l.d}"</p>
                                         <a href={l.u} target="_blank" rel="noopener noreferrer" className="mt-5 pt-4 border-t border-slate-100 text-amber-600 font-bold text-[10px] tracking-widest flex items-center uppercase hover:text-amber-800 w-fit">
                                             VISITER LE SITE <SmartIcon name="ExternalLink" size={12} className="ml-2"/>
-                                        </button>
+                                        </a>
                                     </>
                                 )}
                             </div>
