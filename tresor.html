@@ -1632,8 +1632,13 @@
 
             const saveSettings = async () => {
                 setSaving(true);
-                await onSaveSettings({ ...sf, montantCotis: parseFloat(sf.montantCotis)||0 });
-                setSaving(false);
+                try {
+                    await onSaveSettings({ ...sf, montantCotis: parseFloat(sf.montantCotis)||0 });
+                } catch(e) {
+                    alert('Erreur sauvegarde : ' + e.message);
+                } finally {
+                    setSaving(false);
+                }
             };
 
             const fmtDN = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
