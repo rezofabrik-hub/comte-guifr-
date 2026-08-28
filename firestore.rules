@@ -28,10 +28,13 @@ service cloud.firestore {
     }
 
     // startsWith/endsWith ne sont pas supportés en Firestore rules → utiliser split('@') et matches()
+    // Supporte : grade@domain (compte partagé) ET grade.prenom.nom@domain (compte individuel)
     function hasRole(role) {
       let parts = userEmail().split('@');
+      let local = parts[0];
       let domain = parts[1];
-      return parts[0] == role &&
+      let prefix = local.split('.')[0];
+      return (local == role || prefix == role) &&
              (domain == 'cg51-virtuel.fr' || domain.matches('.*\\.velum\\.fr'));
     }
 
