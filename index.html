@@ -85,9 +85,8 @@
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
-                        const { ref: sRef, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js");
                         const path = `${LOGE_APP_ID}/${folder}/${Date.now()}_${file.name}`;
-                        const r = sRef(storage, path);
+                        const r = storageRef(storage, path);
                         await uploadBytes(r, file);
                         return await getDownloadURL(r);
                     }
@@ -106,19 +105,15 @@
         // @@LODGE_EMAILS_END@@
         const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
-        const downloadFile = async (url, name) => {
-            try {
-                const resp = await fetch(url);
-                const blob = await resp.blob();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = name;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-            } catch(e) {
-                window.open(url, '_blank');
-            }
+        const downloadFile = (url, name) => {
+            if (!url || url === name) return; // ancien format invalide
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         };
 
         const analyzeODJWithAI = async (file, apiKey) => {
