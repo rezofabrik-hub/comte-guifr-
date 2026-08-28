@@ -714,7 +714,7 @@
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {tenue.odjFile && canSee(tenue.odjVisibility || tenue.visibility) && (
+                                                        {tenue.odjFile && canSee(tenue.odjVisibility || 'Apprenti') && (
                                                             <button onClick={()=>downloadFile(tenue.odjFile.data, tenue.odjFile.name)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
                                                                 <SmartIcon name="Download" size={14}/> PDF ODJ
                                                             </button>
@@ -1391,7 +1391,7 @@
             const upcomingItems = items.filter(i => new Date(i.date) >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
             const pastItems = items.filter(i => new Date(i.date) < today).sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            const docs = items.filter(i => i.odjFile && canSee(i.odjVisibility || i.visibility));
+            const docs = items.filter(i => i.odjFile && canSee(i.odjVisibility || 'Apprenti'));
 
             const handleRemoveFile = async (id) => {
                 const api = window.FB_API;
@@ -1426,7 +1426,7 @@
                                             </div>
                                         </div>
                                     )}
-                                    {i.odjFile && canSee(i.odjVisibility || i.visibility) && (
+                                    {i.odjFile && canSee(i.odjVisibility || 'Apprenti') && (
                                         <div className="mt-2">
                                             <button onClick={()=>downloadFile(i.odjFile.data, i.odjFile.name)} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
                                                 <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
@@ -1986,7 +1986,7 @@
                                 <line x1="59" y1="52" x2="70" y2="44" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6"/>
                                 <line x1="50" y1="49" x2="50" y2="36" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6"/>
                             </svg>
-                            <h3 className="text-lg uppercase tracking-widest font-bold font-serif">Travaux Couverts</h3>
+                            <h3 className="text-lg uppercase tracking-widest font-bold font-serif">Planche</h3>
                             <p className="text-slate-400 text-sm mt-2 font-serif italic">Le Temple est fermé. Déverrouillez votre grade pour entrer.</p>
                         </div>
                     ) : list.length === 0 && !isA ? (
@@ -2790,7 +2790,7 @@
 
                                 <div className="w-px h-6 bg-slate-700 mx-2 hidden lg:block"></div>
                                 <div className="relative font-sans">
-                                    <button onClick={() => setShowGradesMenu(!showGradesMenu)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${['apprenti','compagnon','maitre','read','write'].includes(activeView) ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>Travaux Couverts</button>
+                                    <button onClick={() => setShowGradesMenu(!showGradesMenu)} className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${['apprenti','compagnon','maitre','read','write'].includes(activeView) ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>Planche</button>
                                     {showGradesMenu && (
                                         <div className="absolute top-full mt-2 right-0 w-40 rounded-xl shadow-2xl bg-slate-800 border border-slate-700 z-50 flex flex-col overflow-hidden animate-fade font-serif">
                                             {['apprenti', 'compagnon', 'maitre'].map(g => {
