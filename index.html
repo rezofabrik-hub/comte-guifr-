@@ -1250,7 +1250,9 @@
             const handleFileChange = (e) => {
                 const file = e.target.files[0]; if(!file) return;
                 setPendingFile(file);
-                s(prev => ({...prev, odjFile: { name: file.name, data: file.name }}));
+                const reader = new FileReader();
+                reader.onload = () => s(prev => ({...prev, odjFile: { name: file.name, data: reader.result }}));
+                reader.readAsDataURL(file);
             };
 
             const handleAnalyzeAI = async () => {
