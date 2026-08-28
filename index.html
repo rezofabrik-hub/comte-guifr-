@@ -714,7 +714,7 @@
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {tenue.odjFile && (
+                                                        {tenue.odjFile && canSee(tenue.visibility) && (
                                                             <button onClick={()=>downloadFile(tenue.odjFile.data, tenue.odjFile.name)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
                                                                 <SmartIcon name="Download" size={14}/> PDF ODJ
                                                             </button>
@@ -1374,7 +1374,7 @@
             const upcomingItems = items.filter(i => new Date(i.date) >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
             const pastItems = items.filter(i => new Date(i.date) < today).sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            const docs = items.filter(i => i.odjFile);
+            const docs = items.filter(i => i.odjFile && canSee(i.visibility));
 
             const handleRemoveFile = async (id) => {
                 const api = window.FB_API;
@@ -1409,7 +1409,7 @@
                                             </div>
                                         </div>
                                     )}
-                                    {i.odjFile && (
+                                    {i.odjFile && canSee(i.visibility) && (
                                         <div className="mt-2">
                                             <button onClick={()=>downloadFile(i.odjFile.data, i.odjFile.name)} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
                                                 <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
