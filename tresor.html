@@ -2255,7 +2255,10 @@
             const addPlanche = async d => await api.addDoc(path('tresor_planches'),d);
             const deletePlanche = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_planches',id));
 
-            const saveSettings = async d => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'),d);
+            const saveSettings = async d => {
+                const plain = JSON.parse(JSON.stringify(d));
+                await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'), plain);
+            };
 
             const resetAllData = async () => {
                 if(!confirm('⚠️ Remettre à zéro TOUTES les données ?\n\nCela supprimera :\n• Toutes les cotisations\n• Toutes les transactions\n• Toutes les agapes\n• Toutes les charges\n• Toutes les planches\n\nLes membres et paramètres seront conservés.\n\nCette action est IRRÉVERSIBLE.')) return;
