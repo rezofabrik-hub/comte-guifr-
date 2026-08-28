@@ -2921,6 +2921,7 @@
                             setLoginGradeKey(gradeKey);
                             setIsTresorier(gradeKey==='tresorier');
                             setMemberRole(gradeKey==='vm'?'Vénérable Maître':gradeKey==='tresorier'?'Trésorier':gradeKey==='secretaire'?'Secrétaire':'');
+                            if (gradeKey==='secretaire') setActiveView('agenda');
                             setIsLogged(true);
                         } else {
                             // Compte membre individuel : grade.prenom.nom@domain
@@ -2972,9 +2973,10 @@
                         setIsTresorier(gradeKey === 'tresorier');
                         setLoginGradeKey(gradeKey);
                         setMemberName(n.trim());
-                        setMemberRole(gradeKey === 'tresorier' ? 'Trésorier' : '');
+                        setMemberRole(gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
                         setMemberGenre(genre || 'frere');
                         setPendingNameMatch(n.trim());
+                        if (gradeKey === 'secretaire') setActiveView('agenda');
                         setIsLogged(true); setFbError(null);
                         return;
                     } catch(e) { /* pas de compte individuel, essai compte grade */ }
@@ -2993,6 +2995,7 @@
                 setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
                 setMemberGenre(genre || 'frere');
                 setPendingNameMatch(n.trim());
+                if (gradeKey === 'secretaire') setActiveView('agenda');
                 setIsLogged(true); setFbError(null);
             };
 
