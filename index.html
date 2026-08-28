@@ -100,7 +100,7 @@
         const { useState, useEffect, useMemo, useCallback } = React;
 
         // @@LODGE_EMAILS_START@@
-        const GRADE_ACCOUNTS = { apprenti: `apprenti@${LOGE_EMAIL_DOMAIN}`, compagnon: `compagnon@${LOGE_EMAIL_DOMAIN}`, maitre: `maitre@${LOGE_EMAIL_DOMAIN}`, tresorier: `tresorier@${LOGE_EMAIL_DOMAIN}`, vm: `vm@${LOGE_EMAIL_DOMAIN}` };
+        const GRADE_ACCOUNTS = { apprenti: `apprenti@${LOGE_EMAIL_DOMAIN}`, compagnon: `compagnon@${LOGE_EMAIL_DOMAIN}`, maitre: `maitre@${LOGE_EMAIL_DOMAIN}`, tresorier: `tresorier@${LOGE_EMAIL_DOMAIN}`, vm: `vm@${LOGE_EMAIL_DOMAIN}`, secretaire: `secretaire@${LOGE_EMAIL_DOMAIN}` };
         const ARCHITECT_ACCOUNT = `architecte@${LOGE_EMAIL_DOMAIN}`;
         // @@LODGE_EMAILS_END@@
         const TRESOR_GRADES = ['tresorier', 'vm'];
@@ -248,7 +248,7 @@
                 else setDetected(null);
             }, [n, members]);
 
-            const GRADE_LABELS_LOGIN = { apprenti:'Apprenti', compagnon:'Compagnon', maitre:'Maître', tresorier:'Trésorier', vm:'Vénérable Maître' };
+            const GRADE_LABELS_LOGIN = { apprenti:'Apprenti', compagnon:'Compagnon', maitre:'Maître', tresorier:'Trésorier', secretaire:'Secrétaire', vm:'Vénérable Maître' };
 
             return (
                 <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-center font-serif text-white animate-fade">
@@ -2266,11 +2266,12 @@
                 compagnon: `compagnon@${LOGE_EMAIL_DOMAIN}`,
                 maitre: `maitre@${LOGE_EMAIL_DOMAIN}`,
                 tresorier: `tresorier@${LOGE_EMAIL_DOMAIN}`,
+                secretaire: `secretaire@${LOGE_EMAIL_DOMAIN}`,
                 vm: `vm@${LOGE_EMAIL_DOMAIN}`,
                 architecte: `architecte@${LOGE_EMAIL_DOMAIN}`
             };
             // @@CONFIG_EMAILS_END@@
-            const GRADE_LABELS = { apprenti: 'Apprenti', compagnon: 'Compagnon', maitre: 'Maître', tresorier: 'Trésorier', vm: 'Vénérable Maître', architecte: 'Architecte' };
+            const GRADE_LABELS = { apprenti: 'Apprenti', compagnon: 'Compagnon', maitre: 'Maître', tresorier: 'Trésorier', secretaire: 'Secrétaire', vm: 'Vénérable Maître', architecte: 'Architecte' };
 
             const JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
             const SEMAINES = [{v:1,l:'1ère'},{v:2,l:'2ème'},{v:3,l:'3ème'},{v:4,l:'4ème'}];
@@ -2855,9 +2856,11 @@
             const [pendingNameMatch, setPendingNameMatch] = useState('');
 
             const isVM = loginGradeKey === 'vm';
+            const isSecretaire = loginGradeKey === 'secretaire';
 
             // canEdit : écriture réservée au Vénérable Maître et à l'Architecte uniquement
             const canEdit = isVM || isArchitect;
+            const canEditAgenda = canEdit || isSecretaire;
             const hasTresorAccess = isTresorier || isVM || isArchitect;
 
             // Auth + données : tout dans un seul effet, les listeners Firestore démarrent
@@ -2912,12 +2915,12 @@
                             const [gradeKey] = gradeByEmail;
                             const grades = gradeKey==='maitre' ? {apprenti:true,compagnon:true,maitre:true}
                                 : gradeKey==='compagnon' ? {apprenti:true,compagnon:true,maitre:false}
-                                : gradeKey==='tresorier'||gradeKey==='vm' ? {apprenti:true,compagnon:true,maitre:true}
+                                : gradeKey==='tresorier'||gradeKey==='vm'||gradeKey==='secretaire' ? {apprenti:true,compagnon:true,maitre:true}
                                 : {apprenti:true,compagnon:false,maitre:false};
                             setUnlockedGrades(grades);
                             setLoginGradeKey(gradeKey);
                             setIsTresorier(gradeKey==='tresorier');
-                            setMemberRole(gradeKey==='vm'?'Vénérable Maître':gradeKey==='tresorier'?'Trésorier':'');
+                            setMemberRole(gradeKey==='vm'?'Vénérable Maître':gradeKey==='tresorier'?'Trésorier':gradeKey==='secretaire'?'Secrétaire':'');
                             setIsLogged(true);
                         } else {
                             // Compte membre individuel : grade.prenom.nom@domain
@@ -2956,7 +2959,7 @@
             const handleLogin = async (n, gradeKey, p, genre) => {
                 const grades = gradeKey === 'maitre' ? { apprenti:true, compagnon:true, maitre:true }
                     : gradeKey === 'compagnon' ? { apprenti:true, compagnon:true, maitre:false }
-                    : gradeKey === 'tresorier' || gradeKey === 'vm' ? { apprenti:true, compagnon:true, maitre:true }
+                    : gradeKey === 'tresorier' || gradeKey === 'vm' || gradeKey === 'secretaire' ? { apprenti:true, compagnon:true, maitre:true }
                     : { apprenti:true, compagnon:false, maitre:false };
 
                 // Essayer d'abord le compte individuel (sauf vm)
@@ -2987,7 +2990,7 @@
                 setIsTresorier(gradeKey === 'tresorier');
                 setLoginGradeKey(gradeKey);
                 setMemberName(n.trim());
-                setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : '');
+                setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
                 setMemberGenre(genre || 'frere');
                 setPendingNameMatch(n.trim());
                 setIsLogged(true); setFbError(null);
@@ -3113,7 +3116,7 @@
                             </div>
                         )}
                         {activeView === 'configuration' && (isArchitect || isVM) && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
-                        {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEdit} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
+                        {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEditAgenda} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'visite' && <VisiteView items={agendaItems} canEdit={canEdit} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
                         {['apprenti','compagnon','maitre'].includes(activeView) && (() => {
