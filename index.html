@@ -283,8 +283,8 @@
                                         <p className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center gap-2"><SmartIcon name="KeyRound" size={14}/> Récupération d'accès</p>
                                         <p className="text-slate-300 text-xs leading-relaxed mb-3">Contactez le <strong className="text-white">Vénérable Maître</strong> ou l'<strong className="text-white">Architecte du Temple</strong> pour récupérer vos identifiants :</p>
                                         <div className="space-y-2">
-                                            <a href={`mailto:${GRADE_ACCOUNTS.vm}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {GRADE_ACCOUNTS.vm}</button>
-                                            <a href={`mailto:${ARCHITECT_ACCOUNT}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {ARCHITECT_ACCOUNT}</button>
+                                            <a href={`mailto:${GRADE_ACCOUNTS.vm}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {GRADE_ACCOUNTS.vm}</a>
+                                            <a href={`mailto:${ARCHITECT_ACCOUNT}`} className="flex items-center gap-2 text-amber-400 hover:text-amber-300 text-xs font-mono"><SmartIcon name="Mail" size={12}/> {ARCHITECT_ACCOUNT}</a>
                                         </div>
                                     </div>
                                 )}
@@ -804,7 +804,7 @@
                                             const contact = nextTenue?.agapes || logeIdentity?.maitreBanquet;
                                             const tel = logeIdentity?.telBanquet;
                                             if (!contact) return null;
-                                            return <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>{contact}</strong>{tel ? <> au <a href={`tel:${tel.replace(/\s/g,'')}`} className="text-amber-700 font-bold hover:underline font-sans">{tel}</button></> : ''} au moins <strong>48h à l'avance</strong>.</p>;
+                                            return <p className="text-[11px] text-slate-600 leading-relaxed font-medium">Réserver auprès de <strong>{contact}</strong>{tel ? <> au <a href={`tel:${tel.replace(/\s/g,'')}`} className="text-amber-700 font-bold hover:underline font-sans">{tel}</a></> : ''} au moins <strong>48h à l'avance</strong>.</p>;
                                         })()}
                                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex justify-between items-center">
                                             <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Prix agapes</p>
