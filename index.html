@@ -2772,12 +2772,11 @@
                         </button>
                     </div>
                     <div className="text-[10px] text-slate-500 font-sans bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        Email généré : <strong>grade.prenom.nom@{LOGE_EMAIL_DOMAIN}</strong> · Mot de passe initial : <strong>PrenomNom27!</strong><br/>
+                        Le membre se connecte avec son <strong>nom</strong> + son <strong>mot de passe</strong> — aucun email à retenir.<br/>
                         Les comptes Architecte et VM gardent leurs identifiants actuels.
                     </div>
                     <div className="space-y-3">
                         {membres.map(m => {
-                            const email = m.accountEmail || genEmail(m);
                             const pwd = m.accountPwd || genPwd(m.name);
                             const hasAccount = !!(m.accountEmail && m.accountEmail.length > 0);
                             const st = statuts[m.id] || '';
@@ -2785,10 +2784,9 @@
                             return (
                                 <div key={m.id} className="border border-slate-100 rounded-xl px-3 py-3 space-y-2 text-xs font-sans">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-bold text-slate-700 w-28 truncate">{m.name}</span>
-                                        <span className="text-blue-600 font-mono text-[10px] flex-1 min-w-32">{email}</span>
-                                        <div className="flex items-center gap-1">
-                                            <span className="font-mono text-[10px] text-slate-500">{isShowPwd ? pwd : '••••••••'}</span>
+                                        <span className="font-bold text-slate-700 w-36 truncate">{m.name}</span>
+                                        <div className="flex items-center gap-1 flex-1">
+                                            <span className="font-mono text-[10px] text-slate-600">{isShowPwd ? pwd : '••••••••'}</span>
                                             <button type="button" onClick={()=>setShowPwd(s=>({...s,[m.id]:!s[m.id]}))} className="text-slate-300 hover:text-amber-600 text-[10px] px-1">👁</button>
                                         </div>
                                         {!hasAccount
