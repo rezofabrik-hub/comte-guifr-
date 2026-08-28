@@ -37,17 +37,20 @@
         import { initializeAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Derive lodge slug from subdomain (multi-tenant)
+        // Derive lodge slug from subdomain (multi-tenant) — same logic as index.html
         const _h = window.location.hostname;
-        const LOGE_APP_ID = (_h === 'localhost' || _h === '127.0.0.1' || _h.includes('pages.dev') || _h.includes('workers.dev'))
-            ? 'site-cg51' : (_h.split('.')[0] || 'site-cg51');
+        const LOGE_APP_ID = (() => {
+            if (_h === 'lcg51.fr') return 'site-cg51';
+            if (_h === 'localhost' || _h === '127.0.0.1' || _h.includes('pages.dev') || _h.includes('workers.dev')) return 'site-cg51';
+            return _h.split('.')[0] || 'site-cg51';
+        })();
         window.LOGE_APP_ID = LOGE_APP_ID;
 
-        // Hérite du Firebase parent (même domaine, déjà authentifié)
+        // Hérite du Firebase parent (même domaine, déjà authentifié) — use parent's appId
         try {
             const p = window.parent?.FB_API;
             if (p && p.auth && p.db) {
-                window.FB_API = { ...p, appId: LOGE_APP_ID };
+                window.FB_API = { ...p, appId: p.appId || LOGE_APP_ID };
             }
         } catch(e) {}
 
