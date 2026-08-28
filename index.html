@@ -1132,11 +1132,64 @@
             );
         }
 
+        const COORDONNEES_IMPORT = [
+          {"nom":"RAMON","prenom":"Bruno","tel":"06 17 66 38 20","email":"tortuga66240@gmail.com","adresse":"12 rue d'Atlanta","cp":"66240","ville":"SAINT-ESTEVE","ddn":"26 Mai"},
+          {"nom":"HERVE","prenom":"Lydie","tel":"06 80 25 07 12","email":"lydie.herve.cg51@gmail.com","adresse":"23 rue des Caves","cp":"66300","ville":"TROUILLAS","ddn":"13 Novembre"},
+          {"nom":"CARCELLER","prenom":"Claude","tel":"06 68 14 18 35","email":"Claudecarceller66@gmail.com","adresse":"13 Rue Lafayette","cp":"66430","ville":"BOMPAS","ddn":"20 Janvier"},
+          {"nom":"LEVY","prenom":"Jean-Félix","tel":"06 10 09 83 34","email":"jfl.6644@gmail.com","adresse":"35 rue Arago","cp":"66600","ville":"Espira de l'Agly","ddn":"13 Juin"},
+          {"nom":"LOIRET","prenom":"David","tel":"06 34 20 87 25","email":"d.loiret@icloud.com","adresse":"13 Allée la part des Anges","cp":"66390","ville":"BAIXAS","ddn":"28 Septembre"},
+          {"nom":"CARUEL","prenom":"Mathilde","tel":"06 10 09 83 34","email":"ccaruel@hotmail.fr","adresse":"14 Rue Duquesne","cp":"66000","ville":"PERPIGNAN","ddn":"04 Avril"},
+          {"nom":"SIONNET","prenom":"Marie","tel":"06 14 34 11 94","email":"sionnetgm@gmail.com","adresse":"16 imp des Madres","cp":"66430","ville":"BOMPAS","ddn":"12 Octobre"},
+          {"nom":"RAMON","prenom":"Nathalie","tel":"06 06 65 05 26","email":"nathalie.rb66@yahoo.fr","adresse":"12 Rue Atlanta","cp":"66240","ville":"SAINT-ESTEVE","ddn":"10 Avril"},
+          {"nom":"DURAN","prenom":"Julien","tel":"07 60 67 93 41","email":"duranjulien@outlook.fr","adresse":"1 Av du 08 Mai 1945","cp":"66530","ville":"Claira","ddn":"03 Novembre"},
+          {"nom":"OLENDER","prenom":"Renée","tel":"06 21 67 79 99","email":"renee.olender@gmail.com","adresse":"29 Rue Gay Lussac","cp":"66280","ville":"SALEILLES","ddn":"18 Octobre"},
+          {"nom":"SENDRA","prenom":"Nathalie","tel":"06 22 78 53 12","email":"Nathaliesendra66@gmail.com","adresse":"2 carrer de la Dû","cp":"66300","ville":"Sainte Colombe de la Commanderie","ddn":"22 Octobre"},
+          {"nom":"MIENVILLE","prenom":"Laurent","tel":"06 84 05 92 55","email":"flex66430@gmail.com","adresse":"98 Av Louis Torcatis","cp":"66000","ville":"PERPIGNAN","ddn":"12 Août"},
+          {"nom":"LAJARRIGE","prenom":"Nicole","tel":"06 58 30 90 84","email":"Lajarrige.nicole@gmail.com","adresse":"30 Bd du Grau Saint Ange","cp":"66420","ville":"BARCARES","ddn":"23 Juin"},
+          {"nom":"BERTRAND","prenom":"Audrey","tel":"06 45 30 54 37","email":"lisaeteva@orange.fr","adresse":"12 rue des pinsons","cp":"66430","ville":"BOMPAS","ddn":"10 Juillet"},
+          {"nom":"DECONINCK","prenom":"Jean Patrick","tel":"06 75 01 58 08","email":"jeanpatrickdck@gmail.com","adresse":"15 rue du llevant","cp":"66300","ville":"FOURQUES","ddn":"27 Août"},
+          {"nom":"BORDONARO","prenom":"Cathy","tel":"06 15 36 69 80","email":"6619xena@gmail.com","adresse":"36 Bis rue Dt Emile Parés","cp":"66600","ville":"Rivesaltes","ddn":"29 Avril"},
+          {"nom":"JACQUES","prenom":"Laura","tel":"06 72 53 32 63","email":"jacques66laura@gmail.com","adresse":"Bat 5 Res Dalbiez Appt 69","cp":"66000","ville":"Perpignan","ddn":"21 Février"},
+        ];
+
         function AdherentsView({ members, onAdd, onUpdate, onDelete, canEdit }) {
             const [isAdding, sA] = useState(false);
             const [v, sV] = useState('grid');
             const [msg, setMsg] = useState(null);
-            const toast = (text, type) => { setMsg({text,type}); setTimeout(()=>setMsg(null),3500); };
+            const [importing, setImporting] = useState(false);
+            const toast = (text, type) => { setMsg({text,type}); setTimeout(()=>setMsg(null),4000); };
+
+            const normalize = s => (s||'').toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g,'')
+                .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+
+            const importCoordonnees = async () => {
+                setImporting(true);
+                let ok = 0, skip = 0;
+                for (const src of COORDONNEES_IMPORT) {
+                    const srcKey = normalize(src.nom) + ' ' + normalize(src.prenom);
+                    const match = members.find(m => {
+                        const n = normalize(m.name||'').replace(/^(frere|soeur|f |s |vm |venerableA maitre )/,'');
+                        return n.includes(normalize(src.nom)) && n.includes(normalize(src.prenom.split(' ')[0]));
+                    });
+                    if (match) {
+                        await onUpdate(match.id, {
+                            telephone: src.tel,
+                            email: src.email,
+                            adresse: src.adresse,
+                            cp: src.cp,
+                            ville: src.ville,
+                            dateNaissance: src.ddn,
+                        });
+                        ok++;
+                    } else {
+                        skip++;
+                        console.warn('Non trouvé:', srcKey);
+                    }
+                }
+                setImporting(false);
+                toast(`${ok} membre${ok>1?'s':''} mis à jour${skip>0?` · ${skip} non trouvé${skip>1?'s':''}`:''}`, ok>0?'ok':'err');
+            };
 
             const officiers = members.filter(m => isOfficierRole(m.role)).sort((a,b) => OFFICER_RANK(a.role) - OFFICER_RANK(b.role));
             const byGrade = g => {
@@ -1163,8 +1216,9 @@
                     {msg && <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-bold animate-fade ${msg.type==='err'?'bg-red-500':'bg-emerald-500'}`}>{msg.text}</div>}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-2xl border mb-2 shadow-sm">
                         <div><h2 className="text-2xl font-serif">Tableau de Loge</h2><p className="text-slate-500 text-sm">{members.length} membres · Registre hiérarchique de la Loge.</p></div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap justify-end">
                             <button onClick={()=>sV(v==='grid'?'list':'grid')} className="p-2 border rounded-lg text-amber-600">{v==='grid'?<SmartIcon name="List" size={20}/>:<SmartIcon name="LayoutGrid" size={20}/>}</button>
+                            {canEdit && <button onClick={importCoordonnees} disabled={importing} className="border border-emerald-300 text-emerald-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-50 disabled:opacity-50" title="Importe automatiquement téléphone, email, adresse et date de naissance pour les 17 membres">{importing?<SmartIcon name="Loader" size={14} className="animate-spin"/>:<SmartIcon name="Download" size={14}/>}<span>Importer coordonnées</span></button>}
                             {canEdit && <button onClick={()=>sA(!isAdding)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 hover:bg-amber-700">{isAdding?<SmartIcon name="X" size={18}/>:<SmartIcon name="Plus" size={18}/>}<span>{isAdding?'Annuler':'Ajouter'}</span></button>}
                         </div>
                     </div>
