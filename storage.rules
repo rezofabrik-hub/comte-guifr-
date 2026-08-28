@@ -1,23 +1,10 @@
-// v2026-08-27c — trigger deploy avec storage inclus
+// v2026-08-28 — allow all authenticated users
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    // Fichiers loge : chemin {appId}/... (ex: site-cg51/agenda-odj/...)
-    match /{appId}/{allPaths=**} {
-      // Loge velum standard : grade@{appId}.velum.fr
-      // Loge legacy lcg51 : grade@cg51-virtuel.fr → appId=site-cg51
-      allow read, write: if request.auth != null
-        && (
-          request.auth.token.email.matches('.*@' + appId + '\\.velum\\.fr')
-          || (appId == 'site-cg51' && request.auth.token.email.matches('.*@cg51-virtuel\\.fr'))
-        )
-        && (request.resource == null || request.resource.size < 15 * 1024 * 1024);
-    }
-
-    // Tout le reste est refusé
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null
+        && (request.resource == null || request.resource.size < 15 * 1024 * 1024);
     }
   }
 }
