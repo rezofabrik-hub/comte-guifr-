@@ -1265,7 +1265,7 @@
                 setPendingFile(file);
                 setSaving(true);
                 try {
-                    const url = await api.uploadFile(file, 'agenda-odj');
+                    const url = await window.FB_API.uploadFile(file, 'agenda-odj');
                     s(prev => ({...prev, odjFile: { name: file.name, data: url }}));
                 } catch(err) {
                     setSaveError('Erreur upload : ' + (err?.message || err));
