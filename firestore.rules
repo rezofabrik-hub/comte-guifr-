@@ -86,33 +86,33 @@ service cloud.firestore {
 
     // ── Trésorerie (accès Trésorier + VM + Architecte) ───────────────────────
     match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
-      allow read, write: if isTresorier() && ownLodge(appId);
+      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_cotisations/{docId} {
-      allow read, write: if isTresorier() && ownLodge(appId);
+      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_membres/{docId} {
       allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isTresorier() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_agapes/{docId} {
       allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isTresorier() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_planches/{docId} {
       allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isTresorier() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_presences/{docId} {
       allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isTresorier() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_settings/{docId} {
       allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isTresorier() && ownLodge(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
     match /artifacts/{appId}/public/data/tresor_charges/{docId} {
-      allow read, write: if isTresorier() && ownLodge(appId);
+      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
     }
 
     // ── Fallback : tout refuser ───────────────────────────────────────────────
