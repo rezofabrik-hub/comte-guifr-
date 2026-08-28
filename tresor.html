@@ -1633,7 +1633,13 @@
             const saveSettings = async () => {
                 setSaving(true);
                 try {
-                    await onSaveSettings({ ...sf, montantCotis: parseFloat(sf.montantCotis)||0 });
+                    await onSaveSettings({
+                        logeName: sf.logeName || '',
+                        orient: sf.orient || '',
+                        montantCotis: parseFloat(sf.montantCotis) || 0,
+                        maitreDuBanquet: sf.maitreDuBanquet || '',
+                        logo: typeof sf.logo === 'string' ? sf.logo : '',
+                    });
                 } catch(e) {
                     alert('Erreur sauvegarde : ' + e.message);
                 } finally {
