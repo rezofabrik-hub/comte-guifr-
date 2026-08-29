@@ -2872,7 +2872,8 @@
             const [pendingNameMatch, setPendingNameMatch] = useState('');
 
             const isVM = loginGradeKey === 'vm';
-            const isSecretaire = loginGradeKey === 'secretaire';
+            const isSecretaire = loginGradeKey === 'secretaire' ||
+                (!!memberRole && (memberRole.toLowerCase().includes('secrétaire') || memberRole.toLowerCase().includes('secretaire')));
 
             // canEdit : écriture réservée au Vénérable Maître et à l'Architecte uniquement
             const canEdit = isVM || isArchitect;
@@ -3039,7 +3040,16 @@
                 const clean = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/v∴m∴|soeur|frere|[^a-z]/g, "");
                 const search = clean(pendingNameMatch);
                 const m = members.find(x => clean(x.name).includes(search) || search.includes(clean(x.name)));
-                if (m) { setMemberName(m.name); setMemberRole(m.role); setMemberGenre(m.genre || 'frere'); }
+                if (m) {
+                    setMemberName(m.name);
+                    setMemberGenre(m.genre || 'frere');
+                    const role = m.role || '';
+                    setMemberRole(role);
+                    // Si le rôle Firestore est Secrétaire, rediriger vers l'Ordre des Travaux
+                    if (role.toLowerCase().includes('secrétaire') || role.toLowerCase().includes('secretaire')) {
+                        setActiveView('agenda');
+                    }
+                }
                 setPendingNameMatch('');
             }, [members, pendingNameMatch]);
 
