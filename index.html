@@ -1935,7 +1935,7 @@
                         )}
                         {uploading && <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2">Envoi du fichier...</p>}
                     </div>
-                    <textarea placeholder="Description / notes sur ce document..." value={f.description} onChange={e=>sF({...f,description:e.target.value})} className="w-full border p-3 rounded-lg text-sm h-24 outline-none focus:border-amber-500" required></textarea>
+                    <textarea placeholder="Description / notes sur ce document... (optionnel)" value={f.description} onChange={e=>sF({...f,description:e.target.value})} className="w-full border p-3 rounded-lg text-sm h-24 outline-none focus:border-amber-500"></textarea>
                     <div className="flex justify-end space-x-3">
                         <button type="button" onClick={onCancel} className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Annuler</button>
                         <button type="submit" className="bg-amber-600 text-white px-6 py-2 rounded-lg font-bold shadow-md uppercase text-[10px] tracking-widest">Enregistrer</button>
@@ -2237,6 +2237,8 @@
             const [f, sF] = useState('planche');
             const [isAddingH, setIsAddingH] = useState(false);
             const [editingHId, setEditingHId] = useState(null);
+            const [savingH, setSavingH] = useState(false);
+            const [saveErr, setSaveErr] = useState('');
             const filtered = planches.filter(p => f === 'planche' ? (!p.docType || p.docType === 'planche') : p.docType === 'tracee');
             const canDepose = isArchitect || isVM;
             const col = GRADE_COLORS[activeGrade] || GRADE_COLORS.maitre;
@@ -2278,7 +2280,14 @@
                         </div>
                         {isAddingH && (
                             <div className="bg-white p-4 rounded-xl border shadow">
-                                <ArchiveForm defaultGrade={activeGrade} onSave={async(d)=>{await onAddHumour(d);setIsAddingH(false);}} onCancel={()=>setIsAddingH(false)}/>
+                                {saveErr && <p className="text-red-500 text-xs font-bold mb-2">{saveErr}</p>}
+                                <ArchiveForm defaultGrade={activeGrade} onSave={async(d)=>{
+                                    setSaveErr(''); setSavingH(true);
+                                    try { await onAddHumour(d); setIsAddingH(false); }
+                                    catch(e){ setSaveErr('Erreur : ' + (e.message||'impossible de sauvegarder')); }
+                                    setSavingH(false);
+                                }} onCancel={()=>{setIsAddingH(false);setSaveErr('');}}/>
+                                {savingH && <p className="text-amber-600 text-xs font-bold mt-2">Enregistrement...</p>}
                             </div>
                         )}
 
