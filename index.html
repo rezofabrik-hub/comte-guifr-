@@ -2239,7 +2239,7 @@
 
 
 
-        function PlanchesView({ activeGrade, planches, onRead, onWrite, loginGradeKey, isArchitect, isVM, humourBooks=[], onAddHumour, onUpdateHumour, onDeleteHumour }) {
+        function PlanchesView({ activeGrade, planches, onRead, onWrite, loginGradeKey, isArchitect, isVM, humourBooks=[], onAddHumour, onUpdateHumour, onDeleteHumour, allBooks }) {
             const [f, sF] = useState('planche');
             const [isAddingH, setIsAddingH] = useState(false);
             const [editingHId, setEditingHId] = useState(null);
@@ -2299,6 +2299,7 @@
                             </div>
                         )}
 
+                        {canDepose && humourBooks.length === 0 && allBooks && allBooks.length > 0 && <div className="text-[10px] text-slate-500 bg-slate-50 p-3 rounded-lg border"><b>DEBUG (VM/Architecte uniquement)</b><br/>{allBooks.map(b=><span key={b.id} className="block">• {b.title} — cat: <b>{b.categorie||'(vide)'}</b> — grade: <b>{b.grade||'(vide)'}</b></span>)}</div>}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {humourBooks.map(b => (
                                 <div key={b.id} className="bg-amber-50 rounded-xl border border-amber-200 flex flex-col hover:shadow-lg transition-all">
@@ -3350,7 +3351,7 @@
                             const canSeeAll = isVM || isArchitect;
                             const humourBooks = books.filter(b => isHumour(b) && (canSeeAll || (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(activeView) || (!b.grade)));
                             const bRef = () => api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque');
-                            return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} humourBooks={humourBooks} onAddHumour={async(d)=>await api.addDoc(bRef(),{...d,categorie:'Humour',sharedBy:memberName})} onUpdateHumour={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDeleteHumour={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} />;
+                            return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} humourBooks={humourBooks} onAddHumour={async(d)=>await api.addDoc(bRef(),{...d,categorie:'Humour',sharedBy:memberName})} onUpdateHumour={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDeleteHumour={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} allBooks={books} />;
                         })()}
                         {activeView === 'read' && <ReadPlancheView planche={selectedPlanche} onBack={()=>setActiveView(normalizeGrade(selectedPlanche.grade))} onDelete={async(id)=>{await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id)); setActiveView(normalizeGrade(selectedPlanche.grade));}} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','planches',id),d)} currentUser={memberName} isArchitect={isArchitect} isVM={isVM} loginGradeKey={loginGradeKey} />}
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView(loginGradeKey||'home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade={loginGradeKey||'apprenti'} currentUser={memberName} isArchitect={isArchitect} />}
