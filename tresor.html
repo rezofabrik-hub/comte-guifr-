@@ -2255,7 +2255,9 @@
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
-            const membreData = d => JSON.parse(JSON.stringify({
+            // tresor.html runs in an iframe — Firebase module is shared from parent frame,
+            // so data objects must be created in the parent's realm via window.top.JSON.parse.
+            const membreData = d => (window.top||window).JSON.parse(JSON.stringify({
                 nom: String(d.nom||''), name: String(d.nom||d.name||''),
                 role: String(d.role||''), grade: String(d.grade||''),
                 telephone: String(d.telephone||''), email: String(d.email||''),
