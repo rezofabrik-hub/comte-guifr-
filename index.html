@@ -3045,10 +3045,16 @@
                     setMemberGenre(m.genre || 'frere');
                     const role = m.role || '';
                     setMemberRole(role);
-                    // Si le rôle Firestore est Secrétaire, rediriger vers l'Ordre des Travaux
-                    if (role.toLowerCase().includes('secrétaire') || role.toLowerCase().includes('secretaire')) {
-                        setActiveView('agenda');
-                    }
+                    const r = role.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+                    const isRoleVM = r.includes('venerable') || r.includes('v.m.') || r.includes('vm');
+                    const isRoleArchi = r.includes('architecte');
+                    const isRoleTres = r.includes('tresorier') || r.includes('tresorier');
+                    const isRoleSec = r.includes('secretaire');
+                    if (isRoleVM) setLoginGradeKey('vm');
+                    if (isRoleArchi) setIsArchitect(true);
+                    if (isRoleTres) setIsTresorier(true);
+                    if (isRoleSec) setActiveView('agenda');
+                    if (isRoleVM || isRoleArchi) setUnlockedGrades({apprenti:true,compagnon:true,maitre:true});
                 }
                 setPendingNameMatch('');
             }, [members, pendingNameMatch]);
