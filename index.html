@@ -1902,15 +1902,19 @@
             const catInit = defaultGrade ? 'Humour' : 'Planche';
             const [f, sF] = useState(initialData || { title:'', bookAuthor:'', grade:gradeInit, categorie:catInit, description:'', docFile:null, modifiedAt: today });
             const [uploading, setUploading] = useState(false);
+            const [uploadErr, setUploadErr] = useState('');
 
             const handleFile = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                setUploading(true);
+                setUploading(true); setUploadErr('');
                 try {
                     const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/bibliotheque`);
-                    sF({...f, docFile: { name: file.name, data: url }});
-                } catch (err) { console.error('Upload échoué', err); }
+                    sF(prev => ({...prev, docFile: { name: file.name, data: url }}));
+                } catch (err) {
+                    console.error('Upload échoué', err);
+                    setUploadErr('Erreur envoi fichier : ' + (err?.message || err?.code || 'vérifiez votre connexion'));
+                }
                 setUploading(false);
             };
 
@@ -1943,6 +1947,7 @@
                             </div>
                         )}
                         {uploading && <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2">Envoi du fichier...</p>}
+                        {uploadErr && <p className="text-[10px] font-bold text-red-600 mt-2">⚠️ {uploadErr}</p>}
                     </div>
                     <textarea placeholder="Description / notes sur ce document... (optionnel)" value={f.description} onChange={e=>sF({...f,description:e.target.value})} className="w-full border p-3 rounded-lg text-sm h-24 outline-none focus:border-amber-500"></textarea>
                     <div className="flex justify-end space-x-3">
