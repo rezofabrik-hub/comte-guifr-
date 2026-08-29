@@ -58,7 +58,8 @@ service cloud.firestore {
     // ── Membres ──────────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/members/{memberId} {
       allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
+      allow create, delete: if isVMouArchitecte() && ownLodge(appId);
+      allow update: if (isVMouArchitecte() || isTresorier()) && ownLodge(appId);
     }
 
     // ── Agenda / Ordre des Travaux ────────────────────────────────────────────

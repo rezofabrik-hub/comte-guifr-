@@ -1596,6 +1596,19 @@
 
         function MembreForm({ initial, onSave, onCancel, autoFocusNom }) {
             const [f, setF] = useState(initial || EMPTY_MEMBRE);
+            const [saving, setSaving] = useState(false);
+            const [err, setErr] = useState('');
+            const handleSave = async () => {
+                if(!f.nom.trim()) return;
+                setSaving(true); setErr('');
+                try { await onSave(f); }
+                catch(e) {
+                    const msg = e?.code === 'permission-denied'
+                        ? 'Accès refusé — seuls le VM et l\'Architecte peuvent modifier les membres.'
+                        : (e?.message || 'Erreur lors de l\'enregistrement.');
+                    setErr(msg);
+                } finally { setSaving(false); }
+            };
             return (
                 <div className="bg-slate-50 p-6 rounded-2xl border animate-fade">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1606,9 +1619,10 @@
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Email</label><input type="email" autoComplete="new-password" value={f.email||''} onChange={e=>setF({...f,email:e.target.value})} placeholder="ex: prenom@email.com" className="w-full border p-3 rounded-xl bg-white outline-none focus:border-amber-500" /></div>
                         <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Date de naissance</label><input type="date" value={f.dateNaissance||''} onChange={e=>setF({...f,dateNaissance:e.target.value})} className="w-full border p-3 rounded-xl bg-white font-bold outline-none focus:border-amber-500" /></div>
                     </div>
+                    {err && <p className="text-red-600 text-xs font-bold mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{err}</p>}
                     <div className="flex gap-3 justify-end">
                         <button onClick={onCancel} className="text-slate-400 font-bold text-xs uppercase">Annuler</button>
-                        <button onClick={()=>{ if(!f.nom.trim()) return; onSave(f); }} className="bg-amber-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm font-serif">Enregistrer</button>
+                        <button onClick={handleSave} disabled={saving} className="bg-amber-600 disabled:opacity-60 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase shadow-sm font-serif">{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
                     </div>
                 </div>
             );
