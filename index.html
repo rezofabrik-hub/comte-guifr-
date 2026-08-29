@@ -3369,7 +3369,8 @@
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
                         {['apprenti','compagnon','maitre'].includes(activeView) && (() => {
                             // Planches from the planches collection
-                            const standalonePlanches = planches.filter(p=>p.title && normalizeGrade(p.grade)===activeView);
+                            const hasFile = p => !!(p.docFile || p.pdfFile || p.file || p.fileUrl);
+                            const standalonePlanches = planches.filter(p=>p.title && normalizeGrade(p.grade)===activeView && (activeView !== 'maitre' || hasFile(p)));
                             // Planches embedded in tenues (agenda items) - skip if no title
                             const tenuePlanches = agendaItems.flatMap(t => (t.planches||[]).map(p=>({
                                 ...p,
@@ -3377,7 +3378,7 @@
                                 tenueId: t.id,
                                 tenueDate: t.date,
                                 id: `tenue_${t.id}_${(p.title||'').replace(/\s/g,'_')}`
-                            }))).filter(p => p.title && normalizeGrade(p.grade)===activeView);
+                            }))).filter(p => p.title && normalizeGrade(p.grade)===activeView && (activeView !== 'maitre' || hasFile(p)));
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
                             const isHumour = b => { const c = (b.categorie||'').toLowerCase(); return c === 'humour' || c.startsWith('humour'); };
                             const humourBooks = books.filter(b => isHumour(b) && ((b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(activeView) || b.grade === 'Tous' || !b.grade));
