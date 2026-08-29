@@ -999,26 +999,30 @@
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
             return (
-                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); try{await onSave({...fd, name:fd.name, nom:fd.name});}finally{sS(false);}}} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex gap-2 items-center">
-                            <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm flex-grow" required />
-                            <label className={`cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='frere' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'frere'}))}>Frère</label>
-                            <label className={`cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='soeur' ? 'bg-pink-50 border-pink-400 text-pink-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'soeur'}))}>Sœur</label>
+                <form onSubmit={async(e)=>{e.preventDefault(); sS(true); try{await onSave({...fd, name:fd.name, nom:fd.name});}finally{sS(false);}}} className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3">
+                        <input type="text" placeholder="Nom complet" value={fd.name} onChange={e=>sFd({...fd,name:e.target.value,nom:e.target.value})} className="border p-2 rounded text-sm w-full" required />
+                        <div className="flex gap-2">
+                            <label className={`flex-1 text-center cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='frere' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'frere'}))}>Frère</label>
+                            <label className={`flex-1 text-center cursor-pointer px-3 py-2 rounded text-xs font-bold border-2 transition-colors ${(fd.genre||'frere')==='soeur' ? 'bg-pink-50 border-pink-400 text-pink-700' : 'border-slate-200 text-slate-400'}`} onClick={()=>sFd(p=>({...p,genre:'soeur'}))}>Sœur</label>
+                            <select value={fd.grade||'Maître'} onChange={e=>sFd({...fd,grade:e.target.value})} className="flex-1 border p-2 rounded text-sm font-bold text-amber-700">
+                                <option>Maître</option><option>Compagnon</option><option>Apprenti</option>
+                            </select>
                         </div>
-                        <select value={fd.grade||'Maître'} onChange={e=>sFd({...fd,grade:e.target.value})} className="border p-2 rounded text-sm font-bold text-amber-700">
-                            <option>Maître</option><option>Compagnon</option><option>Apprenti</option>
-                        </select>
-                        <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm" />
-                        <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
-                        <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm md:col-span-1" />
-                        <input type="text" placeholder="Date de naissance (ex: 26 Mai)" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" />
-                        <input type="text" placeholder="Adresse (rue)" value={fd.adresse||''} onChange={e=>sFd({...fd,adresse:e.target.value})} className="border p-2 rounded text-sm md:col-span-2" />
-                        <input type="text" placeholder="Code postal" value={fd.cp||''} onChange={e=>sFd({...fd,cp:e.target.value})} className="border p-2 rounded text-sm" />
-                        <input type="text" placeholder="Ville" value={fd.ville||''} onChange={e=>sFd({...fd,ville:e.target.value})} className="border p-2 rounded text-sm" />
-                        <div className="flex items-center gap-3 md:col-span-2">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase">Photo sautoir</label>
-                            <input type="file" accept="image/*" onChange={hp} className="text-xs" />
+                        <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm w-full" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
+                            <input type="text" placeholder="Date de naissance (ex: 26 Mai)" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" />
+                        </div>
+                        <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm w-full" />
+                        <input type="text" placeholder="Adresse (rue)" value={fd.adresse||''} onChange={e=>sFd({...fd,adresse:e.target.value})} className="border p-2 rounded text-sm w-full" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="text" placeholder="Code postal" value={fd.cp||''} onChange={e=>sFd({...fd,cp:e.target.value})} className="border p-2 rounded text-sm" />
+                            <input type="text" placeholder="Ville" value={fd.ville||''} onChange={e=>sFd({...fd,ville:e.target.value})} className="border p-2 rounded text-sm" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Photo sautoir</label>
+                            <input type="file" accept="image/*" onChange={hp} className="text-xs flex-1 min-w-0" />
                         </div>
                     </div>
                     <div className="flex justify-between items-center pt-4 border-t">
