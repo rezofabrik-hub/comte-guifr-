@@ -740,9 +740,7 @@
                                                             </div>
                                                         </div>
                                                         {tenue.odjFile && canSee(tenue.odjVisibility || 'Apprenti') && (
-                                                            <button onClick={()=>downloadFile(tenue.odjFile.data, tenue.odjFile.name)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-amber-600 transition-all shadow-lg uppercase tracking-tighter font-serif">
-                                                                <SmartIcon name="Download" size={14}/> PDF ODJ
-                                                            </button>
+                                                            <PdfButtons url={tenue.odjFile.data} name={tenue.odjFile.name}/>
                                                         )}
                                                     </div>
                                                     
@@ -1476,9 +1474,7 @@
                                     )}
                                     {i.odjFile && canSee(i.odjVisibility || 'Apprenti') && (
                                         <div className="mt-2">
-                                            <button onClick={()=>downloadFile(i.odjFile.data, i.odjFile.name)} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors font-sans">
-                                                <SmartIcon name="Download" size={13}/> Télécharger la planche des travaux
-                                            </button>
+                                            <PdfButtons url={i.odjFile.data} name={i.odjFile.name}/>
                                         </div>
                                     )}
 
@@ -1577,7 +1573,7 @@
                                         <div className="flex-grow min-w-0 font-serif font-bold"><p className="leading-tight truncate">{new Date(f.date).toLocaleDateString('fr-FR')}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-1 truncate font-sans">{f.type}</p></div>
                                     </div>
                                     <div className="flex items-center gap-2 border-t pt-4 mt-auto font-sans">
-                                        <button onClick={()=>downloadFile(f.odjFile.data, f.odjFile.name)} className="flex-grow flex items-center justify-center gap-2 bg-amber-50 text-amber-700 font-black text-[10px] uppercase py-2.5 rounded-lg hover:bg-amber-100 transition-colors font-sans"><SmartIcon name="Download" size={14}/>Télécharger</button>
+                                        <PdfButtons url={f.odjFile.data} name={f.odjFile.name} className="flex-grow"/>
                                         {canEdit && (
                                             <ConfirmButton onConfirm={async()=>{ await handleRemoveFile(f.id); }} className="p-2.5 text-slate-300 hover:text-red-500 transition-colors font-sans" size={18} />
                                         )}
