@@ -1012,7 +1012,7 @@
                         <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm w-full" />
                         <div className="grid grid-cols-2 gap-3">
                             <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
-                            <input type="text" placeholder="Date de naissance (ex: 26 Mai)" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" />
+                            <input type="date" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" />
                         </div>
                         <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm w-full" />
                         <input type="text" placeholder="Adresse (rue)" value={fd.adresse||''} onChange={e=>sFd({...fd,adresse:e.target.value})} className="border p-2 rounded text-sm w-full" />
@@ -1088,7 +1088,7 @@
                                     <div className="space-y-0">
                                         <Row icon="Phone" label="Téléphone" value={phone}/>
                                         <Row icon="Mail" label="Email" value={member.email}/>
-                                        <Row icon="Calendar" label="Date de naissance" value={member.dateNaissance}/>
+                                        <Row icon="Calendar" label="Date de naissance" value={member.dateNaissance ? (member.dateNaissance.match(/^\d{4}-\d{2}-\d{2}$/) ? member.dateNaissance.split('-').reverse().join('/') : member.dateNaissance) : ''}/>
                                         <Row icon="MapPin" label="Adresse" value={[member.adresse, member.cp && member.ville ? `${member.cp} ${member.ville}` : (member.cp||member.ville)].filter(Boolean).join(', ')}/>
                                     </div>
                                     {!phone && !member.email && !member.dateNaissance && !member.adresse && canEdit && (
