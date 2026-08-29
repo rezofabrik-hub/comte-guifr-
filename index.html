@@ -106,15 +106,39 @@
         const TRESOR_GRADES = ['tresorier', 'vm'];
         // --- HELPER IA ANALYSE ODJ (Gemini lit le PDF directement) ---
         const downloadFile = (url, name) => {
-            if (!url || url === name) return; // ancien format invalide
+            if (!url || url === name) return;
             const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            a.href = url; a.download = name || 'document.pdf';
+            document.body.appendChild(a); a.click(); a.remove();
         };
+
+        const openFile = (url) => {
+            if (!url) return;
+            if (url.startsWith('data:')) {
+                const byteStr = atob(url.split(',')[1]);
+                const mime = url.split(',')[0].split(':')[1].split(';')[0];
+                const arr = new Uint8Array(byteStr.length);
+                for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+                const blob = new Blob([arr], { type: mime });
+                window.open(URL.createObjectURL(blob), '_blank');
+            } else {
+                window.open(url, '_blank');
+            }
+        };
+
+        function PdfButtons({ url, name, className='' }) {
+            if (!url) return null;
+            return (
+                <div className={`flex gap-2 ${className}`}>
+                    <button onClick={()=>openFile(url)} className="flex-1 flex items-center justify-center gap-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors">
+                        <SmartIcon name="Eye" size={12}/>Voir
+                    </button>
+                    <button onClick={()=>downloadFile(url,name)} className="flex-1 flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors">
+                        <SmartIcon name="Download" size={12}/>Télécharger
+                    </button>
+                </div>
+            );
+        }
 
         const analyzeODJWithAI = async (file, apiKey) => {
             const ab = await file.arrayBuffer();
@@ -1980,9 +2004,14 @@
                             <div className="relative z-10 flex flex-col items-center md:items-end gap-3">
                                 {reglementFile && reglementFile.data ? (
                                     <div className="flex flex-col items-end gap-2">
-                                        <a href={reglementFile.data} download={reglementFile.name} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
-                                            <SmartIcon name="Download" size={16} className="mr-2"/> TÉLÉCHARGER LE PDF
-                                        </a>
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>openFile(reglementFile.data)} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
+                                                <SmartIcon name="Eye" size={16} className="mr-2"/>VOIR
+                                            </button>
+                                            <button onClick={()=>downloadFile(reglementFile.data,reglementFile.name)} className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center shadow-lg transition-all">
+                                                <SmartIcon name="Download" size={16} className="mr-2"/>TÉLÉCHARGER
+                                            </button>
+                                        </div>
                                         {reglementFile.modifiedAt && <p className="text-slate-500 text-[10px]">Mis à jour le {new Date(reglementFile.modifiedAt).toLocaleDateString('fr-FR')}</p>}
                                         {reglementFile.history && reglementFile.history.length > 0 && (
                                             <details className="text-[10px] text-slate-400 text-right">
@@ -2043,9 +2072,7 @@
                                                         <p className="text-[10px] font-bold text-amber-700 mb-3 uppercase tracking-tighter">{b.bookAuthor}</p>
                                                         <p className="text-slate-600 text-[11px] italic line-clamp-3 mb-2 flex-grow">"{b.description}"</p>
                                                         {b.docFile && (
-                                                            <button onClick={()=>downloadFile(b.docFile.data, b.docFile.name)} className="mt-2 mb-4 block w-full bg-amber-600 hover:bg-amber-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
-                                                                <SmartIcon name="Download" size={12} className="inline mr-2" />Télécharger le Rituel
-                                                            </button>
+                                                            <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mt-2 mb-4"/>
                                                         )}
                                                         <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
                                                             <span>Par {b.sharedBy}{b.modifiedAt ? ` · ${new Date(b.modifiedAt).toLocaleDateString('fr-FR')}` : ''}</span>
@@ -2079,10 +2106,7 @@
                                                 <p className="text-slate-600 text-[11px] italic line-clamp-3 mb-2 flex-grow">"{b.description}"</p>
                                                 
                                                 {b.docFile && (
-                                                    <a href={b.docFile.data} download={b.docFile.name} className="mt-2 mb-4 block w-full bg-slate-800 hover:bg-slate-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
-                                                        <SmartIcon name="Download" size={12} className="inline mr-2" />
-                                                        Télécharger le Document
-                                                    </a>
+                                                    <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mt-2 mb-4"/>
                                                 )}
 
                                                 <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
@@ -2248,9 +2272,7 @@
                                     <h3 className="font-bold text-slate-900 text-sm">Les Blagues de Lolo</h3>
                                     <p className="text-[10px] font-bold text-amber-700 mb-2 uppercase tracking-tighter">{humourCard.label}</p>
                                     <p className="text-slate-600 text-[11px] italic mb-3">"{humourCard.desc}"</p>
-                                    <button onClick={()=>downloadFile('data:application/pdf;base64,'+humourCard.b64, humourCard.filename)} className="block w-full bg-amber-600 hover:bg-amber-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
-                                        <SmartIcon name="Download" size={12} className="inline mr-2"/>Télécharger le PDF
-                                    </button>
+                                    <PdfButtons url={'data:application/pdf;base64,'+humourCard.b64} name={humourCard.filename}/>
                                 </div>
                             </div>
                         )}
@@ -2267,9 +2289,7 @@
                                                 <p className="text-[10px] font-bold text-amber-700 mb-1 uppercase tracking-tighter">{b.grade}</p>
                                                 <p className="text-slate-600 text-[11px] italic line-clamp-2 mb-2 flex-grow">"{b.description}"</p>
                                                 {b.docFile && (
-                                                    <button onClick={()=>downloadFile(b.docFile.data, b.docFile.name)} className="mb-2 block w-full bg-amber-600 hover:bg-amber-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
-                                                        <SmartIcon name="Download" size={12} className="inline mr-2"/>Télécharger
-                                                    </button>
+                                                    <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mb-2"/>
                                                 )}
                                                 {canDepose && (
                                                     <div className="pt-2 border-t flex justify-end gap-2">
