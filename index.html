@@ -893,30 +893,29 @@
                                     )}
                                 </div>
                             )}
+
+                            {(() => {
+                                const candidates = [];
+                                (planches||[]).forEach(p => { if(p.date) candidates.push({ label: p.docType==='tracee'?'Nouveau PV':'Nouvelle planche', title: p.title, date: new Date(p.date), icon:'ScrollText', color:'text-amber-600' }); });
+                                (books||[]).forEach(b => { const d = b.modifiedAt ? new Date(b.modifiedAt) : null; if(d) candidates.push({ label: (b.categorie||'Planche')==='Humour'?'Humour de la Loge':(b.categorie==='Rituel'?'Nouveau rituel':'Nouveau document'), title: b.title, date: d, icon:(b.categorie||'')==='Humour'?'Smile':'BookMarked', color:'text-amber-600' }); });
+                                (agendaItems||[]).forEach(t => { if(t.odjFile && t.date) candidates.push({ label: 'Nouvel ODJ', title: `Tenue du ${new Date(t.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}`, date: new Date(t.date), icon:'Calendar', color:'text-blue-600' }); });
+                                if(reglementFile && reglementFile.modifiedAt) candidates.push({ label: 'Règlement Intérieur', title: 'Mis à jour', date: new Date(reglementFile.modifiedAt), icon:'FileText', color:'text-green-600' });
+                                candidates.sort((a,b) => b.date - a.date);
+                                const last = candidates[0];
+                                if (!last) return null;
+                                return (
+                                    <div className="bg-white border-l-4 border-amber-500 rounded-2xl p-4 shadow-sm flex items-center gap-3 animate-fade">
+                                        <div className="bg-amber-50 rounded-xl p-2.5 shrink-0"><SmartIcon name={last.icon} size={20} className={last.color}/></div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0.5">Dernière mise en ligne</p>
+                                            <p className="font-bold text-slate-900 text-sm truncate">{last.title}</p>
+                                            <p className="text-slate-400 text-[10px] mt-0.5">{last.label} · {last.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
-
-                    {(() => {
-                        const candidates = [];
-                        (planches||[]).forEach(p => { if(p.date) candidates.push({ label: p.docType==='tracee'?'Nouveau PV':'Nouvelle planche', title: p.title, date: new Date(p.date), icon:'ScrollText', color:'text-amber-600' }); });
-                        (books||[]).forEach(b => { const d = b.modifiedAt ? new Date(b.modifiedAt) : null; if(d) candidates.push({ label: (b.categorie||'Planche')==='Humour'?'Humour de la Loge':(b.categorie==='Rituel'?'Nouveau rituel':'Nouveau document'), title: b.title, date: d, icon:(b.categorie||'')==='Humour'?'Smile':'BookMarked', color:'text-amber-600' }); });
-                        (agendaItems||[]).forEach(t => { if(t.odjFile && t.date) candidates.push({ label: 'Nouvel ODJ', title: `Tenue du ${new Date(t.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}`, date: new Date(t.date), icon:'Calendar', color:'text-blue-600' }); });
-                        if(reglementFile && reglementFile.modifiedAt) candidates.push({ label: 'Règlement Intérieur', title: 'Mis à jour', date: new Date(reglementFile.modifiedAt), icon:'FileText', color:'text-green-600' });
-                        candidates.sort((a,b) => b.date - a.date);
-                        const last = candidates[0];
-                        if (!last) return null;
-                        return (
-                            <div className="bg-white border-l-4 border-amber-500 rounded-2xl p-5 shadow-sm flex items-center gap-4 animate-fade">
-                                <div className="bg-amber-50 rounded-xl p-3 shrink-0"><SmartIcon name={last.icon} size={22} className={last.color}/></div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-0.5">{last.label} · Dernière mise en ligne</p>
-                                    <p className="font-bold text-slate-900 text-sm truncate">{last.title}</p>
-                                    <p className="text-slate-400 text-[10px] mt-0.5">{last.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
-                                </div>
-                                <SmartIcon name="ChevronRight" size={18} className="text-slate-300 shrink-0"/>
-                            </div>
-                        );
-                    })()}
 
                     {(() => {
                         const recentPlanches = (planches||[])
