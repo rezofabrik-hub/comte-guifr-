@@ -369,7 +369,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche, books, reglementFile }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -895,6 +895,28 @@
                             )}
                         </div>
                     </div>
+
+                    {(() => {
+                        const candidates = [];
+                        (planches||[]).forEach(p => { if(p.date) candidates.push({ label: p.docType==='tracee'?'Nouveau PV':'Nouvelle planche', title: p.title, date: new Date(p.date), icon:'ScrollText', color:'text-amber-600' }); });
+                        (books||[]).forEach(b => { const d = b.modifiedAt ? new Date(b.modifiedAt) : null; if(d) candidates.push({ label: (b.categorie||'Planche')==='Humour'?'Humour de la Loge':(b.categorie==='Rituel'?'Nouveau rituel':'Nouveau document'), title: b.title, date: d, icon:(b.categorie||'')==='Humour'?'Smile':'BookMarked', color:'text-amber-600' }); });
+                        (agendaItems||[]).forEach(t => { if(t.odjFile && t.date) candidates.push({ label: 'Nouvel ODJ', title: `Tenue du ${new Date(t.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}`, date: new Date(t.date), icon:'Calendar', color:'text-blue-600' }); });
+                        if(reglementFile && reglementFile.modifiedAt) candidates.push({ label: 'Règlement Intérieur', title: 'Mis à jour', date: new Date(reglementFile.modifiedAt), icon:'FileText', color:'text-green-600' });
+                        candidates.sort((a,b) => b.date - a.date);
+                        const last = candidates[0];
+                        if (!last) return null;
+                        return (
+                            <div className="bg-white border-l-4 border-amber-500 rounded-2xl p-5 shadow-sm flex items-center gap-4 animate-fade">
+                                <div className="bg-amber-50 rounded-xl p-3 shrink-0"><SmartIcon name={last.icon} size={22} className={last.color}/></div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-0.5">{last.label} · Dernière mise en ligne</p>
+                                    <p className="font-bold text-slate-900 text-sm truncate">{last.title}</p>
+                                    <p className="text-slate-400 text-[10px] mt-0.5">{last.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
+                                </div>
+                                <SmartIcon name="ChevronRight" size={18} className="text-slate-300 shrink-0"/>
+                            </div>
+                        );
+                    })()}
 
                     {(() => {
                         const recentPlanches = (planches||[])
@@ -3285,7 +3307,7 @@
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} books={books} reglementFile={reglementFile} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
@@ -3310,7 +3332,7 @@
                                 id: `tenue_${t.id}_${(p.title||'').replace(/\s/g,'_')}`
                             }))).filter(p => normalizeGrade(p.grade)===activeView);
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
-                            const humourBooks = books.filter(b => (b.categorie||'') === 'Humour' && (b.grade||'').toLowerCase().includes(activeView));
+                            const humourBooks = books.filter(b => (b.categorie||'') === 'Humour' && normalizeGrade(b.grade||'')===activeView);
                             const bRef = () => api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque');
                             return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} humourBooks={humourBooks} onAddHumour={async(d)=>await api.addDoc(bRef(),{...d,categorie:'Humour',sharedBy:memberName})} onUpdateHumour={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDeleteHumour={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} />;
                         })()}
