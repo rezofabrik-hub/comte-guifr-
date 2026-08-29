@@ -1873,6 +1873,7 @@
                         <select value={f.categorie||'Planche'} onChange={e=>sF({...f,categorie:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500">
                             <option value="Planche">Planche</option>
                             <option value="Rituel">Rituel</option>
+                            <option value="Humour">Humour de la Loge</option>
                         </select>
                         <div>
                             <label className="text-[10px] font-bold text-red-600 uppercase tracking-widest block mb-1">Date de modification *</label>
@@ -1952,8 +1953,9 @@
                 if (g.includes('maître')||g.includes('maitre')) return unlockedGrades.maitre;
                 return g.includes('tous');
             };
-            const list = books.filter(b => gradeFilter(b) && (b.categorie||'Planche') !== 'Rituel');
+            const list = books.filter(b => gradeFilter(b) && (b.categorie||'Planche') !== 'Rituel' && (b.categorie||'Planche') !== 'Humour');
             const rituels = books.filter(b => gradeFilter(b) && (b.categorie||'Planche') === 'Rituel');
+            const humour = books.filter(b => gradeFilter(b) && (b.categorie||'') === 'Humour');
             const hasA = unlockedGrades.apprenti || unlockedGrades.compagnon || unlockedGrades.maitre;
             return (
                 <div className="space-y-6 animate-fade">
@@ -2023,6 +2025,42 @@
                         <div className="text-center py-20 text-slate-400 italic font-serif">Les archives sont vides pour ce grade.</div>
                     ) : (
                         <>
+                        {humour.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 flex items-center gap-2 font-serif">😄 Humour de la Loge</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {humour.map(b => (
+                                        <div key={b.id} className="bg-amber-50 rounded-xl border border-amber-200 flex flex-col h-full hover:shadow-lg transition-all group">
+                                            {editingId === b.id ? (
+                                                <div className="p-4 flex-grow"><ArchiveForm initialData={b} onSave={async(d)=>{await onUpdate(b.id, d); setEditingId(null);}} onCancel={()=>setEditingId(null)} /></div>
+                                            ) : (
+                                                <>
+                                                    <div className="h-36 bg-amber-100 relative flex items-center justify-center rounded-t-xl" style={{fontSize:'52px'}}>😄<div className="absolute top-2 right-2 bg-white/90 px-2 py-0.5 rounded text-[9px] font-bold uppercase shadow-sm border border-amber-200 text-amber-700">{b.grade}</div></div>
+                                                    <div className="p-4 flex flex-col flex-grow">
+                                                        <h3 className="font-bold text-slate-900 text-sm">{b.title}</h3>
+                                                        <p className="text-slate-600 text-[11px] italic line-clamp-3 mb-2 flex-grow mt-1">"{b.description}"</p>
+                                                        {b.docFile && (
+                                                            <button onClick={()=>downloadFile(b.docFile.data, b.docFile.name)} className="mt-2 mb-3 block w-full bg-amber-600 hover:bg-amber-700 text-white text-center py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-sm">
+                                                                <SmartIcon name="Download" size={12} className="inline mr-2" />Télécharger le PDF
+                                                            </button>
+                                                        )}
+                                                        <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
+                                                            <span>Par {b.sharedBy}{b.modifiedAt ? ` · ${new Date(b.modifiedAt).toLocaleDateString('fr-FR')}` : ''}</span>
+                                                            {canEditBiblio && (
+                                                                <div className="flex space-x-2">
+                                                                    <button onClick={()=>setEditingId(b.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
+                                                                    <ConfirmButton onConfirm={()=>onDelete(b.id)} className="p-1.5 text-slate-400 hover:text-red-500" size={14} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {rituels.length > 0 && (
                             <div className="space-y-4">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 font-serif"><i className="fa-solid fa-book-open-reader text-amber-600"></i> Rituels</h3>
