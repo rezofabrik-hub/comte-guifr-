@@ -2250,7 +2250,7 @@
                             <div className="p-4 flex flex-col flex-grow">
                                 <h3 className="font-bold text-slate-900 text-sm">{b.title}</h3>
                                 <p className="text-slate-600 text-[11px] italic line-clamp-2 mb-2 flex-grow">{b.description ? `"${b.description}"` : ''}</p>
-                                {(() => { const d=getDoc(b); return d ? <PdfButtons url={d.url} name={d.name} className="mb-2"/> : null; })()}
+                                {(() => { const d=getDoc(b); return d ? <PdfButtons url={d.url} name={d.name} className="mb-2"/> : <p className="text-[10px] text-slate-400 italic mb-2">Aucun fichier joint</p>; })()}
                                 {canDepose && (
                                     <div className="pt-2 border-t flex justify-end gap-2">
                                         <button onClick={()=>setEditingHId(b.id)} className="p-1.5 text-slate-400 hover:text-amber-600"><SmartIcon name="Edit2" size={14}/></button>
@@ -3351,15 +3351,15 @@
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
                         {['apprenti','compagnon','maitre'].includes(activeView) && (() => {
                             // Planches from the planches collection
-                            const standalonePlanches = planches.filter(p=>normalizeGrade(p.grade)===activeView);
-                            // Planches embedded in tenues (agenda items)
+                            const standalonePlanches = planches.filter(p=>p.title && normalizeGrade(p.grade)===activeView);
+                            // Planches embedded in tenues (agenda items) - skip if no title
                             const tenuePlanches = agendaItems.flatMap(t => (t.planches||[]).map(p=>({
                                 ...p,
                                 fromTenue: true,
                                 tenueId: t.id,
                                 tenueDate: t.date,
                                 id: `tenue_${t.id}_${(p.title||'').replace(/\s/g,'_')}`
-                            }))).filter(p => normalizeGrade(p.grade)===activeView);
+                            }))).filter(p => p.title && normalizeGrade(p.grade)===activeView);
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
                             const isHumour = b => { const c = (b.categorie||'').toLowerCase(); return c === 'humour' || c.startsWith('humour'); };
                             const humourBooks = books.filter(b => isHumour(b) && ((b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(activeView) || b.grade === 'Tous' || !b.grade));
