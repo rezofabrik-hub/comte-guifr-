@@ -3061,7 +3061,7 @@
                             </div>
                             <div className="flex flex-wrap justify-center items-center gap-2 font-serif text-[10px]">
                                 <NavTab active={activeView==='home'} onClick={()=>setActiveView('home')} icon="place-of-worship" label="Parvis" />
-                                {(isVM || isArchitect) && <button onClick={()=>setActiveView('adherents')} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${activeView==='adherents' ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-900 text-blue-300 hover:bg-blue-700 hover:text-white'}`}><i className="fa-solid fa-users"></i><span className="hidden sm:inline font-sans">Tableau de Loge</span></button>}
+                                <button onClick={()=>setActiveView('adherents')} className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all font-serif ${activeView==='adherents' ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-900 text-blue-300 hover:bg-blue-700 hover:text-white'}`}><i className="fa-solid fa-users"></i><span className="hidden sm:inline font-sans">Tableau de Loge</span></button>
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="scroll" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book-open" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="hands-holding" label="Chaîne d'Union" />
