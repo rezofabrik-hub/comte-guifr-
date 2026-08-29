@@ -2313,16 +2313,18 @@
             // Calcule les dates proposées en prenant le rythme courant en paramètre (évite les problèmes de closure)
             const calcDatesProposes = (r) => {
                 const today = new Date(); today.setHours(0,0,0,0);
-                const sy = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
+                const todayStr = today.toISOString().slice(0,10);
+                // Juillet (6) et Août (7) = début de la nouvelle saison
+                const sy = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
                 const dates = [];
+                const fmt = (d) => { const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; };
                 for (let offset = 0; offset <= 1; offset++) {
                     const s = sy + offset, e = s + 1;
-                    // nthWeekday retourne une date locale — on formate en YYYY-MM-DD sans passer par UTC
-                    const fmt = (d) => { const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; };
                     for (let m = 8; m <= 11; m++) for (const sem of r.semaines) { const d = nthWeekday(s, m, r.jourSemaine, sem); if (d) dates.push(fmt(d)); }
                     for (let m = 0; m <= 5; m++) for (const sem of r.semaines) { const d = nthWeekday(e, m, r.jourSemaine, sem); if (d) dates.push(fmt(d)); }
                 }
-                return dates.sort();
+                // Ne proposer que les dates futures (>= aujourd'hui)
+                return dates.sort().filter(d => d >= todayStr);
             };
 
             const [datesProposes, setDatesProposes] = useState([]);
