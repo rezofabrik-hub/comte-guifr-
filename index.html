@@ -244,7 +244,7 @@
                 else if (g.includes('maitre') || g.includes('maître')) key = 'maitre';
                 else if (g.includes('compagnon')) key = 'compagnon';
                 else if (g.includes('apprenti')) key = 'apprenti';
-                if (key) { setDetected({ key, label: { vm:'Vénérable Maître', tresorier:'Trésorier', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' }[key] }); setGrade(key); }
+                if (key) { setDetected({ key, label: { vm:'Vénérable Maître', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' }[key] }); setGrade(key); }
                 else setDetected(null);
             }, [n, members]);
 
@@ -273,6 +273,7 @@
                                         <option value="compagnon">Compagnon</option>
                                         <option value="maitre">Maître</option>
                                         <option value="tresorier">Trésorier</option>
+                                        <option value="secretaire">Secrétaire</option>
                                         <option value="vm">Vénérable Maître</option>
                                     </select>
                                 </div>
