@@ -1,4 +1,4 @@
-// v2026-08-29 — allow all authenticated users
+// v2026-08-29b — allow all authenticated users
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {

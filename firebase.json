@@ -2,7 +2,10 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "storage": {
-    "rules": "storage.rules"
-  }
+  "storage": [
+    {
+      "bucket": "site-cg51.firebasestorage.app",
+      "rules": "storage.rules"
+    }
+  ]
 }
