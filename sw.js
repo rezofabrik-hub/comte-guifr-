@@ -1,5 +1,5 @@
 // Service Worker — Temple Virtuel (Velum)
-const CACHE_NAME = 'temple-velum-v12';
+const CACHE_NAME = 'temple-velum-v13';
 
 // Ressources mises en cache pour le mode hors-ligne
 const STATIC_ASSETS = [
