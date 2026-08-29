@@ -3344,7 +3344,8 @@
                             }))).filter(p => normalizeGrade(p.grade)===activeView);
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
                             const isHumour = b => { const c = (b.categorie||'').toLowerCase(); return c === 'humour' || c.startsWith('humour'); };
-                            const humourBooks = books.filter(b => isHumour(b) && normalizeGrade(b.grade||'')===activeView);
+                            const canSeeAll = isVM || isArchitect;
+                            const humourBooks = books.filter(b => isHumour(b) && (canSeeAll || normalizeGrade(b.grade||'')===activeView));
                             const bRef = () => api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque');
                             return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} humourBooks={humourBooks} onAddHumour={async(d)=>await api.addDoc(bRef(),{...d,categorie:'Humour',sharedBy:memberName})} onUpdateHumour={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDeleteHumour={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} />;
                         })()}
