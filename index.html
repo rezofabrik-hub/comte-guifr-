@@ -2408,7 +2408,17 @@
                 setSaving('');
             };
 
-            const [currentPwds, setCurrentPwds] = useState({ apprenti:'', compagnon:'', maitre:'', tresorier:'', vm:'', architecte:'' });
+            const [currentPwds, setCurrentPwds] = useState({ apprenti:'', compagnon:'', maitre:'', tresorier:'', secretaire:'', vm:'', architecte:'' });
+            // Sync stored passwords into "Firebase actuel" fields when they load
+            React.useEffect(() => {
+                if (Object.keys(savedPwds).length > 0) {
+                    setCurrentPwds(p => {
+                        const next = {...p};
+                        Object.keys(savedPwds).forEach(k => { if (!p[k]) next[k] = savedPwds[k]; });
+                        return next;
+                    });
+                }
+            }, [savedPwds]);
 
             const changePassword = async (gradeKey) => {
                 const newPwd = pwds[gradeKey];
