@@ -2255,8 +2255,14 @@
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
-            const addMembre = async d => await api.addDoc(path('members'),{...d, name: d.nom||d.name||''});
-            const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),{...d, name: d.nom||d.name||''});
+            const membreData = d => ({
+                nom: d.nom||'', name: d.nom||d.name||'',
+                role: d.role||'', grade: d.grade||'',
+                telephone: d.telephone||'', email: d.email||'',
+                dateNaissance: d.dateNaissance||'',
+            });
+            const addMembre = async d => await api.addDoc(path('members'), membreData(d));
+            const updateMembre = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), membreData(d));
             const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id));
 
 
