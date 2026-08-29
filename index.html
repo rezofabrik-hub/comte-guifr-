@@ -1213,7 +1213,17 @@
             const officiers = members.filter(m => isOfficierRole(m.role)).sort((a,b) => OFFICER_RANK(a.role) - OFFICER_RANK(b.role));
             const byGrade = g => {
                 const gl = g.toLowerCase().replace('î','i');
-                if(gl === 'maitre') return members.filter(m => isOfficierRole(m.role) || (m.grade||'').toLowerCase().replace('î','i').startsWith('maitre'));
+                if(gl === 'maitre') {
+                    const list = members.filter(m => isOfficierRole(m.role) || (m.grade||'').toLowerCase().replace('î','i').startsWith('maitre'));
+                    // Ceux avec sautoir (rôle officier renseigné) en premier, sans rôle en dernier
+                    return [...list].sort((a,b) => {
+                        const aHas = !!(a.role && a.role.trim());
+                        const bHas = !!(b.role && b.role.trim());
+                        if (aHas && !bHas) return -1;
+                        if (!aHas && bHas) return 1;
+                        return 0;
+                    });
+                }
                 return members.filter(m => !isOfficierRole(m.role) && (m.grade||'').toLowerCase().replace('î','i').startsWith(gl));
             };
 
