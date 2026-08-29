@@ -86,13 +86,19 @@
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
                         const user = auth.currentUser;
-                        console.log('[Storage] user:', user?.email, '| uid:', user?.uid, '| token?', !!(await user?.getIdToken().catch(()=>null)));
-                        console.log('[Storage] bucket:', storage.app.options.storageBucket);
-                        const path = `${LOGE_APP_ID}/${folder}/${Date.now()}_${file.name}`;
-                        console.log('[Storage] uploading to:', path);
-                        const r = storageRef(storage, path);
-                        await uploadBytes(r, file);
-                        return await getDownloadURL(r);
+                        if (!user) throw new Error('Non authentifié');
+                        const token = await user.getIdToken(true);
+                        const bucket = 'site-cg51.firebasestorage.app';
+                        const filePath = `${LOGE_APP_ID}/${folder}/${Date.now()}_${file.name}`;
+                        const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(filePath)}`;
+                        const resp = await fetch(uploadUrl, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': file.type || 'application/pdf' },
+                            body: file
+                        });
+                        const data = await resp.json();
+                        if (!resp.ok) throw new Error(data.error?.message || `Erreur ${resp.status}`);
+                        return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media&token=${data.downloadTokens}`;
                     }
                 };
             } catch (e) { console.error("Firebase fail", e); }
