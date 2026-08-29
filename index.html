@@ -85,7 +85,11 @@
                     collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, writeBatch, setDoc, appId: LOGE_APP_ID,
                     signInWithEmailAndPassword, signOut, onAuthStateChanged, query, getDocs,
                     uploadFile: async (file, folder) => {
+                        const user = auth.currentUser;
+                        console.log('[Storage] user:', user?.email, '| uid:', user?.uid, '| token?', !!(await user?.getIdToken().catch(()=>null)));
+                        console.log('[Storage] bucket:', storage.app.options.storageBucket);
                         const path = `${LOGE_APP_ID}/${folder}/${Date.now()}_${file.name}`;
+                        console.log('[Storage] uploading to:', path);
                         const r = storageRef(storage, path);
                         await uploadBytes(r, file);
                         return await getDownloadURL(r);
