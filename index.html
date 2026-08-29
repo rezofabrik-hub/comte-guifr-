@@ -1911,7 +1911,7 @@
                 if (!file) return;
                 setUploading(true); setUploadErr('');
                 try {
-                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/bibliotheque`);
+                    const url = await window.FB_API.uploadFile(file, 'bibliotheque');
                     sF(prev => ({...prev, docFile: { name: file.name, data: url }}));
                 } catch (err) {
                     console.error('Upload échoué', err);
@@ -1987,7 +1987,7 @@
                             if (!date) { setErr('Entrez d\'abord la date.'); return; }
                             setErr(''); setUploading(true);
                             try {
-                                const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/reglement`);
+                                const url = await window.FB_API.uploadFile(file, 'reglement');
                                 const history = reglementFile && reglementFile.data ? [...(reglementFile.history||[]), { name: reglementFile.name, data: reglementFile.data, modifiedAt: reglementFile.modifiedAt||'' }] : [];
                                 await onSaveReglement({ name: file.name, data: url, modifiedAt: date, history });
                                 setShowForm(false);
@@ -2353,7 +2353,7 @@
             const handleFile = async (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 try {
-                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/planches`);
+                    const url = await window.FB_API.uploadFile(file, 'planches');
                     sF(prev => ({...prev, pdfFile:{name:file.name, data:url}}));
                 } catch(err) { console.error(err); }
             };
@@ -2421,7 +2421,7 @@
                 if(file.size>10*1024*1024){sE("10 Mo max");return;}
                 sE('');
                 try {
-                    const url = await window.FB_API.uploadFile(file, `${LOGE_APP_ID}/planches`);
+                    const url = await window.FB_API.uploadFile(file, 'planches');
                     sF(prev => ({...prev, pdfFile:{name:file.name, data:url}}));
                 } catch(err) { sE("Échec de l'envoi du fichier"); }
             };
