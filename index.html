@@ -1073,9 +1073,9 @@
                                 <MemberForm initialData={member} onSave={async(d)=>{await onUpdate(member.id,d);setIsEditing(false);}} onCancel={()=>setIsEditing(false)} onDelete={onDelete ? async()=>{await onDelete(member.id);onClose();} : undefined}/>
                             ) : (
                                 <>
-                                    <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center border-2 border-slate-200 flex-shrink-0">
-                                            {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className={`${isOfficierRole(member.role) ? 'w-28 h-36 rounded-xl' : 'w-16 h-16 rounded-full'} bg-slate-50 overflow-hidden flex items-center justify-center border-2 border-slate-200 flex-shrink-0`}>
+                                            {member.photoData ? <img src={member.photoData} className={`w-full h-full ${isOfficierRole(member.role) ? 'object-contain' : 'object-cover'}`}/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-slate-800 text-lg leading-tight">{displayName}</h4>
@@ -1129,13 +1129,22 @@
                     </div>
                 </>
             );
+            const [zoomPhoto, setZoomPhoto] = React.useState(false);
             return (
                 <>
                     {modal}
+                    {zoomPhoto && member.photoData && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={()=>setZoomPhoto(false)}>
+                            <img src={member.photoData} className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl" onClick={e=>e.stopPropagation()}/>
+                            <button className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2 hover:bg-black/70" onClick={()=>setZoomPhoto(false)}><SmartIcon name="X" size={20}/></button>
+                        </div>
+                    )}
                     <div className="bg-white rounded-xl border animate-fade overflow-hidden flex flex-col cursor-pointer hover:shadow-md hover:border-amber-200 transition-all" onClick={()=>setShowModal(true)}>
                         <div className="p-4 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-slate-100 rounded-full overflow-hidden flex items-center justify-center mb-2 border-2 border-white shadow-sm flex-shrink-0">
-                                {member.photoData ? <img src={member.photoData} className="w-full h-full object-cover"/> : <SmartIcon name="User" size={28} className="text-slate-300"/>}
+                            <div className={`${isOfficier ? 'w-32 h-40 rounded-xl' : 'w-16 h-16 rounded-full'} bg-slate-50 overflow-hidden flex items-center justify-center mb-2 border-2 ${isOfficier ? 'border-amber-200 shadow-md' : 'border-white shadow-sm'} flex-shrink-0 relative`}
+                                onClick={member.photoData ? (e)=>{e.stopPropagation();setZoomPhoto(true);} : undefined}>
+                                {member.photoData ? <img src={member.photoData} className={`w-full h-full ${isOfficier ? 'object-contain' : 'object-cover'}`}/> : <SmartIcon name="User" size={isOfficier?40:28} className="text-slate-300"/>}
+                                {isOfficier && member.photoData && <div className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 hover:opacity-100 transition-opacity"><span className="bg-black/50 text-white text-[9px] px-2 py-0.5 rounded-full">🔍 zoom</span></div>}
                             </div>
                             <h4 className="font-bold text-xs leading-tight mb-1">{displayName}</h4>
                             {isOfficier && <p className="text-[9px] text-amber-700 font-bold uppercase px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100 mb-1">{member.role}</p>}
