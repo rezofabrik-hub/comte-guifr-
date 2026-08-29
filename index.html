@@ -2089,7 +2089,7 @@
                                                         <h3 className="font-bold text-slate-900 text-sm">{b.title}</h3>
                                                         <p className="text-[10px] font-bold text-amber-700 mb-3 uppercase tracking-tighter">{b.bookAuthor}</p>
                                                         <p className="text-slate-600 text-[11px] italic line-clamp-3 mb-2 flex-grow">"{b.description}"</p>
-                                                        {b.docFile && (
+                                                        {b.docFile?.data && (
                                                             <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mt-2 mb-4"/>
                                                         )}
                                                         <div className="pt-3 border-t flex justify-between items-center text-[9px] text-slate-400 mt-auto">
@@ -2123,7 +2123,7 @@
                                                 <p className="text-[10px] font-bold text-amber-700 mb-3 uppercase tracking-tighter">{b.bookAuthor}</p>
                                                 <p className="text-slate-600 text-[11px] italic line-clamp-3 mb-2 flex-grow">"{b.description}"</p>
                                                 
-                                                {b.docFile && (
+                                                {b.docFile?.data && (
                                                     <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mt-2 mb-4"/>
                                                 )}
 
@@ -2269,8 +2269,10 @@
                                     <p className="text-slate-500 text-sm mt-3 line-clamp-2">{p.content ? p.content.substring(0,80)+'...' : 'Archive PDF.'}</p>
                                     <div className="mt-3 text-[10px] text-slate-500"><span>{p.author}</span></div>
                                 </div>
-                                {p.pdfFile && <PdfButtons url={p.pdfFile.data} name={p.pdfFile.name} className="mt-4"/>}
-                                {!p.pdfFile && <button onClick={()=>onRead(p)} className="mt-4 flex items-center justify-center gap-1 w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors"><SmartIcon name="Eye" size={12}/>Lire</button>}
+                                {p.pdfFile?.data
+                                    ? <PdfButtons url={p.pdfFile.data} name={p.pdfFile.name} className="mt-4"/>
+                                    : <button onClick={()=>onRead(p)} className="mt-4 flex items-center justify-center gap-1 w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors"><SmartIcon name="Eye" size={12}/>Lire</button>
+                                }
                             </div>
                         ))}
                     </div>
@@ -2304,7 +2306,7 @@
                                                 <h3 className="font-bold text-slate-900 text-sm">{b.title}</h3>
                                                 <p className="text-[10px] font-bold text-amber-700 mb-1 uppercase tracking-tighter">{b.grade}</p>
                                                 <p className="text-slate-600 text-[11px] italic line-clamp-2 mb-2 flex-grow">"{b.description}"</p>
-                                                {b.docFile && (
+                                                {b.docFile?.data && (
                                                     <PdfButtons url={b.docFile.data} name={b.docFile.name} className="mb-2"/>
                                                 )}
                                                 {canDepose && (
