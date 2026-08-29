@@ -2327,41 +2327,9 @@
                         {humourBooks.length === 0 && (
                             <p className="text-slate-400 text-sm italic text-center py-8">Aucune blague pour ce grade pour l'instant.</p>
                         )}
-                        {(() => {
-                            const gradeOrder = ['Apprenti','Compagnon','Maître','Tous'];
-                            const canSeeAll = isArchitect || isVM;
-                            // Si VM/Architecte : grouper par grade
-                            if (canSeeAll && humourBooks.length > 0) {
-                                const grouped = {};
-                                gradeOrder.forEach(g => { grouped[g] = []; });
-                                humourBooks.forEach(b => {
-                                    const g = b.grade || 'Apprenti';
-                                    if (grouped[g]) grouped[g].push(b); else { grouped['Apprenti'] = grouped['Apprenti'] || []; grouped['Apprenti'].push(b); }
-                                });
-                                return gradeOrder.map(grade => {
-                                    const list = grouped[grade] || [];
-                                    if (list.length === 0) return null;
-                                    const gradeColors = { Apprenti:'border-blue-300 text-blue-700 bg-blue-50', Compagnon:'border-emerald-300 text-emerald-700 bg-emerald-50', Maître:'border-amber-400 text-amber-700 bg-amber-50', Tous:'border-slate-300 text-slate-600 bg-slate-50' };
-                                    const gradeCol = gradeColors[grade] || gradeColors['Apprenti'];
-                                    return (
-                                        <div key={grade} className="mb-6">
-                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-3 ${gradeCol}`}>
-                                                <SmartIcon name="Smile" size={11}/>{grade}
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {list.map(b => <HumourCard key={b.id} b={b} editingHId={editingHId} setEditingHId={setEditingHId} onUpdateHumour={onUpdateHumour} onDeleteHumour={onDeleteHumour} canDepose={canDepose} getDoc={getDoc}/>)}
-                                            </div>
-                                        </div>
-                                    );
-                                });
-                            }
-                            // Membre normal : grille simple
-                            return (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {humourBooks.map(b => <HumourCard key={b.id} b={b} editingHId={editingHId} setEditingHId={setEditingHId} onUpdateHumour={onUpdateHumour} onDeleteHumour={onDeleteHumour} canDepose={canDepose} getDoc={getDoc}/>)}
-                                </div>
-                            );
-                        })()}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {humourBooks.map(b => <HumourCard key={b.id} b={b} editingHId={editingHId} setEditingHId={setEditingHId} onUpdateHumour={onUpdateHumour} onDeleteHumour={onDeleteHumour} canDepose={canDepose} getDoc={getDoc}/>)}
+                        </div>
                     </div>
                 </div>
             );
@@ -3394,8 +3362,7 @@
                             }))).filter(p => normalizeGrade(p.grade)===activeView);
                             const allPlanches = [...standalonePlanches, ...tenuePlanches];
                             const isHumour = b => { const c = (b.categorie||'').toLowerCase(); return c === 'humour' || c.startsWith('humour'); };
-                            const canSeeAll = isVM || isArchitect;
-                            const humourBooks = books.filter(b => isHumour(b) && (canSeeAll || (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(activeView) || (!b.grade)));
+                            const humourBooks = books.filter(b => isHumour(b) && ((b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(activeView) || b.grade === 'Tous' || !b.grade));
                             const bRef = () => api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque');
                             return <PlanchesView activeGrade={activeView} planches={allPlanches} onRead={p=>{setSelectedPlanche(p);setActiveView('read');}} onWrite={()=>setActiveView('write')} loginGradeKey={loginGradeKey} isArchitect={isArchitect} isVM={isVM} humourBooks={humourBooks} onAddHumour={async(d)=>await api.addDoc(bRef(),{...d,categorie:'Humour',sharedBy:memberName})} onUpdateHumour={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDeleteHumour={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} allBooks={books} booksError={booksError} />;
                         })()}
