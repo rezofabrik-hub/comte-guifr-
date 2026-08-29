@@ -2342,10 +2342,10 @@
                                     const list = grouped[grade] || [];
                                     if (list.length === 0) return null;
                                     const gradeColors = { Apprenti:'border-blue-300 text-blue-700 bg-blue-50', Compagnon:'border-emerald-300 text-emerald-700 bg-emerald-50', Maître:'border-amber-400 text-amber-700 bg-amber-50', Tous:'border-slate-300 text-slate-600 bg-slate-50' };
-                                    const col = gradeColors[grade] || gradeColors['Apprenti'];
+                                    const gradeCol = gradeColors[grade] || gradeColors['Apprenti'];
                                     return (
                                         <div key={grade} className="mb-6">
-                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-3 ${col}`}>
+                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-3 ${gradeCol}`}>
                                                 <SmartIcon name="Smile" size={11}/>{grade}
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
