@@ -65,7 +65,7 @@ service cloud.firestore {
     // ── Agenda / Ordre des Travaux ────────────────────────────────────────────
     match /artifacts/{appId}/public/data/agenda/{itemId} {
       allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isSecretaire() && ownLodge(appId);
+      allow create, update, delete: if isSignedIn() && ownLodge(appId);
     }
 
     // ── Planches ─────────────────────────────────────────────────────────────
