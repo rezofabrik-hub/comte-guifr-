@@ -57,6 +57,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_TOKEN_VAL: ${{ secrets.GH_ACTIONS_TOKEN }}
           GITHUB_REPO_VAL: ${{ github.repository }}
+          RESEND_API_KEY_VAL: ${{ secrets.RESEND_API_KEY }}
         run: |
           if [ -n "${GITHUB_TOKEN_VAL}" ]; then
             echo "${GITHUB_TOKEN_VAL}" | npx wrangler@latest secret put GITHUB_TOKEN \
@@ -68,6 +69,13 @@ jobs:
           echo "${GITHUB_REPO_VAL}" | npx wrangler@latest secret put GITHUB_REPO \
             --config velum-onboarding/wrangler.jsonc --name velum-onboarding || true
           echo "GITHUB_REPO Worker configuré : ${GITHUB_REPO_VAL}"
+          if [ -n "${RESEND_API_KEY_VAL}" ]; then
+            echo "${RESEND_API_KEY_VAL}" | npx wrangler@latest secret put RESEND_API_KEY \
+              --config velum-onboarding/wrangler.jsonc --name velum-onboarding
+            echo "RESEND_API_KEY Worker configuré."
+          else
+            echo "⚠️  Secret RESEND_API_KEY manquant — emails de confirmation non envoyés."
+          fi
 
       # ── 4. Résumé ─────────────────────────────────────────────────────────
       - name: Résumé
