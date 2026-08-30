@@ -64,19 +64,38 @@ jobs:
           zip -r ../../site.zip .
           cd ../..
 
-          # Upload via Direct Upload API
-          DEPLOY=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments" \
-            -H "Authorization: Bearer ${CF_TOKEN}" \
-            -F "manifest=@/dev/null;type=application/json" \
-            -F "file=@site.zip;type=application/zip" 2>&1 || true)
+          # Test token valide
+          echo "=== Test API token ==="
+          RESP=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
+            -H "Authorization: Bearer ${CF_TOKEN}")
+          echo "API Response: $RESP" | head -c 500
+          echo "$RESP" | python3 -c "
+import sys,json
+try:
+  r=json.loads(sys.stdin.read())
+  print('Success:', r.get('success'))
+  print('Errors:', r.get('errors'))
+  print('Projects:', [p.get('name') for p in r.get('result',[])])
+except Exception as e:
+  print('Parse error:', e)
+"
 
-          # Fallback: upload fichiers individuels
+          # Upload via Direct Upload API
           UPLOAD_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments"
-          curl -s -X POST "${UPLOAD_URL}" \
+          RESP2=$(curl -s -X POST "${UPLOAD_URL}" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
-            -F "index.html=@dist/${SLUG}/index.html;type=text/html" \
-            | python3 -c "import sys,json; r=json.load(sys.stdin); d=r.get('result',{}); print('Deploy URL:', d.get('url','?'), '| Errors:', r.get('errors','none'))"
+            -F "index.html=@dist/${SLUG}/index.html;type=text/html")
+          echo "Deploy response: $RESP2" | head -c 500
+          echo "$RESP2" | python3 -c "
+import sys,json
+try:
+  r=json.loads(sys.stdin.read())
+  d=r.get('result') or {}
+  print('Deploy URL:', d.get('url','?'), '| Success:', r.get('success'), '| Errors:', r.get('errors'))
+except Exception as e:
+  print('Parse error:', e)
+"
 
       # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
       - name: Enregistrer la loge dans KV
