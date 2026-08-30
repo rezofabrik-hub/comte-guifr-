@@ -442,8 +442,52 @@ footer a { color: rgba(201,160,68,0.7); text-decoration: none; }
       <li data-t="pl6">Mises à jour automatiques</li>
       <li data-t="pl7">Support par email</li>
     </ul>
-    <a href="https://fraternapp.com/inscription" class="pricing-cta" data-t="price_cta">Commencer l'essai gratuit</a>
-    <div class="pricing-fine" data-t="price_fine">Carte bancaire demandée à la fin des 30 jours. Paiement annuel non remboursable. Résiliation possible avant la date de renouvellement.</div>
+    <button onclick="document.getElementById('signup').scrollIntoView({behavior:'smooth'})" class="pricing-cta" data-t="price_cta">Commencer l'essai gratuit</button>
+    <div class="pricing-fine" data-t="price_fine">Aucune carte bancaire requise pendant l'essai. 30 jours gratuits, résiliation libre.</div>
+  </div>
+</div>
+
+<!-- ── FORMULAIRE D'INSCRIPTION ── -->
+<div id="signup" style="background:var(--card); border-top:1px solid var(--border); padding:80px 2rem;">
+  <div style="max-width:520px; margin:0 auto;">
+    <div class="section-eye">Inscription</div>
+    <div class="section-title" style="margin-bottom:0.6rem;">Créez votre loge en 2 minutes</div>
+    <p style="font-size:0.83rem;color:var(--slate);text-align:center;margin-bottom:2rem;line-height:1.7;">Renseignez les informations de votre loge. Votre site privé sera déployé automatiquement et accessible dans ~2 minutes.</p>
+
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div>
+        <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:0.4rem;">Nom de la loge</label>
+        <input id="s_name" type="text" placeholder="Loge Lumière d'Orient n°75"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;"
+          oninput="autoSlug(this.value)" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:0.4rem;">Identifiant unique (slug)</label>
+        <input id="s_slug" type="text" placeholder="loge-lumiere-75" maxlength="40"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;font-family:monospace;"
+          oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+        <div style="font-size:0.7rem;color:var(--slate-l);margin-top:0.3rem;">Votre site sera accessible sur <span id="urlPreview" style="color:var(--gold);">votre-loge.fraternapp.com</span></div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:0.4rem;">Votre email</label>
+        <input id="s_email" type="email" placeholder="contact@maloge.fr"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;"
+          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:0.4rem;">Mot de passe administrateur</label>
+        <input id="s_pass" type="password" placeholder="8 caractères minimum"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;"
+          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+    </div>
+
+    <button id="signupBtn" onclick="submitSignup()"
+      style="display:block;width:100%;margin-top:1.5rem;background:var(--gold);color:#12112a;border:none;border-radius:8px;padding:14px;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:background 0.16s;">
+      Déployer ma loge →
+    </button>
+    <div id="signupMsg" style="display:none;margin-top:1rem;padding:10px 14px;border-radius:7px;font-size:0.82rem;text-align:center;"></div>
+    <div style="font-size:0.7rem;color:var(--slate-l);text-align:center;margin-top:1rem;line-height:1.6;">En créant votre loge, vous acceptez nos conditions d'utilisation.<br>Aucune carte bancaire requise pendant les 30 jours d'essai.</div>
   </div>
 </div>
 
@@ -499,4 +543,75 @@ function setLang(l) {
 
 setLang(lang);
 document.querySelector('.lang-select').value = lang;
+
+// ── Signup form ───────────────────────────────────────────────────────────────
+function autoSlug(name) {
+  const slug = name.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  document.getElementById('s_slug').value = slug;
+  document.getElementById('urlPreview').textContent = (slug || 'votre-loge') + '.fraternapp.com';
+}
+
+document.getElementById('s_slug').addEventListener('input', function() {
+  document.getElementById('urlPreview').textContent = (this.value || 'votre-loge') + '.fraternapp.com';
+});
+
+async function submitSignup() {
+  const name  = document.getElementById('s_name').value.trim();
+  const slug  = document.getElementById('s_slug').value.trim();
+  const email = document.getElementById('s_email').value.trim();
+  const pass  = document.getElementById('s_pass').value;
+  const msg   = document.getElementById('signupMsg');
+  const btn   = document.getElementById('signupBtn');
+
+  msg.style.display = 'none';
+
+  if (!name || !slug || !email || !pass) { showSignupMsg('warn', 'Veuillez remplir tous les champs.'); return; }
+  if (!/^[a-z0-9-]{3,40}$/.test(slug))  { showSignupMsg('warn', 'Slug invalide : minuscules, chiffres et tirets, 3–40 caractères.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showSignupMsg('warn', 'Adresse email invalide.'); return; }
+  if (pass.length < 8) { showSignupMsg('warn', 'Mot de passe trop court (8 caractères minimum).'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Déploiement en cours…';
+  showSignupMsg('pending', '⏳ Votre loge est en cours de création, cela prend ~2 minutes…');
+
+  try {
+    const res = await fetch('https://fraternapp.com/api/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, lodge_name: name, contact_email: email, initial_password: pass, custom_domain: '' }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showSignupMsg('ok', `✓ Votre loge est déployée ! Accessible sur https://${slug}.fraternapp.com dans ~2 minutes. Un email de confirmation a été envoyé à ${email}.`);
+      btn.textContent = 'Loge créée avec succès ✓';
+    } else {
+      showSignupMsg('err', 'Erreur : ' + (data.error || 'inconnue'));
+      btn.disabled = false;
+      btn.textContent = 'Déployer ma loge →';
+    }
+  } catch(e) {
+    showSignupMsg('err', 'Erreur réseau. Vérifiez votre connexion et réessayez.');
+    btn.disabled = false;
+    btn.textContent = 'Déployer ma loge →';
+  }
+}
+
+function showSignupMsg(type, text) {
+  const msg = document.getElementById('signupMsg');
+  const colors = {
+    ok:      { bg: '#dcfce7', color: '#166534' },
+    warn:    { bg: '#fef3c7', color: '#92400e' },
+    err:     { bg: '#fee2e2', color: '#991b1b' },
+    pending: { bg: '#eff6ff', color: '#1e40af' },
+  };
+  const c = colors[type] || colors.warn;
+  msg.style.background = c.bg;
+  msg.style.color = c.color;
+  msg.style.display = 'block';
+  msg.textContent = text;
+}
 </script>
