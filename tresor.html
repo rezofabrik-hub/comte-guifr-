@@ -2289,7 +2289,7 @@
             const deletePlanche = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_planches',id));
 
             const saveSettings = async d => {
-                const plain = JSON.parse(JSON.stringify(d));
+                const plain = (window.top||window).JSON.parse(JSON.stringify(d));
                 await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'), plain);
             };
 
