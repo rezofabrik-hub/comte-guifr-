@@ -93,8 +93,8 @@ jobs:
           CONTACT_EMAIL: ${{ inputs.slug }}@fraternapp.com
           INITIAL_PASSWORD: ${{ inputs.initial_password }}
         run: |
-          npm install -g firebase-admin --silent
-          node - <<'EOF'
+          npm install firebase-admin --silent
+          NODE_PATH=$(pwd)/node_modules node - <<'EOF'
           const admin = require('firebase-admin');
           const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
           admin.initializeApp({ credential: admin.credential.cert(sa) });
