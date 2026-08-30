@@ -57,42 +57,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-/* ── GATE ── */
-#gate {
-  position: fixed; inset: 0; z-index: 9999;
-  background: #12112a;
-  display: flex; align-items: center; justify-content: center;
-  flex-direction: column;
-  transition: opacity 0.5s;
-}
-#gate.hidden { opacity: 0; pointer-events: none; }
-.gate-symbol {
-  width: 60px; height: 60px;
-  border: 2px solid #c9a044;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 1.4rem;
-}
-.gate-symbol::before { content: '✦'; color: #c9a044; font-size: 1.5rem; }
-.gate-brand { font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
-.gate-sub { font-size: 0.68rem; color: rgba(255,255,255,0.35); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 2rem; }
-.gate-form { display: flex; flex-direction: column; gap: 0.7rem; width: 250px; }
-.gate-input {
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(201,160,68,0.3); border-radius: 8px;
-  padding: 11px 16px; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.88rem;
-  letter-spacing: 0.06em; text-align: center; outline: none; transition: border-color 0.2s;
-}
-.gate-input:focus { border-color: #c9a044; }
-.gate-input::placeholder { color: rgba(255,255,255,0.2); }
-.gate-btn {
-  background: #c9a044; color: #12112a; border: none; border-radius: 8px; padding: 11px;
-  font-family: 'Inter', sans-serif; font-size: 0.78rem; font-weight: 600;
-  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.18s;
-}
-.gate-btn:hover { background: #e2bc6a; }
-.gate-error { font-size: 0.73rem; color: #f87171; text-align: center; min-height: 1rem; }
-#admin { display: none; }
-#admin.visible { display: block; }
+#admin { display: block; }
 
 /* ── TOPBAR ── */
 .topbar {
@@ -209,18 +174,6 @@ td a:hover { text-decoration: underline; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
 
-<!-- ── GATE ── -->
-<div id="gate">
-  <div class="gate-symbol"></div>
-  <div class="gate-brand">FraternApp</div>
-  <div class="gate-sub">Administration</div>
-  <form class="gate-form" onsubmit="checkGate(event)">
-    <input class="gate-input" type="password" id="gateInput" placeholder="••••••••••" autocomplete="off">
-    <button class="gate-btn" type="submit">Accéder</button>
-    <div class="gate-error" id="gateError"></div>
-  </form>
-</div>
-
 <!-- ── FIREBASE CONFIG MODAL ── -->
 <div class="modal-backdrop hidden" id="configModal">
   <div class="modal">
@@ -331,34 +284,6 @@ td a:hover { text-decoration: underline; }
 const GATE_PASS = 'Hiram2026Admin';
 const API_BASE = 'https://fraternapp.com/api';
 
-// ── Gate ──────────────────────────────────────────────────────────────────────
-function checkGate(e) {
-  e.preventDefault();
-  const val = document.getElementById('gateInput').value;
-  if (val === GATE_PASS) {
-    try { localStorage.setItem('fa_admin_auth', '1'); } catch(e) {}
-    const gate = document.getElementById('gate');
-    gate.classList.add('hidden');
-    setTimeout(() => { gate.style.display = 'none'; }, 550);
-    document.getElementById('admin').classList.add('visible');
-    initAdmin();
-  } else {
-    document.getElementById('gateError').textContent = 'Mot de passe incorrect.';
-    document.getElementById('gateInput').value = '';
-    document.getElementById('gateInput').focus();
-  }
-}
-
-try {
-  if (localStorage.getItem('fa_admin_auth') === '1') {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('admin').classList.add('visible');
-    initAdmin();
-  }
-} catch(e) {}
-
-document.getElementById('gateInput').focus();
-
 // ── Firebase Config ───────────────────────────────────────────────────────────
 let db = null;
 
@@ -414,6 +339,7 @@ function initFirebase(cfg) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+initAdmin();
 function initAdmin() {
   const cfg = loadConfig();
   if (cfg && cfg.apiKey && cfg.projectId) {
