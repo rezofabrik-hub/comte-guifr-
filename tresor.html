@@ -654,8 +654,9 @@
                 setInitializing(false);
             };
             const years = useMemo(()=>{
-                const ys=new Set(cotisations.map(c=>String(c.annee)));
-                ys.add(String(new Date().getFullYear()));
+                const currentYear = new Date().getFullYear();
+                const ys=new Set(cotisations.map(c=>String(c.annee)).filter(y=>parseInt(y)<=currentYear));
+                ys.add(String(currentYear));
                 return [...ys].sort((a,b)=>b-a);
             },[cotisations]);
 
