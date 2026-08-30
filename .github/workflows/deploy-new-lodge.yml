@@ -40,6 +40,7 @@ jobs:
 
       # ── 2. Déployer sur Cloudflare Pages via API directe ────────────────
       - name: Déployer sur Cloudflare Pages
+        continue-on-error: true
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -71,6 +72,7 @@ jobs:
 
       # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
       - name: Enregistrer la loge dans KV
+        continue-on-error: true
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -95,13 +97,14 @@ jobs:
         run: |
           npm install firebase-admin --silent
           NODE_PATH=$(pwd)/node_modules node - <<'EOF'
-          const admin = require('firebase-admin');
+          const { initializeApp, cert } = require('firebase-admin/app');
+          const { getAuth } = require('firebase-admin/auth');
           const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-          admin.initializeApp({ credential: admin.credential.cert(sa) });
+          initializeApp({ credential: cert(sa) });
 
           (async () => {
             try {
-              await admin.auth().createUser({
+              await getAuth().createUser({
                 email: process.env.CONTACT_EMAIL,
                 password: process.env.INITIAL_PASSWORD,
                 displayName: `Admin ${process.env.LODGE_SLUG}`,
