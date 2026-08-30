@@ -1,0 +1,18 @@
+{
+  // Worker API Velum — reçoit les inscriptions et déclenche GitHub Actions
+  // Déployé sur : velum-onboarding.workers.dev  (+ route api.velum.fr/api/*)
+  //
+  // Secrets à configurer UNE SEULE FOIS via terminal :
+  //   wrangler secret put GITHUB_TOKEN   ← Personal Access Token GitHub (Actions:write)
+  //   wrangler secret put GITHUB_REPO    ← ex: rezofabrik-hub/comte-guifr-
+  //
+  // Puis déployer :
+  //   wrangler deploy --config velum-onboarding/wrangler.jsonc
+  "name": "velum-onboarding",
+  "main": "api-worker.js",
+  "compatibility_date": "2026-07-20",
+  "routes": [
+    // Redirige /api/provision depuis la landing page velum.fr vers ce Worker
+    { "pattern": "velum.fr/api/*", "zone_name": "velum.fr" }
+  ]
+}

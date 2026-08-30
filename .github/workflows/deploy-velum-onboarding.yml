@@ -1,0 +1,29 @@
+name: Déployer le Worker d'Onboarding Velum
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'velum-onboarding/api-worker.js'
+      - 'velum-onboarding/wrangler.jsonc'
+      - '.github/workflows/deploy-velum-onboarding.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy velum-onboarding Worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Worker to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config velum-onboarding/wrangler.jsonc
+
+      # Les secrets GITHUB_TOKEN et GITHUB_REPO sont déjà configurés sur le Worker
+      # via : wrangler secret put GITHUB_TOKEN / wrangler secret put GITHUB_REPO
+      # Ils ne transitent JAMAIS par ce fichier.

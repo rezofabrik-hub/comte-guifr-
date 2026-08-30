@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velum — Temple Virtuel pour votre Loge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --indigo:   #1E1B4B;
+    --indigo-l: #2D2A6E;
+    --gold:     #C9A84C;
+    --gold-l:   #E2C97A;
+    --cream:    #F9F7F2;
+    --white:    #FFFFFF;
+    --slate:    #64748B;
+    --slate-l:  #94A3B8;
+    --border:   #E2DDD4;
+    --ok:       #166534;
+    --ok-bg:    #DCFCE7;
+    --err:      #991B1B;
+    --err-bg:   #FEE2E2;
+    --text:     #1E1B4B;
+    --bg:       #F9F7F2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --indigo:   #A5B4FC;
+      --indigo-l: #C7D2FE;
+      --gold:     #E2C97A;
+      --gold-l:   #F5DFA0;
+      --cream:    #0F0E1A;
+      --white:    #1A1830;
+      --slate:    #94A3B8;
+      --slate-l:  #64748B;
+      --border:   #2D2A50;
+      --ok:       #86EFAC;
+      --ok-bg:    #14532D;
+      --err:      #FCA5A5;
+      --err-bg:   #7F1D1D;
+      --text:     #E8E4FF;
+      --bg:       #0F0E1A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --indigo:   #A5B4FC;
+    --indigo-l: #C7D2FE;
+    --gold:     #E2C97A;
+    --gold-l:   #F5DFA0;
+    --cream:    #0F0E1A;
+    --white:    #1A1830;
+    --slate:    #94A3B8;
+    --slate-l:  #64748B;
+    --border:   #2D2A50;
+    --ok:       #86EFAC;
+    --ok-bg:    #14532D;
+    --err:      #FCA5A5;
+    --err-bg:   #7F1D1D;
+    --text:     #E8E4FF;
+    --bg:       #0F0E1A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    backdrop-filter: blur(8px);
+  }
+  .nav-brand {
+    font-family: 'Cinzel', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .nav-brand-symbol {
+    width: 32px; height: 32px;
+    background: var(--indigo);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold);
+    font-size: 1rem;
+  }
+  .nav-cta {
+    background: var(--gold);
+    color: #1a160a;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: background 0.18s;
+    text-decoration: none;
+  }
+  .nav-cta:hover { background: var(--gold-l); }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(160deg, #1E1B4B 0%, #2D2A6E 55%, #1a2a4a 100%);
+    color: #fff;
+    padding: 100px 2rem 90px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '⬡';
+    position: absolute; top: -60px; right: -80px;
+    font-size: 320px; opacity: 0.04; line-height: 1;
+    pointer-events: none; user-select: none;
+  }
+  .hero-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1.2rem;
+  }
+  .hero h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    text-wrap: balance;
+    max-width: 720px;
+    margin: 0 auto 1.4rem;
+    letter-spacing: 0.01em;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--gold);
+  }
+  .hero-sub {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.72);
+    max-width: 520px;
+    margin: 0 auto 2.4rem;
+    line-height: 1.7;
+  }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--gold);
+    color: #1a160a;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 30px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: var(--gold-l); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    padding: 14px 30px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: border-color 0.18s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
+  .hero-badges {
+    display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+    margin-top: 3rem;
+  }
+  .badge {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── FEATURES ── */
+  .features {
+    padding: 80px 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.8rem;
+    text-align: center;
+  }
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 3rem;
+    text-wrap: balance;
+    line-height: 1.3;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+  .feature-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+  }
+  .feature-icon {
+    width: 44px; height: 44px;
+    background: #EEF0FF;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .feature-icon { background: #2D2A50; }
+  }
+  :root[data-theme="dark"] .feature-icon { background: #2D2A50; }
+  .feature-card h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.02em;
+  }
+  .feature-card p {
+    font-size: 0.85rem;
+    color: var(--slate);
+    line-height: 1.65;
+  }
+
+  /* ── SIGNUP FORM ── */
+  .signup-section {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 2rem;
+  }
+  .form-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .form-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+  .form-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.02em;
+  }
+  .form-subtitle {
+    font-size: 0.85rem;
+    color: var(--slate);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+  }
+  .field { margin-bottom: 1.2rem; }
+  .field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--gold);
+  }
+  .field-hint {
+    font-size: 0.72rem;
+    color: var(--slate-l);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+  .slug-preview {
+    font-family: 'Inter', monospace;
+    font-size: 0.78rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 11px;
+    color: var(--gold);
+    margin-top: 6px;
+    display: none;
+  }
+  .slug-preview.visible { display: block; }
+  .separator {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.6rem 0;
+  }
+  .btn-submit {
+    width: 100%;
+    background: #1E1B4B;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-submit:hover:not(:disabled) { background: #2D2A6E; }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .form-error {
+    background: var(--err-bg);
+    color: var(--err);
+    border: 1px solid var(--err);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .form-error.visible { display: block; }
+
+  /* ── SUCCESS ── */
+  .success-card {
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+  .success-card.visible { display: block; }
+  .success-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: var(--ok-bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 1rem;
+  }
+  .success-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+  .success-header p {
+    font-size: 0.85rem;
+    color: var(--slate);
+  }
+  .creds-block {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+  }
+  .creds-header {
+    background: #1E1B4B;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+  }
+  .creds-body { padding: 14px; }
+  .cred-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .cred-row:last-child { border-bottom: none; }
+  .cred-label { color: var(--slate); font-size: 0.72rem; min-width: 130px; }
+  .cred-value {
+    font-family: 'Inter', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-all;
+    text-align: right;
+  }
+  .btn-copy {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--slate);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 0.8rem;
+  }
+  .btn-copy:hover { border-color: var(--gold); color: var(--text); }
+  .warning-box {
+    background: #FFFBEB;
+    border: 1px solid #FCD34D;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.78rem;
+    color: #92400E;
+    margin-top: 1rem;
+    line-height: 1.5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .warning-box {
+      background: #1C1505; color: #FCD34D; border-color: #78350F;
+    }
+  }
+  :root[data-theme="dark"] .warning-box {
+    background: #1C1505; color: #FCD34D; border-color: #78350F;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 40px 2rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--slate-l);
+    border-top: 1px solid var(--border);
+  }
+  footer strong { color: var(--slate); }
+
+  /* spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .spinner.active { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-brand-symbol">∴</div>
+    VELUM
+  </a>
+  <a class="nav-cta" href="#activation">Activer ma Loge</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">Le Temple Virtuel — Prêt en 2 minutes</div>
+  <h1>Votre Loge mérite un <em>espace numérique</em> à la hauteur de ses travaux</h1>
+  <p class="hero-sub">
+    Velum déploie une plateforme complète — membres, agenda, trésorerie, bibliothèque —
+    sur votre propre sous-domaine, isolée et sécurisée.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#activation">Activer ma Loge →</a>
+    <a class="btn-ghost" href="#fonctionnalites">Voir les fonctionnalités</a>
+  </div>
+  <div class="hero-badges">
+    <span class="badge">✦ Données isolées par Loge</span>
+    <span class="badge">✦ Déploiement automatisé</span>
+    <span class="badge">✦ Aucune installation requise</span>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="fonctionnalites">
+  <div class="section-label">Ce que vous obtenez</div>
+  <h2 class="section-title">Tout ce dont une Loge a besoin, sans friction</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">👥</div>
+      <h3>Gestion des Membres</h3>
+      <p>Répertoire complet avec grades, présences, contacts. Accès sécurisé par rôle.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <h3>Agenda & Travaux</h3>
+      <p>Planification des tenues, agapes, Ordre du Jour. Calendrier partagé en temps réel.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <h3>Trésorerie</h3>
+      <p>Cotisations, versements, charges, capitation GLNF. Suivi mensuel par membre.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📚</div>
+      <h3>Bibliothèque & Planches</h3>
+      <p>Stockage et partage des planches, documents, et ressources maçonniques.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Isolation totale</h3>
+      <p>Les données de chaque Loge sont cloisonnées — aucun croisement possible entre Loges.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Activation instantanée</h3>
+      <p>Sous-domaine, comptes, et données initialisés automatiquement en moins de 2 minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNUP -->
+<section class="signup-section" id="activation">
+  <div class="form-wrap">
+    <div class="section-label" style="text-align:center">Activation</div>
+    <h2 class="section-title">Activer le Temple Virtuel de votre Loge</h2>
+
+    <!-- FORM -->
+    <div class="form-card" id="formCard">
+      <div class="form-title">Nouvelle Loge</div>
+      <p class="form-subtitle">Remplissez les informations ci-dessous. Vos accès seront disponibles en 2 minutes.</p>
+
+      <div class="form-error" id="formError"></div>
+
+      <form id="activationForm" novalidate>
+        <div class="field">
+          <label>Nom complet de la Loge</label>
+          <input type="text" id="lodgeName" placeholder="ex: R∴L∴ Les Trois Colonnes n°42" required autocomplete="off">
+          <div class="field-hint">Tel qu'il apparaîtra dans l'application.</div>
+        </div>
+
+        <div class="field">
+          <label>Identifiant technique (slug)</label>
+          <input type="text" id="slug" placeholder="ex: trois-colonnes-42" required autocomplete="off" pattern="[a-z0-9\-]+" maxlength="40">
+          <div class="slug-preview" id="slugPreview"></div>
+          <div class="field-hint">Minuscules, chiffres et tirets uniquement. Servira pour les adresses email des membres.</div>
+        </div>
+
+        <div class="field">
+          <label>Email du Vénérable Maître</label>
+          <input type="email" id="contactEmail" placeholder="vm@votreloge.fr" required>
+          <div class="field-hint">Pour recevoir les identifiants de connexion.</div>
+        </div>
+
+        <div class="field">
+          <label>Domaine propre <span style="font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
+          <input type="text" id="customDomain" placeholder="ex: votreloge.fr — laisser vide pour {slug}.velum.fr">
+          <div class="field-hint">Si vous avez votre propre nom de domaine. Sinon, un sous-domaine velum.fr est créé.</div>
+        </div>
+
+        <hr class="separator">
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span id="submitLabel">Activer ma Loge</span>
+          <div class="spinner" id="spinner"></div>
+        </button>
+      </form>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-card" id="successCard">
+      <div class="success-header">
+        <div class="success-icon">✓</div>
+        <h2>Votre Temple est prêt !</h2>
+        <p id="successSubtitle">Le déploiement est en cours — votre Loge sera accessible dans 2 minutes.</p>
+      </div>
+
+      <div class="creds-block">
+        <div class="creds-header">Accès Vénérable Maître</div>
+        <div class="creds-body">
+          <div class="cred-row"><span class="cred-label">URL du Temple</span><span class="cred-value" id="credUrl">—</span></div>
+          <div class="cred-row"><span class="cred-label">Email VM</span><span class="cred-value" id="credVmEmail">—</span></div>
+          <div class="cred-row"><span class="cred-label">Mot de passe initial</span><span class="cred-value" id="credPassword">—</span></div>
+        </div>
+      </div>
+
+      <div class="creds-block">
+        <div class="creds-header">Autres comptes créés</div>
+        <div class="creds-body" id="otherCreds"></div>
+      </div>
+
+      <button class="btn-copy" id="btnCopy" onclick="copyAll()">📋 Copier tous les identifiants</button>
+
+      <div class="warning-box">
+        ⚠️ <strong>Notez ces identifiants maintenant.</strong> Le mot de passe initial doit être changé dès la première connexion via le menu ⚙️ Paramètres → Comptes.
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>Velum</strong> — Temple Virtuel pour Loges Maçonniques &nbsp;·&nbsp;
+  Données hébergées en France &nbsp;·&nbsp;
+  <a href="mailto:contact@velum.fr" style="color:inherit">contact@velum.fr</a>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const slugify = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+
+// Auto-slug depuis le nom
+$('lodgeName').addEventListener('input', e => {
+  const raw = e.target.value;
+  const s = slugify(raw);
+  if (s && !$('slug').dataset.manual) {
+    $('slug').value = s;
+    updateSlugPreview(s);
+  }
+});
+$('slug').addEventListener('input', e => {
+  $('slug').dataset.manual = '1';
+  // Force format
+  const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'');
+  e.target.value = clean;
+  updateSlugPreview(clean);
+});
+function updateSlugPreview(s) {
+  const p = $('slugPreview');
+  if (s) {
+    p.textContent = `${s}@${s}.velum.fr  ·  URL: https://${s}.velum.fr`;
+    p.classList.add('visible');
+  } else {
+    p.classList.remove('visible');
+  }
+}
+
+// Génère mot de passe sécurisé
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let pwd = '';
+  const arr = new Uint8Array(14);
+  crypto.getRandomValues(arr);
+  arr.forEach(b => { pwd += chars[b % chars.length]; });
+  return pwd;
+}
+
+// Soumission
+$('activationForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name   = $('lodgeName').value.trim();
+  const slug   = $('slug').value.trim();
+  const email  = $('contactEmail').value.trim();
+  const custom = $('customDomain').value.trim();
+
+  // Validation
+  $('formError').classList.remove('visible');
+  if (!name || !slug || !email) return showError('Merci de remplir tous les champs obligatoires.');
+  if (!/^[a-z0-9-]+$/.test(slug)) return showError('Le slug ne peut contenir que des minuscules, chiffres et tirets.');
+  if (slug.length < 3) return showError('Le slug doit faire au moins 3 caractères.');
+
+  const pwd = genPassword();
+  $('submitBtn').disabled = true;
+  $('submitLabel').textContent = 'Déploiement en cours…';
+  $('spinner').classList.add('active');
+
+  try {
+    const res = await fetch('/api/provision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, lodge_name: name, contact_email: email,
+                             initial_password: pwd, custom_domain: custom })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+    showSuccess({ slug, name, email, pwd, custom, ...data });
+  } catch(err) {
+    showError(err.message || 'Une erreur est survenue. Merci de réessayer.');
+    $('submitBtn').disabled = false;
+    $('submitLabel').textContent = 'Activer ma Loge';
+    $('spinner').classList.remove('active');
+  }
+});
+
+function showError(msg) {
+  const el = $('formError');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function showSuccess({ slug, name, email, pwd, custom }) {
+  const url = custom ? `https://${custom}` : `https://${slug}.velum.fr`;
+  const vmEmail = `vm@${slug}.velum.fr`;
+
+  $('credUrl').textContent = url;
+  $('credVmEmail').textContent = vmEmail;
+  $('credPassword').textContent = pwd;
+  $('successSubtitle').textContent = `${name} — accessible sur ${url} dans 2 minutes.`;
+
+  const grades = ['apprenti','compagnon','maitre','tresorier','architecte'];
+  $('otherCreds').innerHTML = grades.map(g => `
+    <div class="cred-row">
+      <span class="cred-label">${g.charAt(0).toUpperCase()+g.slice(1)}</span>
+      <span class="cred-value">${g}@${slug}.velum.fr</span>
+    </div>`).join('');
+
+  $('formCard').style.display = 'none';
+  $('successCard').classList.add('visible');
+
+  // Stocke pour copie
+  $('btnCopy').dataset.all = [
+    `Temple : ${url}`,
+    `VM : ${vmEmail} / ${pwd}`,
+    ...grades.map(g => `${g.charAt(0).toUpperCase()+g.slice(1)} : ${g}@${slug}.velum.fr / ${pwd}`)
+  ].join('\n');
+}
+
+function copyAll() {
+  const text = $('btnCopy').dataset.all;
+  navigator.clipboard.writeText(text).then(() => {
+    $('btnCopy').textContent = '✓ Copié !';
+    setTimeout(() => $('btnCopy').textContent = '📋 Copier tous les identifiants', 2000);
+  });
+}
+</script>
+</body>
+</html>
