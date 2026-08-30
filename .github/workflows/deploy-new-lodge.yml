@@ -133,7 +133,50 @@ jobs:
           })();
           EOF
 
-      # ── 5. Résumé ─────────────────────────────────────────────────────────
+      # ── 5. DNS — sous-domaine fraternapp.com ─────────────────────────────
+      - name: Configurer le sous-domaine DNS
+        continue-on-error: true
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_FRATERNAPP }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          # Créer CNAME slug.fraternapp.com → velum-slug.pages.dev
+          DNS_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"type\":\"CNAME\",\"name\":\"${SLUG}\",\"content\":\"velum-${SLUG}.pages.dev\",\"proxied\":true,\"ttl\":1,\"comment\":\"FraternApp loge ${SLUG}\"}")
+          echo "DNS: $DNS_RESP"
+          echo "$DNS_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('DNS CNAME:', 'ok' if d.get('success') else d.get('errors','?'))"
+
+          # Attacher le domaine personnalisé au projet Pages
+          DOMAIN_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/velum-${SLUG}/domains" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"${SLUG}.fraternapp.com\"}")
+          echo "Pages domain: $DOMAIN_RESP"
+
+      # ── 6. Email — routage slug@fraternapp.com ────────────────────────────
+      - name: Configurer le routage email
+        continue-on-error: true
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_FRATERNAPP }}
+          SLUG: ${{ inputs.slug }}
+          DEST_EMAIL: ${{ secrets.ADMIN_EMAIL_DESTINATION }}
+        run: |
+          # Créer une règle de routage : slug@fraternapp.com → adresse de destination
+          EMAIL_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/email/routing/rules" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"Loge ${SLUG}\",\"enabled\":true,\"matchers\":[{\"type\":\"literal\",\"field\":\"to\",\"value\":\"${SLUG}@fraternapp.com\"}],\"actions\":[{\"type\":\"forward\",\"value\":[\"${DEST_EMAIL}\"]}]}")
+          echo "Email routing: $EMAIL_RESP"
+          echo "$EMAIL_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('Email routing:', 'ok' if d.get('success') else d.get('errors','?'))"
+
+      # ── 8. Résumé ─────────────────────────────────────────────────────────
       - name: Résumé du déploiement
         run: |
           DOMAIN="${{ inputs.custom_domain }}"
@@ -141,5 +184,8 @@ jobs:
           echo "### Loge déployée avec succès" >> $GITHUB_STEP_SUMMARY
           echo "- **Slug** : ${{ inputs.slug }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Nom** : ${{ inputs.lodge_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL** : https://$URL" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pages** : https://velum-${{ inputs.slug }}.pages.dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL principale** : https://$URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pages (CDN)** : https://velum-${{ inputs.slug }}.pages.dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **Email admin** : ${{ inputs.slug }}@fraternapp.com" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> DNS et email routing actifs dans ~1 minute (propagation Cloudflare)." >> $GITHUB_STEP_SUMMARY
