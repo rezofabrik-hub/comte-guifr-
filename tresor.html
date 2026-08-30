@@ -2202,14 +2202,14 @@
             const [settings, setSettings] = useState({ logeName:'', orient:'', montantCotis:0 });
 
             const path = (c) => api.collection(api.db, 'artifacts', api.appId, 'public', 'data', c);
-            const isTresorUser = true;
+            const isTresorUser = user && TRESOR_EMAILS.includes(user.email);
             const visibleGrades = ['Apprenti','Compagnon','Maître'];
 
             useEffect(()=>{
                 if(!api) return;
                 // Attend que Firebase restaure la session depuis localStorage, puis ouvre l'accès
                 const unsub = api.onAuthStateChanged(api.auth, u => {
-                    setUser(u || { email: 'vm@site-cg51.velum.fr' });
+                    setUser(u || null);
                     setReady(true);
                     setAuthChecked(true);
                 });
