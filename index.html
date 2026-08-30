@@ -2608,6 +2608,7 @@
             };
 
             const [currentPwds, setCurrentPwds] = useState({ apprenti:'', compagnon:'', maitre:'', tresorier:'', secretaire:'', vm:'', architecte:'' });
+            const [pwdErrors, setPwdErrors] = useState({});
             // Sync stored passwords into "Firebase actuel" fields when they load
             React.useEffect(() => {
                 if (Object.keys(savedPwds).length > 0) {
@@ -2620,11 +2621,13 @@
             }, [savedPwds]);
 
             const changePassword = async (gradeKey) => {
+                const setErr = (msg) => setPwdErrors(p => ({...p, [gradeKey]: msg}));
+                const clearErr = () => setPwdErrors(p => ({...p, [gradeKey]: ''}));
                 const newPwd = pwds[gradeKey];
-                if (!newPwd || newPwd.length < 6) return flash('Mot de passe trop court (6 car. min)');
-                // Use manually entered current pwd first, fallback to Firestore-stored
+                if (!newPwd || newPwd.length < 6) return setErr('Nouveau mot de passe trop court (6 car. min)');
                 const oldPwd = currentPwds[gradeKey] || savedPwds[gradeKey];
-                if (!oldPwd) return flash('Entrez le mot de passe Firebase actuel dans le champ orange.');
+                if (!oldPwd) return setErr('Tapez le mot de passe actuel dans le champ orange.');
+                clearErr();
                 setSaving('pwd_' + gradeKey);
                 try {
                     const r1 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`, {
@@ -2632,20 +2635,20 @@
                         body: JSON.stringify({email: GRADE_EMAILS[gradeKey], password: oldPwd, returnSecureToken:true})
                     });
                     const {idToken, error: e1} = await r1.json();
-                    if (!idToken) { setSaving(''); return flash(`Mot de passe Firebase actuel incorrect pour ${GRADE_LABELS[gradeKey]}. Entrez le vrai mot de passe dans le champ orange.`); }
+                    if (!idToken) { setSaving(''); return setErr('Mot de passe actuel incorrect — vérifiez le champ orange.'); }
                     const r2 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_KEY}`, {
                         method:'POST', headers:{'Content-Type':'application/json'},
                         body: JSON.stringify({idToken, password: newPwd})
                     });
                     const {error: e2} = await r2.json();
-                    if (e2) { setSaving(''); return flash('Erreur changement : ' + e2.message); }
+                    if (e2) { setSaving(''); return setErr('Erreur Firebase : ' + e2.message); }
                     const newSaved = {...savedPwds, [gradeKey]: newPwd};
                     await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','gradesPasswords'), newSaved, {merge:true});
                     setSavedPwds(newSaved);
                     setPwds(p => ({...p, [gradeKey]: ''}));
-                    setCurrentPwds(p => ({...p, [gradeKey]: ''}));
-                    setSaving(''); flash(`Mot de passe ${GRADE_LABELS[gradeKey]} changé ✓`);
-                } catch(e) { setSaving(''); flash('Erreur réseau'); }
+                    setCurrentPwds(p => ({...p, [gradeKey]: newPwd}));
+                    setSaving(''); clearErr(); flash(`Mot de passe ${GRADE_LABELS[gradeKey]} changé ✓`);
+                } catch(e) { setSaving(''); setErr('Erreur réseau : ' + (e?.message || '')); }
             };
 
             const initPasswords = async () => {
@@ -2845,6 +2848,7 @@
                                         </div>
                                     </div>
                                     <button onClick={()=>changePassword(g)} disabled={saving==='pwd_'+g || !pwds[g]} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all font-sans disabled:opacity-30">{saving==='pwd_'+g?'...':'Confirmer'}</button>
+                                    {pwdErrors[g] && <p className="text-red-600 text-[10px] font-bold mt-1">{pwdErrors[g]}</p>}
                                 </div>
                                 );
                             })}
