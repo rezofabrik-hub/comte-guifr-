@@ -11,8 +11,9 @@
   "name": "velum-onboarding",
   "main": "api-worker.js",
   "compatibility_date": "2026-07-20",
-  "routes": [
-    // Redirige /api/provision depuis la landing page velum.fr vers ce Worker
-    { "pattern": "velum.fr/api/*", "zone_name": "velum.fr" }
-  ]
+  // Route velum.fr/api/* à activer une fois le domaine ajouté dans Cloudflare :
+  // "routes": [{ "pattern": "velum.fr/api/*", "zone_name": "velum.fr" }]
+  //
+  // En attendant, le Worker est accessible sur :
+  // https://velum-onboarding.<votre-compte>.workers.dev/api/provision
 }
