@@ -1,6 +1,6 @@
 {
-  // Worker API Velum — reçoit les inscriptions et déclenche GitHub Actions
-  // Déployé sur : velum-onboarding.workers.dev  (+ route api.velum.fr/api/*)
+  // Worker API FraternApp — reçoit les inscriptions et déclenche GitHub Actions
+  // Déployé sur : velum-onboarding.rezofabrik.workers.dev  (+  fraternapp.com/api/*)
   //
   // Secrets à configurer UNE SEULE FOIS via terminal :
   //   wrangler secret put GITHUB_TOKEN   ← Personal Access Token GitHub (Actions:write)
@@ -11,9 +11,8 @@
   "name": "velum-onboarding",
   "main": "api-worker.js",
   "compatibility_date": "2026-07-20",
-  // Route velum.fr/api/* à activer une fois le domaine ajouté dans Cloudflare :
-  // "routes": [{ "pattern": "velum.fr/api/*", "zone_name": "velum.fr" }]
-  //
-  // En attendant, le Worker est accessible sur :
-  // https://velum-onboarding.<votre-compte>.workers.dev/api/provision
+  "kv_namespaces": [
+    { "binding": "LODGES", "id": "bf2daa2ce915450599a4de04d554e99d" }
+  ],
+  "routes": [{ "pattern": "fraternapp.com/api/*", "zone_name": "fraternapp.com" }]
 }

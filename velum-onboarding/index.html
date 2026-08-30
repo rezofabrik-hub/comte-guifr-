@@ -1,768 +1,549 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Velum — Temple Virtuel pour votre Loge</title>
+<title>FraternApp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap">
 <style>
-  :root {
-    --indigo:   #1E1B4B;
-    --indigo-l: #2D2A6E;
-    --gold:     #C9A84C;
-    --gold-l:   #E2C97A;
-    --cream:    #F9F7F2;
-    --white:    #FFFFFF;
-    --slate:    #64748B;
-    --slate-l:  #94A3B8;
-    --border:   #E2DDD4;
-    --ok:       #166534;
-    --ok-bg:    #DCFCE7;
-    --err:      #991B1B;
-    --err-bg:   #FEE2E2;
-    --text:     #1E1B4B;
-    --bg:       #F9F7F2;
+:root {
+  --navy:    #12112a;
+  --navy-l:  #1e1c40;
+  --gold:    #c9a044;
+  --gold-l:  #e2bc6a;
+  --cream:   #f5f1ea;
+  --white:   #ffffff;
+  --slate:   #5a5880;
+  --slate-l: #8f8daa;
+  --border:  #ddd8cc;
+  --text:    #1a1830;
+  --bg:      #f5f1ea;
+  --card:    #ffffff;
+  --ok:      #166534;
+  --ok-bg:   #dcfce7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy:    #a5b4fc;
+    --navy-l:  #c7d2fe;
+    --gold:    #e2bc6a;
+    --gold-l:  #f5d98a;
+    --cream:   #0d0c1e;
+    --white:   #16152e;
+    --slate:   #8f8daa;
+    --slate-l: #5a5880;
+    --border:  #2a2848;
+    --text:    #e8e4ff;
+    --bg:      #0d0c1e;
+    --card:    #16152e;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --indigo:   #A5B4FC;
-      --indigo-l: #C7D2FE;
-      --gold:     #E2C97A;
-      --gold-l:   #F5DFA0;
-      --cream:    #0F0E1A;
-      --white:    #1A1830;
-      --slate:    #94A3B8;
-      --slate-l:  #64748B;
-      --border:   #2D2A50;
-      --ok:       #86EFAC;
-      --ok-bg:    #14532D;
-      --err:      #FCA5A5;
-      --err-bg:   #7F1D1D;
-      --text:     #E8E4FF;
-      --bg:       #0F0E1A;
-    }
-  }
-  :root[data-theme="dark"] {
-    --indigo:   #A5B4FC;
-    --indigo-l: #C7D2FE;
-    --gold:     #E2C97A;
-    --gold-l:   #F5DFA0;
-    --cream:    #0F0E1A;
-    --white:    #1A1830;
-    --slate:    #94A3B8;
-    --slate-l:  #64748B;
-    --border:   #2D2A50;
-    --ok:       #86EFAC;
-    --ok-bg:    #14532D;
-    --err:      #FCA5A5;
-    --err-bg:   #7F1D1D;
-    --text:     #E8E4FF;
-    --bg:       #0F0E1A;
-  }
+}
+:root[data-theme="dark"] {
+  --navy:    #a5b4fc;
+  --navy-l:  #c7d2fe;
+  --gold:    #e2bc6a;
+  --gold-l:  #f5d98a;
+  --cream:   #0d0c1e;
+  --white:   #16152e;
+  --slate:   #8f8daa;
+  --slate-l: #5a5880;
+  --border:  #2a2848;
+  --text:    #e8e4ff;
+  --bg:      #0d0c1e;
+  --card:    #16152e;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
+/* ── GATE ── */
+#gate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #12112a;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  transition: opacity 0.6s ease;
+}
+#gate.hidden { opacity: 0; pointer-events: none; }
+.gate-symbol {
+  width: 64px; height: 64px;
+  border: 2px solid #c9a044;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.gate-symbol::before {
+  content: '✦';
+  color: #c9a044;
+  font-size: 1.6rem;
+}
+.gate-brand {
+  font-family: 'Cinzel', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.4rem;
+}
+.gate-sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+}
+.gate-form { display: flex; flex-direction: column; gap: 0.75rem; width: 260px; }
+.gate-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(201,160,68,0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.gate-input:focus { border-color: #c9a044; }
+.gate-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.05em; }
+.gate-btn {
+  background: #c9a044;
+  color: #12112a;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.gate-btn:hover { background: #e2bc6a; }
+.gate-error {
+  font-size: 0.75rem;
+  color: #f87171;
+  text-align: center;
+  min-height: 1rem;
+}
 
-  /* ── NAV ── */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    height: 60px;
-    display: flex; align-items: center; justify-content: space-between;
-    backdrop-filter: blur(8px);
-  }
-  .nav-brand {
-    font-family: 'Cinzel', serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: 0.08em;
-    display: flex; align-items: center; gap: 10px;
-    text-decoration: none;
-  }
-  .nav-brand-symbol {
-    width: 32px; height: 32px;
-    background: var(--indigo);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--gold);
-    font-size: 1rem;
-  }
-  .nav-cta {
-    background: var(--gold);
-    color: #1a160a;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 18px;
-    cursor: pointer;
-    transition: background 0.18s;
-    text-decoration: none;
-  }
-  .nav-cta:hover { background: var(--gold-l); }
+/* ── SITE (hidden until gate passed) ── */
+#site { display: none; }
+#site.visible { display: block; }
 
-  /* ── HERO ── */
-  .hero {
-    background: linear-gradient(160deg, #1E1B4B 0%, #2D2A6E 55%, #1a2a4a 100%);
-    color: #fff;
-    padding: 100px 2rem 90px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '⬡';
-    position: absolute; top: -60px; right: -80px;
-    font-size: 320px; opacity: 0.04; line-height: 1;
-    pointer-events: none; user-select: none;
-  }
-  .hero-eyebrow {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 1.2rem;
-  }
-  .hero h1 {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(2rem, 5vw, 3.4rem);
-    font-weight: 700;
-    line-height: 1.15;
-    text-wrap: balance;
-    max-width: 720px;
-    margin: 0 auto 1.4rem;
-    letter-spacing: 0.01em;
-  }
-  .hero h1 em {
-    font-style: normal;
-    color: var(--gold);
-  }
-  .hero-sub {
-    font-size: 1.05rem;
-    color: rgba(255,255,255,0.72);
-    max-width: 520px;
-    margin: 0 auto 2.4rem;
-    line-height: 1.7;
-  }
-  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .btn-primary {
-    background: var(--gold);
-    color: #1a160a;
-    border: none;
-    border-radius: 8px;
-    padding: 14px 30px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.18s, transform 0.12s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  .btn-primary:hover { background: var(--gold-l); transform: translateY(-1px); }
-  .btn-ghost {
-    background: transparent;
-    color: rgba(255,255,255,0.8);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 8px;
-    padding: 14px 30px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: border-color 0.18s;
-  }
-  .btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
-  .hero-badges {
-    display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
-    margin-top: 3rem;
-  }
-  .badge {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 100px;
-    padding: 5px 14px;
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.65);
-    letter-spacing: 0.05em;
-  }
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 62px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-brand {
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.nav-logo {
+  width: 30px; height: 30px;
+  background: #12112a;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #c9a044;
+  font-size: 0.85rem;
+}
+.nav-right { display: flex; align-items: center; gap: 1rem; }
+.lang-select {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+.nav-cta {
+  background: var(--gold);
+  color: #12112a;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s;
+}
+.nav-cta:hover { background: var(--gold-l); }
 
-  /* ── FEATURES ── */
-  .features {
-    padding: 80px 2rem;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  .section-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 0.8rem;
-    text-align: center;
-  }
-  .section-title {
-    font-family: 'Cinzel', serif;
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 3rem;
-    text-wrap: balance;
-    line-height: 1.3;
-  }
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-  }
-  .feature-card {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px 24px;
-  }
-  .feature-icon {
-    width: 44px; height: 44px;
-    background: #EEF0FF;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .feature-icon { background: #2D2A50; }
-  }
-  :root[data-theme="dark"] .feature-icon { background: #2D2A50; }
-  .feature-card h3 {
-    font-family: 'Cinzel', serif;
-    font-size: 0.92rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.02em;
-  }
-  .feature-card p {
-    font-size: 0.85rem;
-    color: var(--slate);
-    line-height: 1.65;
-  }
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(155deg, #12112a 0%, #1e1c40 50%, #14213d 100%);
+  color: #fff;
+  padding: 110px 2rem 100px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  border: 1px solid rgba(201,160,68,0.08);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+.hero-eye {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.2rem;
+}
+.hero h1 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  line-height: 1.18;
+  text-wrap: balance;
+  max-width: 700px;
+  margin: 0 auto 1.4rem;
+}
+.hero h1 em { font-style: normal; color: var(--gold); }
+.hero-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.65);
+  max-width: 500px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.75;
+  font-weight: 300;
+}
+.hero-btn {
+  background: var(--gold);
+  color: #12112a;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 36px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.18s, transform 0.12s;
+}
+.hero-btn:hover { background: var(--gold-l); transform: translateY(-2px); }
+.hero-note {
+  margin-top: 1rem;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.05em;
+}
 
-  /* ── SIGNUP FORM ── */
-  .signup-section {
-    background: var(--white);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 80px 2rem;
-  }
-  .form-wrap {
-    max-width: 560px;
-    margin: 0 auto;
-  }
-  .form-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 40px;
-  }
-  .form-title {
-    font-family: 'Cinzel', serif;
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: 0.4rem;
-    letter-spacing: 0.02em;
-  }
-  .form-subtitle {
-    font-size: 0.85rem;
-    color: var(--slate);
-    margin-bottom: 2rem;
-    line-height: 1.5;
-  }
-  .field { margin-bottom: 1.2rem; }
-  .field label {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--slate);
-    margin-bottom: 6px;
-  }
-  .field input, .field select {
-    width: 100%;
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 11px 14px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    color: var(--text);
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .field input:focus, .field select:focus {
-    border-color: var(--gold);
-  }
-  .field-hint {
-    font-size: 0.72rem;
-    color: var(--slate-l);
-    margin-top: 5px;
-    line-height: 1.4;
-  }
-  .slug-preview {
-    font-family: 'Inter', monospace;
-    font-size: 0.78rem;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 11px;
-    color: var(--gold);
-    margin-top: 6px;
-    display: none;
-  }
-  .slug-preview.visible { display: block; }
-  .separator {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 1.6rem 0;
-  }
-  .btn-submit {
-    width: 100%;
-    background: #1E1B4B;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 14px;
-    font-family: 'Cinzel', serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.18s;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-  }
-  .btn-submit:hover:not(:disabled) { background: #2D2A6E; }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-  .form-error {
-    background: var(--err-bg);
-    color: var(--err);
-    border: 1px solid var(--err);
-    border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 0.82rem;
-    margin-bottom: 1rem;
-    display: none;
-  }
-  .form-error.visible { display: block; }
+/* ── FEATURES ── */
+.section { padding: 80px 2rem; max-width: 1020px; margin: 0 auto; }
+.section-eye {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 0.7rem;
+}
+.section-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 3rem;
+  text-wrap: balance;
+  line-height: 1.3;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+.feat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 22px;
+}
+.feat-icon {
+  width: 42px; height: 42px;
+  background: rgba(201,160,68,0.1);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+}
+.feat-card h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+.feat-card p { font-size: 0.82rem; color: var(--slate); line-height: 1.65; }
 
-  /* ── SUCCESS ── */
-  .success-card {
-    display: none;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 40px;
-  }
-  .success-card.visible { display: block; }
-  .success-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-  .success-icon {
-    width: 64px; height: 64px;
-    background: var(--ok-bg);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.8rem;
-    margin: 0 auto 1rem;
-  }
-  .success-header h2 {
-    font-family: 'Cinzel', serif;
-    font-size: 1.2rem;
-    margin-bottom: 0.4rem;
-  }
-  .success-header p {
-    font-size: 0.85rem;
-    color: var(--slate);
-  }
-  .creds-block {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 1.2rem;
-  }
-  .creds-header {
-    background: #1E1B4B;
-    color: rgba(255,255,255,0.7);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    padding: 8px 14px;
-  }
-  .creds-body { padding: 14px; }
-  .cred-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.82rem;
-  }
-  .cred-row:last-child { border-bottom: none; }
-  .cred-label { color: var(--slate); font-size: 0.72rem; min-width: 130px; }
-  .cred-value {
-    font-family: 'Inter', monospace;
-    font-size: 0.8rem;
-    color: var(--text);
-    font-weight: 500;
-    word-break: break-all;
-    text-align: right;
-  }
-  .btn-copy {
-    width: 100%;
-    background: transparent;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--slate);
-    cursor: pointer;
-    transition: all 0.15s;
-    margin-top: 0.8rem;
-  }
-  .btn-copy:hover { border-color: var(--gold); color: var(--text); }
-  .warning-box {
-    background: #FFFBEB;
-    border: 1px solid #FCD34D;
-    border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 0.78rem;
-    color: #92400E;
-    margin-top: 1rem;
-    line-height: 1.5;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .warning-box {
-      background: #1C1505; color: #FCD34D; border-color: #78350F;
-    }
-  }
-  :root[data-theme="dark"] .warning-box {
-    background: #1C1505; color: #FCD34D; border-color: #78350F;
-  }
+/* ── PRICING ── */
+.pricing-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 48px 40px;
+  text-align: center;
+}
+.pricing-badge {
+  display: inline-block;
+  background: rgba(201,160,68,0.12);
+  color: var(--gold);
+  border: 1px solid rgba(201,160,68,0.3);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+.pricing-price {
+  font-family: 'Cinzel', serif;
+  font-size: 3.2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.pricing-price sup { font-size: 1.4rem; vertical-align: super; }
+.pricing-period { font-size: 0.78rem; color: var(--slate); margin-bottom: 0.5rem; }
+.pricing-monthly { font-size: 0.82rem; color: var(--gold); font-weight: 500; margin-bottom: 2rem; }
+.pricing-list { list-style: none; text-align: left; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.65rem; }
+.pricing-list li { font-size: 0.84rem; display: flex; align-items: flex-start; gap: 8px; }
+.pricing-list li::before { content: '✦'; color: var(--gold); font-size: 0.6rem; margin-top: 4px; flex-shrink: 0; }
+.pricing-cta {
+  display: block;
+  width: 100%;
+  background: var(--gold);
+  color: #12112a;
+  border: none;
+  border-radius: 8px;
+  padding: 15px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s;
+  margin-bottom: 1rem;
+}
+.pricing-cta:hover { background: var(--gold-l); }
+.pricing-fine { font-size: 0.7rem; color: var(--slate-l); line-height: 1.5; }
 
-  /* ── FOOTER ── */
-  footer {
-    padding: 40px 2rem;
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--slate-l);
-    border-top: 1px solid var(--border);
-  }
-  footer strong { color: var(--slate); }
+/* ── CGU ── */
+.cgu-section { background: var(--card); border-top: 1px solid var(--border); padding: 60px 2rem; }
+.cgu-wrap { max-width: 760px; margin: 0 auto; }
+.cgu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+.cgu-block h4 { font-family: 'Cinzel', serif; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--gold); }
+.cgu-block p { font-size: 0.78rem; color: var(--slate); line-height: 1.65; }
 
-  /* spinner */
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: none;
-  }
-  .spinner.active { display: block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── FOOTER ── */
+footer {
+  background: #12112a;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  padding: 2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+footer a { color: rgba(201,160,68,0.7); text-decoration: none; }
+
+@media (max-width: 600px) {
+  nav { padding: 0 1rem; }
+  .hero { padding: 80px 1.25rem 70px; }
+  .section { padding: 60px 1.25rem; }
+  .pricing-wrap { padding: 36px 24px; }
+}
 </style>
-</head>
-<body>
+
+<!-- ── GATE ── -->
+<div id="gate">
+  <div class="gate-symbol"></div>
+  <div class="gate-brand">FraternApp</div>
+  <div class="gate-sub" id="g-sub">Espace réservé</div>
+  <form class="gate-form" onsubmit="checkGate(event)">
+    <input class="gate-input" type="password" id="gateInput" placeholder="••••••••••" autocomplete="off">
+    <button class="gate-btn" type="submit" id="g-btn">Entrer</button>
+    <div class="gate-error" id="gateError"></div>
+  </form>
+</div>
+
+<!-- ── SITE ── -->
+<div id="site">
 
 <nav>
-  <a class="nav-brand" href="#">
-    <div class="nav-brand-symbol">∴</div>
-    VELUM
+  <a href="#" class="nav-brand">
+    <div class="nav-logo">✦</div>
+    FraternApp
   </a>
-  <a class="nav-cta" href="#activation">Activer ma Loge</a>
+  <div class="nav-right">
+    <select class="lang-select" onchange="setLang(this.value)">
+      <option value="fr">🇫🇷 FR</option>
+      <option value="en">🇬🇧 EN</option>
+      <option value="nl">🇧🇪 NL</option>
+      <option value="de">🇨🇭 DE</option>
+      <option value="pt">🇵🇹 PT</option>
+      <option value="es">🇪🇸 ES</option>
+      <option value="it">🇮🇹 IT</option>
+    </select>
+    <a href="#pricing" class="nav-cta" data-t="nav_cta">Essai gratuit</a>
+  </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-eyebrow">Le Temple Virtuel — Prêt en 2 minutes</div>
-  <h1>Votre Loge mérite un <em>espace numérique</em> à la hauteur de ses travaux</h1>
-  <p class="hero-sub">
-    Velum déploie une plateforme complète — membres, agenda, trésorerie, bibliothèque —
-    sur votre propre sous-domaine, isolée et sécurisée.
-  </p>
-  <div class="hero-actions">
-    <a class="btn-primary" href="#activation">Activer ma Loge →</a>
-    <a class="btn-ghost" href="#fonctionnalites">Voir les fonctionnalités</a>
-  </div>
-  <div class="hero-badges">
-    <span class="badge">✦ Données isolées par Loge</span>
-    <span class="badge">✦ Déploiement automatisé</span>
-    <span class="badge">✦ Aucune installation requise</span>
-  </div>
+  <div class="hero-eye" data-t="hero_eye">Plateforme de gestion • Depuis 2026</div>
+  <h1 data-t="hero_h1">Le temple virtuel pour <em data-t="hero_em">votre loge</em></h1>
+  <p class="hero-sub" data-t="hero_sub">Gérez vos membres, tenues, cotisations et documents en toute discrétion — déployé en 2 minutes.</p>
+  <a href="#pricing" class="hero-btn" data-t="hero_btn">Commencer l'essai gratuit</a>
+  <div class="hero-note" data-t="hero_note">30 jours gratuits · Sans carte bancaire · Résiliation libre</div>
 </section>
 
-<!-- FEATURES -->
-<section class="features" id="fonctionnalites">
-  <div class="section-label">Ce que vous obtenez</div>
-  <h2 class="section-title">Tout ce dont une Loge a besoin, sans friction</h2>
+<div class="section">
+  <div class="section-eye" data-t="feat_eye">Fonctionnalités</div>
+  <div class="section-title" data-t="feat_title">Tout ce dont votre loge a besoin</div>
   <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">👥</div>
-      <h3>Gestion des Membres</h3>
-      <p>Répertoire complet avec grades, présences, contacts. Accès sécurisé par rôle.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📅</div>
-      <h3>Agenda & Travaux</h3>
-      <p>Planification des tenues, agapes, Ordre du Jour. Calendrier partagé en temps réel.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚖️</div>
-      <h3>Trésorerie</h3>
-      <p>Cotisations, versements, charges, capitation GLNF. Suivi mensuel par membre.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📚</div>
-      <h3>Bibliothèque & Planches</h3>
-      <p>Stockage et partage des planches, documents, et ressources maçonniques.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔒</div>
-      <h3>Isolation totale</h3>
-      <p>Les données de chaque Loge sont cloisonnées — aucun croisement possible entre Loges.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3>Activation instantanée</h3>
-      <p>Sous-domaine, comptes, et données initialisés automatiquement en moins de 2 minutes.</p>
+    <div class="feat-card"><div class="feat-icon">👥</div><h3 data-t="f1h">Gestion des membres</h3><p data-t="f1p">Fiches complètes, grades, cotisations et historique pour chaque frère.</p></div>
+    <div class="feat-card"><div class="feat-icon">📅</div><h3 data-t="f2h">Tenues & agenda</h3><p data-t="f2p">Planifiez vos tenues, partagez les ordres du jour et gérez les présences.</p></div>
+    <div class="feat-card"><div class="feat-icon">💰</div><h3 data-t="f3h">Trésorerie</h3><p data-t="f3p">Suivi des cotisations, relances automatiques et tableau de bord financier.</p></div>
+    <div class="feat-card"><div class="feat-icon">📄</div><h3 data-t="f4h">Documents & planches</h3><p data-t="f4p">Bibliothèque sécurisée pour vos textes rituels et travaux en loge.</p></div>
+    <div class="feat-card"><div class="feat-icon">🔒</div><h3 data-t="f5h">Accès par grade</h3><p data-t="f5p">Apprenti, Compagnon, Maître — chaque frère voit uniquement ce qui lui est accessible.</p></div>
+    <div class="feat-card"><div class="feat-icon">🌐</div><h3 data-t="f6h">Votre propre domaine</h3><p data-t="f6p">Accessible depuis votre sous-domaine dédié, sans publicité ni données revendues.</p></div>
+  </div>
+</div>
+
+<div style="background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 80px 2rem;" id="pricing">
+  <div class="section-eye" data-t="price_eye">Tarif</div>
+  <div class="section-title" data-t="price_title">Simple et transparent</div>
+  <div class="pricing-wrap">
+    <div class="pricing-badge" data-t="price_badge">30 jours gratuits</div>
+    <div class="pricing-price"><sup>€</sup>179</div>
+    <div class="pricing-period" data-t="price_period">par an, facturé en une fois</div>
+    <div class="pricing-monthly" data-t="price_monthly">soit ~14,90 € / mois</div>
+    <ul class="pricing-list">
+      <li data-t="pl1">Site privé dédié à votre loge</li>
+      <li data-t="pl2">Membres illimités</li>
+      <li data-t="pl3">Gestion complète : membres, tenues, trésorerie</li>
+      <li data-t="pl4">Accès sécurisé par grade</li>
+      <li data-t="pl5">Hébergement & SSL inclus</li>
+      <li data-t="pl6">Mises à jour automatiques</li>
+      <li data-t="pl7">Support par email</li>
+    </ul>
+    <a href="https://fraternapp.com/inscription" class="pricing-cta" data-t="price_cta">Commencer l'essai gratuit</a>
+    <div class="pricing-fine" data-t="price_fine">Carte bancaire demandée à la fin des 30 jours. Paiement annuel non remboursable. Résiliation possible avant la date de renouvellement.</div>
+  </div>
+</div>
+
+<div class="cgu-section">
+  <div class="cgu-wrap">
+    <div class="section-eye" data-t="cgu_eye">Conditions</div>
+    <div class="section-title" data-t="cgu_title">Ce que vous devez savoir</div>
+    <div class="cgu-grid">
+      <div class="cgu-block"><h4 data-t="cgu1h">Données & confidentialité</h4><p data-t="cgu1p">Vos données restent les vôtres. Hébergées en Europe (Cloudflare + Firebase). Jamais revendues, jamais partagées.</p></div>
+      <div class="cgu-block"><h4 data-t="cgu2h">Résiliation</h4><p data-t="cgu2p">Résiliez avant le renouvellement annuel depuis votre espace. Données supprimées sous 30 jours après résiliation.</p></div>
+      <div class="cgu-block"><h4 data-t="cgu3h">Paiement</h4><p data-t="cgu3p">179 € facturés une fois par an à la fin de l'essai. Aucun remboursement au prorata.</p></div>
+      <div class="cgu-block"><h4 data-t="cgu4h">Essai gratuit</h4><p data-t="cgu4p">30 jours complets sans engagement. Carte bancaire uniquement demandée à la fin de la période d'essai.</p></div>
     </div>
   </div>
-</section>
-
-<!-- SIGNUP -->
-<section class="signup-section" id="activation">
-  <div class="form-wrap">
-    <div class="section-label" style="text-align:center">Activation</div>
-    <h2 class="section-title">Activer le Temple Virtuel de votre Loge</h2>
-
-    <!-- FORM -->
-    <div class="form-card" id="formCard">
-      <div class="form-title">Nouvelle Loge</div>
-      <p class="form-subtitle">Remplissez les informations ci-dessous. Vos accès seront disponibles en 2 minutes.</p>
-
-      <div class="form-error" id="formError"></div>
-
-      <form id="activationForm" novalidate>
-        <div class="field">
-          <label>Nom complet de la Loge</label>
-          <input type="text" id="lodgeName" placeholder="ex: R∴L∴ Les Trois Colonnes n°42" required autocomplete="off">
-          <div class="field-hint">Tel qu'il apparaîtra dans l'application.</div>
-        </div>
-
-        <div class="field">
-          <label>Identifiant technique (slug)</label>
-          <input type="text" id="slug" placeholder="ex: trois-colonnes-42" required autocomplete="off" pattern="[a-z0-9\-]+" maxlength="40">
-          <div class="slug-preview" id="slugPreview"></div>
-          <div class="field-hint">Minuscules, chiffres et tirets uniquement. Servira pour les adresses email des membres.</div>
-        </div>
-
-        <div class="field">
-          <label>Email du Vénérable Maître</label>
-          <input type="email" id="contactEmail" placeholder="vm@votreloge.fr" required>
-          <div class="field-hint">Pour recevoir les identifiants de connexion.</div>
-        </div>
-
-        <div class="field">
-          <label>Domaine propre <span style="font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
-          <input type="text" id="customDomain" placeholder="ex: votreloge.fr — laisser vide pour {slug}.velum.fr">
-          <div class="field-hint">Si vous avez votre propre nom de domaine. Sinon, un sous-domaine velum.fr est créé.</div>
-        </div>
-
-        <hr class="separator">
-
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span id="submitLabel">Activer ma Loge</span>
-          <div class="spinner" id="spinner"></div>
-        </button>
-      </form>
-    </div>
-
-    <!-- SUCCESS -->
-    <div class="success-card" id="successCard">
-      <div class="success-header">
-        <div class="success-icon">✓</div>
-        <h2>Votre Temple est prêt !</h2>
-        <p id="successSubtitle">Le déploiement est en cours — votre Loge sera accessible dans 2 minutes.</p>
-      </div>
-
-      <div class="creds-block">
-        <div class="creds-header">Accès Vénérable Maître</div>
-        <div class="creds-body">
-          <div class="cred-row"><span class="cred-label">URL du Temple</span><span class="cred-value" id="credUrl">—</span></div>
-          <div class="cred-row"><span class="cred-label">Email VM</span><span class="cred-value" id="credVmEmail">—</span></div>
-          <div class="cred-row"><span class="cred-label">Mot de passe initial</span><span class="cred-value" id="credPassword">—</span></div>
-        </div>
-      </div>
-
-      <div class="creds-block">
-        <div class="creds-header">Autres comptes créés</div>
-        <div class="creds-body" id="otherCreds"></div>
-      </div>
-
-      <button class="btn-copy" id="btnCopy" onclick="copyAll()">📋 Copier tous les identifiants</button>
-
-      <div class="warning-box">
-        ⚠️ <strong>Notez ces identifiants maintenant.</strong> Le mot de passe initial doit être changé dès la première connexion via le menu ⚙️ Paramètres → Comptes.
-      </div>
-    </div>
-  </div>
-</section>
+</div>
 
 <footer>
-  <strong>Velum</strong> — Temple Virtuel pour Loges Maçonniques &nbsp;·&nbsp;
-  Données hébergées en France &nbsp;·&nbsp;
-  <a href="mailto:contact@velum.fr" style="color:inherit">contact@velum.fr</a>
+  <div style="font-family:'Cinzel',serif; font-size:0.9rem; color:rgba(255,255,255,0.6); margin-bottom:0.5rem;">FraternApp</div>
+  <div>© 2026 FraternApp · <a href="mailto:contact@fraternapp.com">contact@fraternapp.com</a></div>
 </footer>
 
+</div><!-- /site -->
+
 <script>
-const $ = id => document.getElementById(id);
-const slugify = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'')
-  .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+const PASS = 'Hiram2026';
 
-// Auto-slug depuis le nom
-$('lodgeName').addEventListener('input', e => {
-  const raw = e.target.value;
-  const s = slugify(raw);
-  if (s && !$('slug').dataset.manual) {
-    $('slug').value = s;
-    updateSlugPreview(s);
-  }
-});
-$('slug').addEventListener('input', e => {
-  $('slug').dataset.manual = '1';
-  // Force format
-  const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'');
-  e.target.value = clean;
-  updateSlugPreview(clean);
-});
-function updateSlugPreview(s) {
-  const p = $('slugPreview');
-  if (s) {
-    p.textContent = `${s}@${s}.velum.fr  ·  URL: https://${s}.velum.fr`;
-    p.classList.add('visible');
-  } else {
-    p.classList.remove('visible');
-  }
-}
+const T = {
+  fr: { nav_cta:'Essai gratuit', hero_eye:'Plateforme de gestion • Depuis 2026', hero_h1:'Le temple virtuel pour ', hero_em:'votre loge', hero_sub:'Gérez vos membres, tenues, cotisations et documents en toute discrétion — déployé en 2 minutes.', hero_btn:'Commencer l\'essai gratuit', hero_note:'30 jours gratuits · Sans carte bancaire · Résiliation libre', feat_eye:'Fonctionnalités', feat_title:'Tout ce dont votre loge a besoin', f1h:'Gestion des membres', f1p:'Fiches complètes, grades, cotisations et historique pour chaque frère.', f2h:'Tenues & agenda', f2p:'Planifiez vos tenues, partagez les ordres du jour et gérez les présences.', f3h:'Trésorerie', f3p:'Suivi des cotisations, relances automatiques et tableau de bord financier.', f4h:'Documents & planches', f4p:'Bibliothèque sécurisée pour vos textes rituels et travaux en loge.', f5h:'Accès par grade', f5p:'Apprenti, Compagnon, Maître — chaque frère voit uniquement ce qui lui est accessible.', f6h:'Votre propre domaine', f6p:'Accessible depuis votre sous-domaine dédié, sans publicité ni données revendues.', price_eye:'Tarif', price_title:'Simple et transparent', price_badge:'30 jours gratuits', price_period:'par an, facturé en une fois', price_monthly:'soit ~14,90 € / mois', pl1:'Site privé dédié à votre loge', pl2:'Membres illimités', pl3:'Gestion complète : membres, tenues, trésorerie', pl4:'Accès sécurisé par grade', pl5:'Hébergement & SSL inclus', pl6:'Mises à jour automatiques', pl7:'Support par email', price_cta:'Commencer l\'essai gratuit', price_fine:'Carte bancaire demandée à la fin des 30 jours. Paiement annuel non remboursable. Résiliation possible avant la date de renouvellement.', cgu_eye:'Conditions', cgu_title:'Ce que vous devez savoir', cgu1h:'Données & confidentialité', cgu1p:'Vos données restent les vôtres. Hébergées en Europe. Jamais revendues.', cgu2h:'Résiliation', cgu2p:'Résiliez avant le renouvellement. Données supprimées sous 30 jours.', cgu3h:'Paiement', cgu3p:'179 € une fois par an. Aucun remboursement au prorata.', cgu4h:'Essai gratuit', cgu4p:'30 jours sans engagement. Carte demandée à la fin de l\'essai.', g_sub:'Espace réservé', g_btn:'Entrer', g_err:'Mot de passe incorrect.' },
+  en: { nav_cta:'Free trial', hero_eye:'Management platform • Since 2026', hero_h1:'The virtual lodge for ', hero_em:'your chapter', hero_sub:'Manage members, meetings, dues and documents discreetly — deployed in 2 minutes.', hero_btn:'Start free trial', hero_note:'30 days free · No credit card · Cancel anytime', feat_eye:'Features', feat_title:'Everything your lodge needs', f1h:'Member management', f1p:'Complete profiles, degrees, dues and history for every brother.', f2h:'Meetings & calendar', f2p:'Plan your meetings, share agendas and track attendance.', f3h:'Treasury', f3p:'Track dues, automatic reminders and financial dashboard.', f4h:'Documents & lectures', f4p:'Secure library for your ritual texts and lodge work.', f5h:'Degree-based access', f5p:'Entered Apprentice, Fellow Craft, Master Mason — each brother sees only what he should.', f6h:'Your own domain', f6p:'Available on your dedicated subdomain, no ads, no data resale.', price_eye:'Pricing', price_title:'Simple and transparent', price_badge:'30 days free', price_period:'per year, billed once', price_monthly:'~€14.90 / month', pl1:'Private site dedicated to your lodge', pl2:'Unlimited members', pl3:'Full management: members, meetings, treasury', pl4:'Degree-secured access', pl5:'Hosting & SSL included', pl6:'Automatic updates', pl7:'Email support', price_cta:'Start free trial', price_fine:'Credit card required after 30 days. Annual payment non-refundable. Cancel before renewal date.', cgu_eye:'Terms', cgu_title:'What you need to know', cgu1h:'Data & privacy', cgu1p:'Your data stays yours. Hosted in Europe. Never sold or shared.', cgu2h:'Cancellation', cgu2p:'Cancel before renewal. Data deleted within 30 days of cancellation.', cgu3h:'Payment', cgu3p:'€179 once per year. No partial refunds.', cgu4h:'Free trial', cgu4p:'30 days commitment-free. Card only required at end of trial.', g_sub:'Members only', g_btn:'Enter', g_err:'Incorrect password.' },
+  nl: { nav_cta:'Gratis proberen', hero_eye:'Beheerplatform • Sinds 2026', hero_h1:'De virtuele loge voor ', hero_em:'uw loge', hero_sub:'Beheer leden, bijeenkomsten, bijdragen en documenten discreet — in 2 minuten actief.', hero_btn:'Start gratis proefperiode', hero_note:'30 dagen gratis · Geen bankkaart · Vrij opzegbaar', feat_eye:'Functies', feat_title:'Alles wat uw loge nodig heeft', f1h:'Ledenbeheer', f1p:'Volledige profielen, graden, bijdragen en geschiedenis per broeder.', f2h:'Vergaderingen & agenda', f2p:'Plan uw bijeenkomsten, deel agenda\'s en beheer aanwezigheid.', f3h:'Penningmeester', f3p:'Bijdragen opvolgen, automatische herinneringen en financieel dashboard.', f4h:'Documenten', f4p:'Beveiligde bibliotheek voor rituele teksten en loge-werken.', f5h:'Graad-gebaseerde toegang', f5p:'Leerling, Gezel, Meester — elke broeder ziet enkel wat hem toekomt.', f6h:'Eigen domein', f6p:'Bereikbaar via uw eigen subdomein, zonder reclame of dataverkoop.', price_eye:'Prijs', price_title:'Eenvoudig en transparant', price_badge:'30 dagen gratis', price_period:'per jaar, eenmalig betaald', price_monthly:'~€14,90 / maand', pl1:'Privésite voor uw loge', pl2:'Onbeperkt leden', pl3:'Volledig beheer: leden, vergaderingen, penningmeester', pl4:'Beveiligde toegang per graad', pl5:'Hosting & SSL inbegrepen', pl6:'Automatische updates', pl7:'E-mailondersteuning', price_cta:'Start gratis proefperiode', price_fine:'Bankkaart gevraagd na 30 dagen. Jaarlijkse betaling niet terugbetaalbaar. Opzegbaar vóór verlengingsdatum.', cgu_eye:'Voorwaarden', cgu_title:'Wat u moet weten', cgu1h:'Gegevens & privacy', cgu1p:'Uw gegevens blijven van u. Gehost in Europa. Nooit verkocht.', cgu2h:'Opzegging', cgu2p:'Opzeggen vóór verlenging. Gegevens verwijderd binnen 30 dagen.', cgu3h:'Betaling', cgu3p:'€179 eenmaal per jaar. Geen gedeeltelijke terugbetaling.', cgu4h:'Gratis proefperiode', cgu4p:'30 dagen zonder verplichting. Kaart gevraagd op het einde.', g_sub:'Leden zone', g_btn:'Binnenkomen', g_err:'Onjuist wachtwoord.' },
+  de: { nav_cta:'Kostenlos testen', hero_eye:'Verwaltungsplattform • Seit 2026', hero_h1:'Der virtuelle Tempel für ', hero_em:'Ihre Loge', hero_sub:'Verwalten Sie Mitglieder, Zusammenkünfte, Beiträge und Dokumente diskret — in 2 Minuten einsatzbereit.', hero_btn:'Kostenlose Testphase starten', hero_note:'30 Tage kostenlos · Keine Kreditkarte · Jederzeit kündbar', feat_eye:'Funktionen', feat_title:'Alles was Ihre Loge braucht', f1h:'Mitgliederverwaltung', f1p:'Vollständige Profile, Grade, Beiträge und Verlauf für jeden Bruder.', f2h:'Zusammenkünfte & Kalender', f2p:'Planen Sie Ihre Treffen, teilen Sie Tagesordnungen und verfolgen Sie Anwesenheiten.', f3h:'Kassenverwaltung', f3p:'Beitragsverfolgung, automatische Erinnerungen und Finanz-Dashboard.', f4h:'Dokumente & Arbeiten', f4p:'Sichere Bibliothek für rituelle Texte und Logenarbeiten.', f5h:'Gradbasierter Zugang', f5p:'Lehrling, Geselle, Meister — jeder Bruder sieht nur das ihm Bestimmte.', f6h:'Eigene Domain', f6p:'Über Ihre dedizierte Subdomain erreichbar, ohne Werbung oder Datenverkauf.', price_eye:'Preis', price_title:'Einfach und transparent', price_badge:'30 Tage kostenlos', price_period:'pro Jahr, einmalig berechnet', price_monthly:'~14,90 € / Monat', pl1:'Private Website für Ihre Loge', pl2:'Unbegrenzte Mitglieder', pl3:'Vollständige Verwaltung: Mitglieder, Treffen, Kasse', pl4:'Gradesicherter Zugang', pl5:'Hosting & SSL inklusive', pl6:'Automatische Updates', pl7:'E-Mail-Support', price_cta:'Kostenlose Testphase starten', price_fine:'Kreditkarte nach 30 Tagen erforderlich. Jahresbeitrag nicht erstattungsfähig. Kündigung vor Verlängerungsdatum möglich.', cgu_eye:'Bedingungen', cgu_title:'Was Sie wissen müssen', cgu1h:'Daten & Datenschutz', cgu1p:'Ihre Daten gehören Ihnen. In Europa gehostet. Niemals verkauft.', cgu2h:'Kündigung', cgu2p:'Vor Verlängerung kündigen. Daten innerhalb von 30 Tagen gelöscht.', cgu3h:'Zahlung', cgu3p:'179 € einmal pro Jahr. Keine anteilige Rückerstattung.', cgu4h:'Kostenlose Testphase', cgu4p:'30 Tage ohne Verpflichtung. Karte erst am Ende der Testphase erforderlich.', g_sub:'Nur für Mitglieder', g_btn:'Eintreten', g_err:'Falsches Passwort.' },
+  pt: { nav_cta:'Teste grátis', hero_eye:'Plataforma de gestão • Desde 2026', hero_h1:'O templo virtual para ', hero_em:'a sua loja', hero_sub:'Gira membros, reuniões, quotas e documentos com discrição — ativo em 2 minutos.', hero_btn:'Iniciar teste gratuito', hero_note:'30 dias grátis · Sem cartão bancário · Cancelamento livre', feat_eye:'Funcionalidades', feat_title:'Tudo o que a sua loja precisa', f1h:'Gestão de membros', f1p:'Fichas completas, graus, quotas e histórico de cada irmão.', f2h:'Reuniões & agenda', f2p:'Planeie as suas reuniões, partilhe ordens do dia e gira presenças.', f3h:'Tesouraria', f3p:'Acompanhamento de quotas, lembretes automáticos e painel financeiro.', f4h:'Documentos & pranchas', f4p:'Biblioteca segura para textos rituais e trabalhos em loja.', f5h:'Acesso por grau', f5p:'Aprendiz, Companheiro, Mestre — cada irmão vê apenas o que lhe é destinado.', f6h:'O seu domínio', f6p:'Acessível no seu subdomínio dedicado, sem publicidade nem venda de dados.', price_eye:'Preço', price_title:'Simples e transparente', price_badge:'30 dias grátis', price_period:'por ano, faturado de uma vez', price_monthly:'~14,90 € / mês', pl1:'Site privado dedicado à sua loja', pl2:'Membros ilimitados', pl3:'Gestão completa: membros, reuniões, tesouraria', pl4:'Acesso seguro por grau', pl5:'Alojamento & SSL incluídos', pl6:'Atualizações automáticas', pl7:'Suporte por email', price_cta:'Iniciar teste gratuito', price_fine:'Cartão bancário solicitado após 30 dias. Pagamento anual não reembolsável. Cancelamento antes da data de renovação.', cgu_eye:'Condições', cgu_title:'O que precisa de saber', cgu1h:'Dados & privacidade', cgu1p:'Os seus dados pertencem-lhe. Alojados na Europa. Nunca vendidos.', cgu2h:'Cancelamento', cgu2p:'Cancele antes da renovação. Dados eliminados em 30 dias.', cgu3h:'Pagamento', cgu3p:'179 € uma vez por ano. Sem reembolso parcial.', cgu4h:'Teste gratuito', cgu4p:'30 dias sem compromisso. Cartão solicitado no fim do período.', g_sub:'Zona reservada', g_btn:'Entrar', g_err:'Palavra-passe incorreta.' },
+  es: { nav_cta:'Prueba gratis', hero_eye:'Plataforma de gestión • Desde 2026', hero_h1:'El templo virtual para ', hero_em:'su logia', hero_sub:'Gestione miembros, tenidas, cuotas y documentos con discreción — activo en 2 minutos.', hero_btn:'Iniciar prueba gratuita', hero_note:'30 días gratis · Sin tarjeta bancaria · Cancelación libre', feat_eye:'Funcionalidades', feat_title:'Todo lo que su logia necesita', f1h:'Gestión de miembros', f1p:'Fichas completas, grados, cuotas e historial de cada hermano.', f2h:'Tenidas & agenda', f2p:'Planifique sus tenidas, comparta órdenes del día y gestione asistencias.', f3h:'Tesorería', f3p:'Seguimiento de cuotas, recordatorios automáticos y panel financiero.', f4h:'Documentos & planchas', f4p:'Biblioteca segura para textos rituales y trabajos en logia.', f5h:'Acceso por grado', f5p:'Aprendiz, Compañero, Maestro — cada hermano ve solo lo que le corresponde.', f6h:'Su propio dominio', f6p:'Accesible desde su subdominio dedicado, sin publicidad ni venta de datos.', price_eye:'Precio', price_title:'Simple y transparente', price_badge:'30 días gratis', price_period:'por año, facturado de una vez', price_monthly:'~14,90 € / mes', pl1:'Sitio privado dedicado a su logia', pl2:'Miembros ilimitados', pl3:'Gestión completa: miembros, tenidas, tesorería', pl4:'Acceso seguro por grado', pl5:'Alojamiento & SSL incluidos', pl6:'Actualizaciones automáticas', pl7:'Soporte por email', price_cta:'Iniciar prueba gratuita', price_fine:'Tarjeta bancaria solicitada al finalizar los 30 días. Pago anual no reembolsable. Cancelación posible antes de la fecha de renovación.', cgu_eye:'Condiciones', cgu_title:'Lo que debe saber', cgu1h:'Datos & privacidad', cgu1p:'Sus datos son suyos. Alojados en Europa. Nunca vendidos.', cgu2h:'Cancelación', cgu2p:'Cancele antes de la renovación. Datos eliminados en 30 días.', cgu3h:'Pago', cgu3p:'179 € una vez al año. Sin reembolso parcial.', cgu4h:'Prueba gratuita', cgu4p:'30 días sin compromiso. Tarjeta solicitada al final del período.', g_sub:'Zona reservada', g_btn:'Entrar', g_err:'Contraseña incorrecta.' },
+  it: { nav_cta:'Prova gratis', hero_eye:'Piattaforma di gestione • Dal 2026', hero_h1:'Il tempio virtuale per ', hero_em:'la tua loggia', hero_sub:'Gestisci membri, tornate, quote e documenti con discrezione — attivo in 2 minuti.', hero_btn:'Inizia la prova gratuita', hero_note:'30 giorni gratis · Senza carta bancaria · Disdetta libera', feat_eye:'Funzionalità', feat_title:'Tutto ciò di cui la tua loggia ha bisogno', f1h:'Gestione dei membri', f1p:'Schede complete, gradi, quote e storico per ogni fratello.', f2h:'Tornate & agenda', f2p:'Pianifica le tue tornate, condividi gli ordini del giorno e gestisci le presenze.', f3h:'Tesoreria', f3p:'Monitoraggio delle quote, promemoria automatici e dashboard finanziario.', f4h:'Documenti & tavole', f4p:'Biblioteca sicura per i testi rituali e i lavori in loggia.', f5h:'Accesso per grado', f5p:'Apprendista, Compagno, Maestro — ogni fratello vede solo ciò che gli spetta.', f6h:'Il tuo dominio', f6p:'Accessibile dal tuo sottodominio dedicato, senza pubblicità né vendita di dati.', price_eye:'Prezzo', price_title:'Semplice e trasparente', price_badge:'30 giorni gratis', price_period:'all\'anno, fatturato in una volta', price_monthly:'~14,90 € / mese', pl1:'Sito privato dedicato alla tua loggia', pl2:'Membri illimitati', pl3:'Gestione completa: membri, tornate, tesoreria', pl4:'Accesso sicuro per grado', pl5:'Hosting & SSL inclusi', pl6:'Aggiornamenti automatici', pl7:'Supporto via email', price_cta:'Inizia la prova gratuita', price_fine:'Carta bancaria richiesta dopo 30 giorni. Pagamento annuale non rimborsabile. Disdetta possibile prima della data di rinnovo.', cgu_eye:'Condizioni', cgu_title:'Quello che devi sapere', cgu1h:'Dati & privacy', cgu1p:'I tuoi dati rimangono tuoi. Ospitati in Europa. Mai venduti.', cgu2h:'Disdetta', cgu2p:'Disdici prima del rinnovo. Dati cancellati entro 30 giorni.', cgu3h:'Pagamento', cgu3p:'179 € una volta all\'anno. Nessun rimborso parziale.', cgu4h:'Prova gratuita', cgu4p:'30 giorni senza impegno. Carta richiesta alla fine del periodo.', g_sub:'Zona riservata', g_btn:'Entrare', g_err:'Password errata.' }
+};
 
-// Génère mot de passe sécurisé
-function genPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
-  let pwd = '';
-  const arr = new Uint8Array(14);
-  crypto.getRandomValues(arr);
-  arr.forEach(b => { pwd += chars[b % chars.length]; });
-  return pwd;
-}
+let lang = navigator.language.slice(0,2);
+if (!T[lang]) lang = 'fr';
 
-// Soumission
-$('activationForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const name   = $('lodgeName').value.trim();
-  const slug   = $('slug').value.trim();
-  const email  = $('contactEmail').value.trim();
-  const custom = $('customDomain').value.trim();
-
-  // Validation
-  $('formError').classList.remove('visible');
-  if (!name || !slug || !email) return showError('Merci de remplir tous les champs obligatoires.');
-  if (!/^[a-z0-9-]+$/.test(slug)) return showError('Le slug ne peut contenir que des minuscules, chiffres et tirets.');
-  if (slug.length < 3) return showError('Le slug doit faire au moins 3 caractères.');
-
-  const pwd = genPassword();
-  $('submitBtn').disabled = true;
-  $('submitLabel').textContent = 'Déploiement en cours…';
-  $('spinner').classList.add('active');
-
-  try {
-    const res = await fetch('/api/provision', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, lodge_name: name, contact_email: email,
-                             initial_password: pwd, custom_domain: custom })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-    showSuccess({ slug, name, email, pwd, custom, ...data });
-  } catch(err) {
-    showError(err.message || 'Une erreur est survenue. Merci de réessayer.');
-    $('submitBtn').disabled = false;
-    $('submitLabel').textContent = 'Activer ma Loge';
-    $('spinner').classList.remove('active');
-  }
-});
-
-function showError(msg) {
-  const el = $('formError');
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-
-function showSuccess({ slug, name, email, pwd, custom }) {
-  const url = custom ? `https://${custom}` : `https://${slug}.velum.fr`;
-  const vmEmail = `vm@${slug}.velum.fr`;
-
-  $('credUrl').textContent = url;
-  $('credVmEmail').textContent = vmEmail;
-  $('credPassword').textContent = pwd;
-  $('successSubtitle').textContent = `${name} — accessible sur ${url} dans 2 minutes.`;
-
-  const grades = ['apprenti','compagnon','maitre','tresorier','architecte'];
-  $('otherCreds').innerHTML = grades.map(g => `
-    <div class="cred-row">
-      <span class="cred-label">${g.charAt(0).toUpperCase()+g.slice(1)}</span>
-      <span class="cred-value">${g}@${slug}.velum.fr</span>
-    </div>`).join('');
-
-  $('formCard').style.display = 'none';
-  $('successCard').classList.add('visible');
-
-  // Stocke pour copie
-  $('btnCopy').dataset.all = [
-    `Temple : ${url}`,
-    `VM : ${vmEmail} / ${pwd}`,
-    ...grades.map(g => `${g.charAt(0).toUpperCase()+g.slice(1)} : ${g}@${slug}.velum.fr / ${pwd}`)
-  ].join('\n');
-}
-
-function copyAll() {
-  const text = $('btnCopy').dataset.all;
-  navigator.clipboard.writeText(text).then(() => {
-    $('btnCopy').textContent = '✓ Copié !';
-    setTimeout(() => $('btnCopy').textContent = '📋 Copier tous les identifiants', 2000);
+function setLang(l) {
+  lang = l;
+  const t = T[l];
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const k = el.dataset.t;
+    if (t[k] !== undefined) el.textContent = t[k];
   });
+  // hero h1 special (has em child)
+  const h1 = document.querySelector('.hero h1');
+  if (h1) {
+    h1.childNodes[0].textContent = t.hero_h1;
+    const em = h1.querySelector('em');
+    if (em) em.textContent = t.hero_em;
+  }
 }
+
+function checkGate(e) {
+  e.preventDefault();
+  const val = document.getElementById('gateInput').value;
+  const err = document.getElementById('gateError');
+  if (val === PASS) {
+    try { localStorage.setItem('fa_auth','1'); } catch(e){}
+    const gate = document.getElementById('gate');
+    gate.classList.add('hidden');
+    setTimeout(() => gate.style.display='none', 650);
+    document.getElementById('site').classList.add('visible');
+    setLang(lang);
+    document.querySelector('.lang-select').value = lang;
+  } else {
+    err.textContent = T[lang].g_err;
+    document.getElementById('gateInput').value = '';
+    document.getElementById('gateInput').focus();
+  }
+}
+
+// Auto-lang UI
+document.getElementById('g-sub').textContent = T[lang].g_sub;
+document.getElementById('g-btn').textContent = T[lang].g_btn;
+
+// Check if already authenticated
+try {
+  if (localStorage.getItem('fa_auth') === '1') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('site').classList.add('visible');
+    setLang(lang);
+    document.querySelector('.lang-select').value = lang;
+  }
+} catch(e) {}
+
+document.getElementById('gateInput').focus();
 </script>
-</body>
-</html>

@@ -1,264 +1,107 @@
-name: Déployer une Nouvelle Loge
-
-# Architecture scalable — 1 Worker universel pour toutes les loges
-# Ce workflow :
-#   1. Crée l'entrée DNS (sous-domaine {slug}.velum.fr) sur Cloudflare
-#   2. Crée les 6 comptes Firebase Auth (grade@{slug}.velum.fr)
-#   3. Initialise Firestore avec le nom de la loge
-#
-# Le Worker Cloudflare universel (velum-temple) sert déjà *.velum.fr —
-# il n'y a donc RIEN à déployer côté code pour chaque nouvelle loge.
-#
-# Prérequis secrets GitHub :
-#   CLOUDFLARE_API_TOKEN      — token avec permissions DNS:Edit + Zone:Read
-#   CLOUDFLARE_ACCOUNT_ID     — ID du compte Cloudflare
-#   CLOUDFLARE_ZONE_ID        — ID de la zone velum.fr dans Cloudflare
-#   FIREBASE_SERVICE_ACCOUNT_FR — clé JSON du compte de service Firebase
+name: Déployer une nouvelle loge Velum
 
 on:
   workflow_dispatch:
     inputs:
       slug:
-        description: 'ID unique de la loge (ex: loge-lumiere) — sera le sous-domaine : loge-lumiere.velum.fr'
+        description: 'Identifiant unique (ex: loge-lumiere-75)'
         required: true
-        type: string
       lodge_name:
-        description: 'Nom complet (ex: R∴L∴ Les Trois Colonnes n°42)'
+        description: 'Nom complet de la loge'
         required: true
-        type: string
       initial_password:
-        description: 'Mot de passe initial pour tous les comptes (min 8 car.)'
+        description: 'Mot de passe administrateur initial'
         required: true
-        type: string
-        default: 'Temple2025!'
       custom_domain:
-        description: 'Domaine propre optionnel (ex: loge-lumiere.fr) — laisser vide pour velum.fr uniquement'
+        description: 'Domaine personnalisé (laisser vide pour slug.fraternapp.com)'
         required: false
-        type: string
+        default: ''
 
 jobs:
-  provision:
+  deploy:
     runs-on: ubuntu-latest
+    name: Déployer ${{ inputs.slug }}
+
     steps:
-      - name: Créer le sous-domaine DNS velum.fr
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. Générer les fichiers du site pour cette loge ──────────────────
+      - name: Générer le site de la loge
         run: |
-          SLUG="${{ github.event.inputs.slug }}"
-          ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID }}"
-          TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          mkdir -p dist/${{ inputs.slug }}
 
-          # Créer l'enregistrement CNAME : {slug}.velum.fr → velum-temple.workers.dev
-          RESPONSE=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data "{
-              \"type\": \"CNAME\",
-              \"name\": \"${SLUG}.velum.fr\",
-              \"content\": \"velum-temple.workers.dev\",
-              \"ttl\": 1,
-              \"proxied\": true
-            }")
+          # Injecter slug et nom dans le template HTML
+          sed \
+            -e 's|__VELUM_SLUG__|${{ inputs.slug }}|g' \
+            -e 's|__VELUM_LODGE_NAME__|${{ inputs.lodge_name }}|g' \
+            velum-template/index.html > dist/${{ inputs.slug }}/index.html
 
-          SUCCESS=$(echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(r.success?'ok':r.errors?.[0]?.message||'error');})")
-
-          if [ "$SUCCESS" = "ok" ]; then
-            echo "✅ DNS créé : ${SLUG}.velum.fr"
-          elif echo "$SUCCESS" | grep -qi "already exists\|Record already"; then
-            echo "ℹ️  DNS déjà existant : ${SLUG}.velum.fr"
-          else
-            echo "⚠️  DNS : $SUCCESS"
+          # Copier les assets communs si présents
+          if [ -d velum-template/assets ]; then
+            cp -r velum-template/assets dist/${{ inputs.slug }}/
           fi
 
-      - name: Créer les comptes Firebase Auth
+      # ── 2. Déployer sur Cloudflare Pages ─────────────────────────────────
+      - name: Déployer sur Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/${{ inputs.slug }} --project-name=velum-${{ inputs.slug }} --commit-dirty=true
+
+      # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
+      - name: Enregistrer la loge dans KV
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >
+            kv key put
+            --namespace-id=bf2daa2ce915450599a4de04d554e99d
+            "lodge:${{ inputs.slug }}"
+            "{\"slug\":\"${{ inputs.slug }}\",\"name\":\"${{ inputs.lodge_name }}\",\"created\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+
+      # ── 4. Créer l'utilisateur Firebase admin ────────────────────────────
+      - name: Créer utilisateur Firebase
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          LODGE_SLUG: ${{ inputs.slug }}
+          CONTACT_EMAIL: ${{ inputs.slug }}@fraternapp.com
+          INITIAL_PASSWORD: ${{ inputs.initial_password }}
         run: |
-          node - <<'JSEOF'
-          const https = require('https');
-          const crypto = require('crypto');
+          npm install -g firebase-admin --silent
+          node - <<'EOF'
+          const admin = require('firebase-admin');
+          const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          admin.initializeApp({ credential: admin.credential.cert(sa) });
 
-          const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_FR);
-          const slug = process.env.SLUG;
-          const password = process.env.INITIAL_PWD;
-          const projectId = sa.project_id;
-          const domain = `${slug}.velum.fr`;
-
-          const grades = ['apprenti','compagnon','maitre','tresorier','vm','architecte'];
-          const emails = Object.fromEntries(grades.map(g => [g, `${g}@${domain}`]));
-
-          function b64url(str) {
-            return Buffer.from(str).toString('base64')
-              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-          }
-
-          async function getToken() {
-            const now = Math.floor(Date.now()/1000);
-            const header  = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
-            const payload = b64url(JSON.stringify({
-              iss: sa.client_email,
-              scope: 'https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/firebase',
-              aud: 'https://oauth2.googleapis.com/token',
-              exp: now+3600, iat: now,
-            }));
-            const sign = crypto.createSign('RSA-SHA256');
-            sign.update(`${header}.${payload}`);
-            const sig = sign.sign(sa.private_key,'base64')
-              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-            const jwt = `${header}.${payload}.${sig}`;
-            const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
-            return new Promise((res,rej)=>{
-              const req = https.request({
-                hostname:'oauth2.googleapis.com',path:'/token',method:'POST',
-                headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(body)}
-              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{const j=JSON.parse(d);j.access_token?res(j.access_token):rej(new Error(d));});});
-              req.on('error',rej);req.write(body);req.end();
-            });
-          }
-
-          function apiPost(path,body,token) {
-            return new Promise((res,rej)=>{
-              const data=JSON.stringify(body);
-              const req=https.request({
-                hostname:'identitytoolkit.googleapis.com',path,method:'POST',
-                headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'Authorization':'Bearer '+token}
-              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{res(JSON.parse(d));}catch(e){res({});}});});
-              req.on('error',rej);req.write(data);req.end();
-            });
-          }
-
-          (async()=>{
+          (async () => {
             try {
-              const token = await getToken();
-              for (const [grade,email] of Object.entries(emails)) {
-                const r = await apiPost(`/v1/projects/${projectId}/accounts`,{email,password,emailVerified:true},token);
-                if (r.localId) {
-                  console.log('✅ Créé :',email);
-                } else if (r.error?.message?.includes('EMAIL_EXISTS')) {
-                  const lu = await apiPost(`/v1/projects/${projectId}/accounts:lookup`,{email:[email]},token);
-                  if (lu.users?.[0]?.localId) {
-                    await apiPost(`/v1/projects/${projectId}/accounts:update`,{localId:lu.users[0].localId,password},token);
-                    console.log('🔄 Mis à jour :',email);
-                  }
-                } else {
-                  console.error('⚠️',email,JSON.stringify(r.error||r));
-                }
+              await admin.auth().createUser({
+                email: process.env.CONTACT_EMAIL,
+                password: process.env.INITIAL_PASSWORD,
+                displayName: `Admin ${process.env.LODGE_SLUG}`,
+              });
+              console.log('Utilisateur Firebase créé :', process.env.CONTACT_EMAIL);
+            } catch (e) {
+              if (e.code === 'auth/email-already-exists') {
+                console.log('Utilisateur déjà existant — ok');
+              } else {
+                throw e;
               }
-              console.log('\n✅ Comptes Firebase prêts');
-            } catch(e) { console.error('❌',e.message); process.exit(1); }
-          })();
-          JSEOF
-        env:
-          SLUG: ${{ github.event.inputs.slug }}
-          INITIAL_PWD: ${{ github.event.inputs.initial_password }}
-          FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
-
-      - name: Initialiser Firestore
-        run: |
-          node - <<'JSEOF'
-          const https = require('https');
-          const crypto = require('crypto');
-
-          const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_FR);
-          const slug = process.env.SLUG;
-          const lodgeName = process.env.LODGE_NAME;
-          const pwd = process.env.INITIAL_PWD;
-          const projectId = sa.project_id;
-
-          function b64url(str) {
-            return Buffer.from(str).toString('base64')
-              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-          }
-
-          async function getToken() {
-            const now = Math.floor(Date.now()/1000);
-            const header  = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
-            const payload = b64url(JSON.stringify({
-              iss: sa.client_email,
-              scope: 'https://www.googleapis.com/auth/datastore',
-              aud: 'https://oauth2.googleapis.com/token',
-              exp: now+3600, iat: now,
-            }));
-            const sign = crypto.createSign('RSA-SHA256');
-            sign.update(`${header}.${payload}`);
-            const sig = sign.sign(sa.private_key,'base64')
-              .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-            const jwt = `${header}.${payload}.${sig}`;
-            const body = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
-            return new Promise((res,rej)=>{
-              const req=https.request({
-                hostname:'oauth2.googleapis.com',path:'/token',method:'POST',
-                headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(body)}
-              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{const j=JSON.parse(d);j.access_token?res(j.access_token):rej(new Error(d));});});
-              req.on('error',rej);req.write(body);req.end();
-            });
-          }
-
-          function setDoc(path,fields,token) {
-            const body=JSON.stringify({fields});
-            return new Promise((res,rej)=>{
-              const req=https.request({
-                hostname:'firestore.googleapis.com',
-                path:`/v1/projects/${projectId}/databases/(default)/documents/${path}`,
-                method:'PATCH',
-                headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body),'Authorization':'Bearer '+token}
-              },r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>res(JSON.parse(d)));});
-              req.on('error',rej);req.write(body);req.end();
-            });
-          }
-
-          (async()=>{
-            try {
-              const token = await getToken();
-              const base = `artifacts/${slug}/public/data/settings`;
-              const sv = v => ({stringValue: v});
-
-              await setDoc(`${base}/identity`,{
-                name:sv(lodgeName), rite:sv(''), obedience:sv(''), orient:sv(''),
-                maitreBanquet:sv(''), telBanquet:sv(''),
-              },token);
-
-              await setDoc(`${base}/welcome`,{text:sv('')},token);
-
-              await setDoc(`${base}/gradesPasswords`,{
-                apprenti:sv(pwd), compagnon:sv(pwd), maitre:sv(pwd),
-                tresorier:sv(pwd), vm:sv(pwd), architecte:sv(pwd),
-              },token);
-
-              console.log('✅ Firestore initialisé pour',lodgeName,'— appId:',slug);
-            } catch(e) {
-              console.error('⚠️  Firestore partiel :',e.message);
             }
+            process.exit(0);
           })();
-          JSEOF
-        env:
-          SLUG: ${{ github.event.inputs.slug }}
-          LODGE_NAME: ${{ github.event.inputs.lodge_name }}
-          INITIAL_PWD: ${{ github.event.inputs.initial_password }}
-          FIREBASE_SERVICE_ACCOUNT_FR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FR }}
+          EOF
 
-      - name: Résumé
+      # ── 5. Résumé ─────────────────────────────────────────────────────────
+      - name: Résumé du déploiement
         run: |
-          SLUG="${{ github.event.inputs.slug }}"
-          LOGE="${{ github.event.inputs.lodge_name }}"
-          PWD="${{ github.event.inputs.initial_password }}"
-          CUSTOM="${{ github.event.inputs.custom_domain }}"
-
-          echo "======================================================"
-          echo "✅  LOGE PROVISIONNÉE : $LOGE"
-          echo "======================================================"
-          echo "🌐  URL principale  : https://${SLUG}.velum.fr"
-          if [ -n "$CUSTOM" ]; then
-          echo "🌐  Domaine propre  : https://${CUSTOM} (à configurer manuellement)"
-          fi
-          echo "🗄️   AppID (Firestore): $SLUG"
-          echo ""
-          echo "📧  Comptes créés :"
-          for g in apprenti compagnon maitre tresorier vm architecte; do
-            echo "    ${g}@${SLUG}.velum.fr"
-          done
-          echo ""
-          echo "🔑  Mot de passe initial : $PWD"
-          echo "⚠️   L'architecte doit changer tous les mots de passe"
-          echo "    à la première connexion via Configuration."
-          echo ""
-          echo "⏱️   Temps de provisioning : ~30 secondes"
-          echo "    (vs ~2 min avant — plus de déploiement Worker)"
-          echo "======================================================"
+          DOMAIN="${{ inputs.custom_domain }}"
+          URL="${DOMAIN:-${{ inputs.slug }}.fraternapp.com}"
+          echo "### Loge déployée avec succès" >> $GITHUB_STEP_SUMMARY
+          echo "- **Slug** : ${{ inputs.slug }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Nom** : ${{ inputs.lodge_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL** : https://$URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pages** : https://velum-${{ inputs.slug }}.pages.dev" >> $GITHUB_STEP_SUMMARY
