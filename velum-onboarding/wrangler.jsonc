@@ -14,5 +14,6 @@
   "kv_namespaces": [
     { "binding": "LODGES", "id": "bf2daa2ce915450599a4de04d554e99d" }
   ],
-  "routes": [{ "pattern": "fraternapp.com/api/*", "zone_name": "fraternapp.com" }]
+  // Route fraternapp.com/api/* à attacher manuellement via le dashboard Cloudflare
+  // Workers → velum-onboarding → Triggers → Add route → fraternapp.com/api/*
 }

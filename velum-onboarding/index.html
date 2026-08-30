@@ -579,7 +579,7 @@ async function submitSignup() {
   showSignupMsg('pending', '⏳ Votre loge est en cours de création, cela prend ~2 minutes…');
 
   try {
-    const res = await fetch('https://fraternapp.com/api/provision', {
+    const res = await fetch('https://velum-onboarding.rezofabrik.workers.dev/api/provision', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug, lodge_name: name, contact_email: email, initial_password: pass, custom_domain: '' }),
