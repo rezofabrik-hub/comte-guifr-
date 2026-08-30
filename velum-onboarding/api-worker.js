@@ -102,18 +102,58 @@ async function handleProvision(request, env) {
   }
 
   // ── Succès ──────────────────────────────────────────────────────────────
-  const url = custom_domain
+  const lodgeUrl = custom_domain
     ? `https://${custom_domain}`
-    : `https://${slug}.velum.fr`;
+    : `https://${slug}.fraternapp.com`;
+
+  // ── Email de confirmation via MailChannels ───────────────────────────────
+  await sendConfirmationEmail(contact_email, lodge_name, slug, lodgeUrl).catch(e =>
+    console.error('Email non envoyé :', e.message)
+  );
 
   return new Response(JSON.stringify({
     ok: true,
     slug,
-    url,
-    message: `Déploiement lancé pour ${lodge_name}. Accessible sur ${url} dans ~2 minutes.`
+    url: lodgeUrl,
+    message: `Déploiement lancé pour ${lodge_name}. Accessible sur ${lodgeUrl} dans ~2 minutes.`
   }), {
     status: 200,
     headers: { ...CORS, 'Content-Type': 'application/json' }
+  });
+}
+
+async function sendConfirmationEmail(to, lodgeName, slug, lodgeUrl) {
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#222;">
+  <img src="https://fraternapp-onboarding.pages.dev/logo.png" alt="FraternApp" style="height:40px;margin-bottom:24px;" onerror="this.style.display='none'">
+  <h1 style="font-size:24px;margin-bottom:8px;">Votre loge est prête 🎉</h1>
+  <p style="color:#555;">Félicitations ! Votre espace privé <strong>${lodgeName}</strong> vient d'être déployé.</p>
+
+  <div style="background:#f5f3ef;border-radius:8px;padding:24px;margin:24px 0;text-align:center;">
+    <p style="margin:0 0 8px;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px;">Votre lien d'accès</p>
+    <a href="${lodgeUrl}" style="font-size:20px;font-weight:bold;color:#b8860b;text-decoration:none;">${lodgeUrl}</a>
+  </div>
+
+  <p style="color:#555;">Identifiant administrateur : <strong>${slug}@fraternapp.com</strong></p>
+  <p style="color:#555;">Votre site sera actif dans <strong>~2 minutes</strong> le temps que le déploiement se termine.</p>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
+  <p style="font-size:12px;color:#999;">Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire. FraternApp — rezofabrik.com</p>
+</body>
+</html>`;
+
+  await fetch('https://api.mailchannels.net/tx/v1/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'bonjour@fraternapp.com', name: 'FraternApp' },
+      subject: `✅ Votre loge "${lodgeName}" est déployée`,
+      content: [{ type: 'text/html', value: html }],
+    }),
   });
 }
 
