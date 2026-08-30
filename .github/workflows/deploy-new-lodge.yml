@@ -30,14 +30,10 @@ jobs:
       - name: Générer le site de la loge
         run: |
           mkdir -p dist/${{ inputs.slug }}
-
-          # Injecter slug et nom dans le template HTML
           sed \
             -e 's|__VELUM_SLUG__|${{ inputs.slug }}|g' \
             -e 's|__VELUM_LODGE_NAME__|${{ inputs.lodge_name }}|g' \
             velum-template/index.html > dist/${{ inputs.slug }}/index.html
-
-          # Copier les assets communs si présents
           if [ -d velum-template/assets ]; then
             cp -r velum-template/assets dist/${{ inputs.slug }}/
           fi
@@ -52,50 +48,26 @@ jobs:
           PROJECT=velum-${SLUG}
 
           # Créer le projet Pages s'il n'existe pas
-          curl -s -X POST \
+          CREATE_RESP=$(curl -s -X POST \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"name\":\"${PROJECT}\",\"production_branch\":\"main\"}" | \
-            python3 -c "import sys,json; r=json.load(sys.stdin); print('Project:', r.get('result',{}).get('name','already exists') or r.get('errors'))"
+            -d "{\"name\":\"${PROJECT}\",\"production_branch\":\"main\"}")
+          echo "Create project: $CREATE_RESP" | head -c 300
 
-          # Zipper les fichiers du site
-          cd dist/${SLUG}
-          zip -r ../../site.zip .
-          cd ../..
-
-          # Test token valide
-          echo "=== Test API token ==="
-          RESP=$(curl -s -X GET \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
+          # Test liste projets (debug)
+          echo "=== Liste projets ==="
+          LIST_RESP=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
             -H "Authorization: Bearer ${CF_TOKEN}")
-          echo "API Response: $RESP" | head -c 500
-          echo "$RESP" | python3 -c "
-import sys,json
-try:
-  r=json.loads(sys.stdin.read())
-  print('Success:', r.get('success'))
-  print('Errors:', r.get('errors'))
-  print('Projects:', [p.get('name') for p in r.get('result',[])])
-except Exception as e:
-  print('Parse error:', e)
-"
+          echo "$LIST_RESP" | python3 -c "import sys,json,os; d=json.loads(sys.stdin.read()); print('OK' if d.get('success') else 'FAIL: '+str(d.get('errors')))"
 
-          # Upload via Direct Upload API
-          UPLOAD_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments"
-          RESP2=$(curl -s -X POST "${UPLOAD_URL}" \
+          # Upload fichier index.html
+          UPLOAD_RESP=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -F "index.html=@dist/${SLUG}/index.html;type=text/html")
-          echo "Deploy response: $RESP2" | head -c 500
-          echo "$RESP2" | python3 -c "
-import sys,json
-try:
-  r=json.loads(sys.stdin.read())
-  d=r.get('result') or {}
-  print('Deploy URL:', d.get('url','?'), '| Success:', r.get('success'), '| Errors:', r.get('errors'))
-except Exception as e:
-  print('Parse error:', e)
-"
+          echo "Upload: $UPLOAD_RESP" | head -c 300
+          echo "$UPLOAD_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); r=d.get('result') or {}; print('Deploy:', r.get('url','?'), 'success:', d.get('success'), 'errors:', d.get('errors'))"
 
       # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
       - name: Enregistrer la loge dans KV
@@ -105,12 +77,13 @@ except Exception as e:
           SLUG: ${{ inputs.slug }}
           LODGE_NAME: ${{ inputs.lodge_name }}
         run: |
-          curl -s -X PUT \
+          KV_RESP=$(curl -s -X PUT \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/bf2daa2ce915450599a4de04d554e99d/values/lodge%3A${SLUG}" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"slug\":\"${SLUG}\",\"name\":\"${LODGE_NAME}\",\"created\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
-            | python3 -c "import sys,json; r=json.load(sys.stdin); print('KV:', r.get('success'), r.get('errors',''))"
+            -d "{\"slug\":\"${SLUG}\",\"name\":\"${LODGE_NAME}\",\"created\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
+          echo "KV: $KV_RESP"
+          echo "$KV_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('KV success:', d.get('success'), 'errors:', d.get('errors',''))"
 
       # ── 4. Créer l'utilisateur Firebase admin ────────────────────────────
       - name: Créer utilisateur Firebase
