@@ -50,7 +50,7 @@ jobs:
 
           echo "API Worker déployé : velum-onboarding.workers.dev"
 
-      # ── 3. Configurer les secrets du Worker (si pas déjà fait) ───────────
+      # ── 3. Configurer les secrets du Worker ──────────────────────────────
       - name: Configurer les secrets du Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -58,11 +58,16 @@ jobs:
           GITHUB_TOKEN_VAL: ${{ secrets.GH_ACTIONS_TOKEN }}
           GITHUB_REPO_VAL: ${{ github.repository }}
         run: |
-          echo "${GITHUB_TOKEN_VAL}" | npx wrangler@latest secret put GITHUB_TOKEN \
-            --config velum-onboarding/wrangler.jsonc --name velum-onboarding || true
+          if [ -n "${GITHUB_TOKEN_VAL}" ]; then
+            echo "${GITHUB_TOKEN_VAL}" | npx wrangler@latest secret put GITHUB_TOKEN \
+              --config velum-onboarding/wrangler.jsonc --name velum-onboarding
+            echo "GITHUB_TOKEN Worker configuré."
+          else
+            echo "⚠️  Secret GH_ACTIONS_TOKEN manquant — ajoutez-le dans Settings > Secrets pour activer le provisioning automatique."
+          fi
           echo "${GITHUB_REPO_VAL}" | npx wrangler@latest secret put GITHUB_REPO \
             --config velum-onboarding/wrangler.jsonc --name velum-onboarding || true
-          echo "Secrets Worker configurés."
+          echo "GITHUB_REPO Worker configuré : ${GITHUB_REPO_VAL}"
 
       # ── 4. Résumé ─────────────────────────────────────────────────────────
       - name: Résumé
