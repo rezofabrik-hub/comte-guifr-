@@ -1,4 +1,4 @@
-// Règles Firestore — Velum Loge · Multi-tenant v3
+// Règles Firestore — Velum Loge · Multi-tenant v3 · redeploy-2026-08-30
 // Chaque loge est isolée par son appId (slug) dans le chemin Firestore.
 // Les emails suivent le format : grade@{slug}.velum.fr
 // v2026-08-27b — fix: remplace startsWith/endsWith (invalides) par split('@') et matches()
