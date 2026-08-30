@@ -2177,7 +2177,7 @@
                 <form onSubmit={async(e)=>{e.preventDefault(); await onSave(f);}} className="bg-slate-50 p-6 rounded-xl border border-amber-200 mb-6 space-y-4 animate-fade font-sans w-full">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" placeholder="Nom du site" value={f.t} onChange={e=>s({...f,t:e.target.value})} className="border p-3 rounded-lg text-sm w-full font-bold outline-none focus:border-amber-500" required />
-                        <input type="url" placeholder="URL (https://...)" value={f.u} onChange={e=>s({...f,u:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500" required />
+                        <input type="text" placeholder="URL (ex: www.rezo-fabrik.fr)" value={f.u} onChange={e=>s({...f,u:e.target.value})} className="border p-3 rounded-lg text-sm w-full outline-none focus:border-amber-500" required />
                     </div>
                     <textarea placeholder="Description / Commentaire..." value={f.d} onChange={e=>s({...f,d:e.target.value})} className="border p-3 rounded-lg text-sm w-full h-20 outline-none focus:border-amber-500" required></textarea>
                     <div className="flex justify-end space-x-3"><button type="button" onClick={onCancel} className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Annuler</button><button type="submit" className="bg-amber-600 text-white px-6 py-2 rounded-lg font-bold shadow-md uppercase text-[10px] tracking-widest">Enregistrer</button></div>
