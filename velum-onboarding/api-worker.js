@@ -156,7 +156,7 @@ async function sendConfirmationEmail(to, lodgeName, slug, lodgeUrl, env) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'FraternApp <onboarding@resend.dev>',
+      from: 'FraternApp <bonjour@fraternapp.com>',
       to: [to],
       subject: `Votre loge "${lodgeName}" est déployée`,
       html,
