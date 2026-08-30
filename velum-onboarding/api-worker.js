@@ -107,7 +107,7 @@ async function handleProvision(request, env) {
     : `https://${slug}.fraternapp.com`;
 
   // ── Email de confirmation via MailChannels ───────────────────────────────
-  await sendConfirmationEmail(contact_email, lodge_name, slug, lodgeUrl).catch(e =>
+  await sendConfirmationEmail(contact_email, lodge_name, slug, lodgeUrl, env).catch(e =>
     console.error('Email non envoyé :', e.message)
   );
 
@@ -122,14 +122,18 @@ async function handleProvision(request, env) {
   });
 }
 
-async function sendConfirmationEmail(to, lodgeName, slug, lodgeUrl) {
+async function sendConfirmationEmail(to, lodgeName, slug, lodgeUrl, env) {
+  if (!env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY manquant — email non envoyé.');
+    return;
+  }
+
   const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#222;">
-  <img src="https://fraternapp-onboarding.pages.dev/logo.png" alt="FraternApp" style="height:40px;margin-bottom:24px;" onerror="this.style.display='none'">
-  <h1 style="font-size:24px;margin-bottom:8px;">Votre loge est prête 🎉</h1>
+  <h1 style="font-size:24px;margin-bottom:8px;">Votre loge est prête !</h1>
   <p style="color:#555;">Félicitations ! Votre espace privé <strong>${lodgeName}</strong> vient d'être déployé.</p>
 
   <div style="background:#f5f3ef;border-radius:8px;padding:24px;margin:24px 0;text-align:center;">
@@ -141,20 +145,28 @@ async function sendConfirmationEmail(to, lodgeName, slug, lodgeUrl) {
   <p style="color:#555;">Votre site sera actif dans <strong>~2 minutes</strong> le temps que le déploiement se termine.</p>
 
   <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
-  <p style="font-size:12px;color:#999;">Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire. FraternApp — rezofabrik.com</p>
+  <p style="font-size:12px;color:#999;">Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire. FraternApp</p>
 </body>
 </html>`;
 
-  await fetch('https://api.mailchannels.net/tx/v1/send', {
+  const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: 'bonjour@fraternapp.com', name: 'FraternApp' },
-      subject: `✅ Votre loge "${lodgeName}" est déployée`,
-      content: [{ type: 'text/html', value: html }],
+      from: 'FraternApp <onboarding@resend.dev>',
+      to: [to],
+      subject: `Votre loge "${lodgeName}" est déployée`,
+      html,
     }),
   });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Resend error ${resp.status}: ${err}`);
+  }
 }
 
 function jsonError(message, status = 400) {
