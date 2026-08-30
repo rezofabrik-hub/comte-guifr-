@@ -80,24 +80,31 @@ jobs:
           echo "KV: $KV_RESP"
           echo "$KV_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('KV success:', d.get('success'), 'errors:', d.get('errors',''))"
 
-      # ── 4. Créer l'utilisateur Firebase admin ────────────────────────────
-      - name: Créer utilisateur Firebase
+      # ── 4. Créer l'utilisateur Firebase + enregistrer dans Firestore ────
+      - name: Créer utilisateur Firebase et enregistrer la loge
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           LODGE_SLUG: ${{ inputs.slug }}
+          LODGE_NAME: ${{ inputs.lodge_name }}
           CONTACT_EMAIL: ${{ inputs.slug }}@fraternapp.com
           INITIAL_PASSWORD: ${{ inputs.initial_password }}
+          PAGES_URL: https://velum-${{ inputs.slug }}.pages.dev
         run: |
           npm install firebase-admin --silent
           NODE_PATH=$(pwd)/node_modules node - <<'EOF'
           const { initializeApp, cert } = require('firebase-admin/app');
           const { getAuth } = require('firebase-admin/auth');
+          const { getFirestore } = require('firebase-admin/firestore');
           const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
           initializeApp({ credential: cert(sa) });
 
           (async () => {
+            const auth = getAuth();
+            const db = getFirestore();
+
+            // Créer l'utilisateur admin
             try {
-              await getAuth().createUser({
+              await auth.createUser({
                 email: process.env.CONTACT_EMAIL,
                 password: process.env.INITIAL_PASSWORD,
                 displayName: `Admin ${process.env.LODGE_SLUG}`,
@@ -110,6 +117,18 @@ jobs:
                 throw e;
               }
             }
+
+            // Enregistrer la loge dans Firestore (registre central)
+            await db.collection('loges').doc(process.env.LODGE_SLUG).set({
+              slug: process.env.LODGE_SLUG,
+              name: process.env.LODGE_NAME,
+              adminEmail: process.env.CONTACT_EMAIL,
+              pagesUrl: process.env.PAGES_URL,
+              createdAt: new Date().toISOString(),
+              status: 'active',
+            }, { merge: true });
+            console.log('Loge enregistrée dans Firestore :', process.env.LODGE_SLUG);
+
             process.exit(0);
           })();
           EOF
