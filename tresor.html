@@ -686,9 +686,6 @@
                             <p className="text-slate-500 text-sm font-sans mt-1">Versements annuels par membre — {membres.length} membre{membres.length!==1?'s':''} configurés</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button onClick={initAnnee} disabled={initializing||membres.length===0||!settings.montantCotis} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest shadow font-serif transition-all">
-                                {initializing ? '...' : `⚡ Initialiser ${annee}`}
-                            </button>
                             <select value={annee} onChange={e=>setAnnee(e.target.value)} className="border bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-amber-500">
                                 {years.map(y=><option key={y}>{y}</option>)}
                             </select>
