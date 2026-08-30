@@ -2255,45 +2255,46 @@
             const logeName = settings.logeName || 'Trésorerie';
             const orient = settings.orient || '';
 
-            const addTx = async d => await api.addDoc(path('tresor_transactions'),d);
-            const updateTx = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id),d);
+            // Sérialise vers le realm du frame parent pour éviter "custom Object" avec Firebase cross-frame
+            const plain = obj => (window.top||window).JSON.parse(JSON.stringify(obj));
+
+            const addTx = async d => await api.addDoc(path('tresor_transactions'), plain(d));
+            const updateTx = async (id,d) => await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id), plain(d));
             const deleteTx = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_transactions',id));
 
             const addVersement = async (membreId,annee,mois,montant,note) => {
-                const data = { membreId, annee:parseInt(annee), montant, note };
-                if (mois !== null) { data.mois = mois; data.datePaiement = todayISO(); }
-                await api.addDoc(path('tresor_cotisations'), data);
+                const raw = { membreId: String(membreId), annee:parseInt(annee), montant: parseFloat(montant)||0, note: note||'' };
+                if (mois !== null) { raw.mois = parseInt(mois); raw.datePaiement = todayISO(); }
+                await api.addDoc(path('tresor_cotisations'), plain(raw));
             };
             const deleteVersement = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_cotisations',id));
 
             // tresor.html runs in an iframe — Firebase module is shared from parent frame,
-            // so data objects must be created in the parent's realm via window.top.JSON.parse.
-            const membreData = d => (window.top||window).JSON.parse(JSON.stringify({
+            // so data objects must be created in the parent's realm via plain().
+            const membreData = d => plain({
                 nom: String(d.nom||''), name: String(d.nom||d.name||''),
                 role: String(d.role||''), grade: String(d.grade||''),
                 telephone: String(d.telephone||''), email: String(d.email||''),
                 dateNaissance: String(d.dateNaissance||''),
-            }));
+            });
             const addMembre = async d => await api.addDoc(path('members'), membreData(d));
             const updateMembre = async (id,d) => await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), membreData(d), {merge:true});
             const deleteMembre = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id));
 
-
-            const addAgape = async d => await api.addDoc(path('tresor_agapes'),d);
+            const addAgape = async d => await api.addDoc(path('tresor_agapes'), plain(d));
             const deleteAgape = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_agapes',id));
 
-            const addPresence = async d => await api.addDoc(path('tresor_presences'),{...d, createdAt: todayISO()});
+            const addPresence = async d => await api.addDoc(path('tresor_presences'), plain({...d, createdAt: todayISO()}));
             const deletePresence = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_presences',id));
 
-            const addCharge = async d => await api.addDoc(path('tresor_charges'),d);
+            const addCharge = async d => await api.addDoc(path('tresor_charges'), plain(d));
             const deleteCharge = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_charges',id));
 
-            const addPlanche = async d => await api.addDoc(path('tresor_planches'),d);
+            const addPlanche = async d => await api.addDoc(path('tresor_planches'), plain(d));
             const deletePlanche = async id => await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_planches',id));
 
             const saveSettings = async d => {
-                const plain = (window.top||window).JSON.parse(JSON.stringify(d));
-                await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'), plain);
+                await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','tresor_settings','config'), plain(d));
             };
 
             const resetAllData = async () => {
