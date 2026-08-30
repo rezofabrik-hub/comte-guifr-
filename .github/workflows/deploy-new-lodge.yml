@@ -38,37 +38,30 @@ jobs:
             cp -r velum-template/assets dist/${{ inputs.slug }}/
           fi
 
-      # ── 2. Déployer sur Cloudflare Pages via API directe ────────────────
+      # ── 2. Déployer sur Cloudflare Pages via wrangler ───────────────────
       - name: Déployer sur Cloudflare Pages
         continue-on-error: true
         env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SLUG: ${{ inputs.slug }}
         run: |
           PROJECT=velum-${SLUG}
 
-          # Créer le projet Pages s'il n'existe pas
-          CREATE_RESP=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
-            -H "Authorization: Bearer ${CF_TOKEN}" \
+          # Créer le projet Pages s'il n'existe pas (ignore l'erreur si déjà existant)
+          curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"name\":\"${PROJECT}\",\"production_branch\":\"main\"}")
-          echo "Create project: $CREATE_RESP" | head -c 300
+            -d "{\"name\":\"${PROJECT}\",\"production_branch\":\"main\"}" | \
+            python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('Project:', 'created' if d.get('success') else d.get('errors',[{}])[0].get('message','?'))"
 
-          # Test liste projets (debug)
-          echo "=== Liste projets ==="
-          LIST_RESP=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
-            -H "Authorization: Bearer ${CF_TOKEN}")
-          echo "$LIST_RESP" | python3 -c "import sys,json,os; d=json.loads(sys.stdin.read()); print('OK' if d.get('success') else 'FAIL: '+str(d.get('errors')))"
-
-          # Upload fichier index.html
-          UPLOAD_RESP=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments" \
-            -H "Authorization: Bearer ${CF_TOKEN}" \
-            -F "index.html=@dist/${SLUG}/index.html;type=text/html")
-          echo "Upload: $UPLOAD_RESP" | head -c 300
-          echo "$UPLOAD_RESP" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); r=d.get('result') or {}; print('Deploy:', r.get('url','?'), 'success:', d.get('success'), 'errors:', d.get('errors'))"
+          # Déployer avec wrangler (gère le manifest automatiquement)
+          npx wrangler@latest pages deploy dist/${SLUG} \
+            --project-name=${PROJECT} \
+            --branch=main \
+            --commit-dirty=true
+          echo "Pages URL: https://${PROJECT}.pages.dev"
 
       # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
       - name: Enregistrer la loge dans KV
