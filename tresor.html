@@ -641,6 +641,7 @@
             const [payModal, setPayModal] = useState(null);
             const [expanded, setExpanded] = useState(null);
             const [initializing, setInitializing] = useState(false);
+            const [pendingDelete, setPendingDelete] = useState(null); // id du versement à supprimer
 
             const initAnnee = async () => {
                 if (!settings.montantCotis || membres.length === 0) return;
@@ -655,8 +656,8 @@
             };
             const years = useMemo(()=>{
                 const currentYear = new Date().getFullYear();
-                const ys=new Set(cotisations.map(c=>String(c.annee)).filter(y=>parseInt(y)<=currentYear));
-                ys.add(String(currentYear));
+                const ys=new Set(cotisations.map(c=>String(c.annee)).filter(Boolean));
+                for(let y=currentYear;y<=currentYear+5;y++) ys.add(String(y));
                 return [...ys].sort((a,b)=>b-a);
             },[cotisations]);
 
@@ -757,13 +758,18 @@
                                                     {MOIS.map((ml,i)=>{
                                                         const moisNum = i+1;
                                                         const v = versements.find(c=>c.mois===moisNum);
+                                                        const isPending = pendingDelete === (v?.id);
                                                         return (
-                                                            <button key={i} onClick={()=>v ? onDeleteVersement(v.id) : setPayModal({membreId:m.id,mois:moisNum})}
-                                                                className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${v?'bg-emerald-50 border-emerald-300 hover:bg-red-50 hover:border-red-300':'bg-white border-slate-200 hover:border-amber-400'}`}
-                                                                title={v?`Supprimer: ${fmt(v.montant)}`:`Ajouter versement ${ml}`}>
-                                                                <span className={`text-[10px] font-bold font-sans ${v?'text-emerald-700':'text-slate-400'}`}>{ml}</span>
+                                                            <button key={i} onClick={()=>{
+                                                                if(!v) { setPayModal({membreId:m.id,mois:moisNum}); return; }
+                                                                if(isPending) { onDeleteVersement(v.id); setPendingDelete(null); }
+                                                                else { setPendingDelete(v.id); setTimeout(()=>setPendingDelete(p=>p===v.id?null:p),3500); }
+                                                            }}
+                                                                className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all ${isPending?'bg-red-100 border-red-500':v?'bg-emerald-50 border-emerald-300 hover:bg-red-50 hover:border-red-300':'bg-white border-slate-200 hover:border-amber-400'}`}
+                                                                title={v?(isPending?'Cliquez encore pour confirmer la suppression':`Supprimer: ${fmt(v.montant)}`):`Ajouter versement ${ml}`}>
+                                                                <span className={`text-[10px] font-bold font-sans ${isPending?'text-red-600':v?'text-emerald-700':'text-slate-400'}`}>{ml}</span>
                                                                 {v ? (
-                                                                    <span className="text-[9px] text-emerald-600 font-bold font-serif mt-0.5">{fmt(v.montant)}</span>
+                                                                    <span className={`text-[9px] font-bold font-serif mt-0.5 ${isPending?'text-red-500':'text-emerald-600'}`}>{isPending?'Suppr.?':fmt(v.montant)}</span>
                                                                 ) : (
                                                                     <i className="fa-solid fa-plus text-slate-300 text-[10px] mt-0.5"></i>
                                                                 )}
