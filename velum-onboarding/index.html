@@ -128,8 +128,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color
 }
 
 /* ── SITE (hidden until gate passed) ── */
-#site { display: none; }
-#site.visible { display: block; }
+#site { display: block; }
 
 /* ── NAV ── */
 nav {
@@ -383,20 +382,8 @@ footer a { color: rgba(201,160,68,0.7); text-decoration: none; }
 }
 </style>
 
-<!-- ── GATE ── -->
-<div id="gate">
-  <div class="gate-symbol"></div>
-  <div class="gate-brand">FraternApp</div>
-  <div class="gate-sub" id="g-sub">Espace réservé</div>
-  <form class="gate-form" onsubmit="checkGate(event)">
-    <input class="gate-input" type="password" id="gateInput" placeholder="••••••••••" autocomplete="off">
-    <button class="gate-btn" type="submit" id="g-btn">Entrer</button>
-    <div class="gate-error" id="gateError"></div>
-  </form>
-</div>
-
 <!-- ── SITE ── -->
-<div id="site">
+<div id="site" class="visible">
 
 <nav>
   <a href="#" class="nav-brand">
@@ -481,8 +468,6 @@ footer a { color: rgba(201,160,68,0.7); text-decoration: none; }
 </div><!-- /site -->
 
 <script>
-const PASS = 'Hiram2026';
-
 const T = {
   fr: { nav_cta:'Essai gratuit', hero_eye:'Plateforme de gestion • Depuis 2026', hero_h1:'Le temple virtuel pour ', hero_em:'votre loge', hero_sub:'Gérez vos membres, tenues, cotisations et documents en toute discrétion — déployé en 2 minutes.', hero_btn:'Commencer l\'essai gratuit', hero_note:'30 jours gratuits · Sans carte bancaire · Résiliation libre', feat_eye:'Fonctionnalités', feat_title:'Tout ce dont votre loge a besoin', f1h:'Gestion des membres', f1p:'Fiches complètes, grades, cotisations et historique pour chaque frère.', f2h:'Tenues & agenda', f2p:'Planifiez vos tenues, partagez les ordres du jour et gérez les présences.', f3h:'Trésorerie', f3p:'Suivi des cotisations, relances automatiques et tableau de bord financier.', f4h:'Documents & planches', f4p:'Bibliothèque sécurisée pour vos textes rituels et travaux en loge.', f5h:'Accès par grade', f5p:'Apprenti, Compagnon, Maître — chaque frère voit uniquement ce qui lui est accessible.', f6h:'Votre propre domaine', f6p:'Accessible depuis votre sous-domaine dédié, sans publicité ni données revendues.', price_eye:'Tarif', price_title:'Simple et transparent', price_badge:'30 jours gratuits', price_period:'par an, facturé en une fois', price_monthly:'soit ~14,90 € / mois', pl1:'Site privé dédié à votre loge', pl2:'Membres illimités', pl3:'Gestion complète : membres, tenues, trésorerie', pl4:'Accès sécurisé par grade', pl5:'Hébergement & SSL inclus', pl6:'Mises à jour automatiques', pl7:'Support par email', price_cta:'Commencer l\'essai gratuit', price_fine:'Carte bancaire demandée à la fin des 30 jours. Paiement annuel non remboursable. Résiliation possible avant la date de renouvellement.', cgu_eye:'Conditions', cgu_title:'Ce que vous devez savoir', cgu1h:'Données & confidentialité', cgu1p:'Vos données restent les vôtres. Hébergées en Europe. Jamais revendues.', cgu2h:'Résiliation', cgu2p:'Résiliez avant le renouvellement. Données supprimées sous 30 jours.', cgu3h:'Paiement', cgu3p:'179 € une fois par an. Aucun remboursement au prorata.', cgu4h:'Essai gratuit', cgu4p:'30 jours sans engagement. Carte demandée à la fin de l\'essai.', g_sub:'Espace réservé', g_btn:'Entrer', g_err:'Mot de passe incorrect.' },
   en: { nav_cta:'Free trial', hero_eye:'Management platform • Since 2026', hero_h1:'The virtual lodge for ', hero_em:'your chapter', hero_sub:'Manage members, meetings, dues and documents discreetly — deployed in 2 minutes.', hero_btn:'Start free trial', hero_note:'30 days free · No credit card · Cancel anytime', feat_eye:'Features', feat_title:'Everything your lodge needs', f1h:'Member management', f1p:'Complete profiles, degrees, dues and history for every brother.', f2h:'Meetings & calendar', f2p:'Plan your meetings, share agendas and track attendance.', f3h:'Treasury', f3p:'Track dues, automatic reminders and financial dashboard.', f4h:'Documents & lectures', f4p:'Secure library for your ritual texts and lodge work.', f5h:'Degree-based access', f5p:'Entered Apprentice, Fellow Craft, Master Mason — each brother sees only what he should.', f6h:'Your own domain', f6p:'Available on your dedicated subdomain, no ads, no data resale.', price_eye:'Pricing', price_title:'Simple and transparent', price_badge:'30 days free', price_period:'per year, billed once', price_monthly:'~€14.90 / month', pl1:'Private site dedicated to your lodge', pl2:'Unlimited members', pl3:'Full management: members, meetings, treasury', pl4:'Degree-secured access', pl5:'Hosting & SSL included', pl6:'Automatic updates', pl7:'Email support', price_cta:'Start free trial', price_fine:'Credit card required after 30 days. Annual payment non-refundable. Cancel before renewal date.', cgu_eye:'Terms', cgu_title:'What you need to know', cgu1h:'Data & privacy', cgu1p:'Your data stays yours. Hosted in Europe. Never sold or shared.', cgu2h:'Cancellation', cgu2p:'Cancel before renewal. Data deleted within 30 days of cancellation.', cgu3h:'Payment', cgu3p:'€179 once per year. No partial refunds.', cgu4h:'Free trial', cgu4p:'30 days commitment-free. Card only required at end of trial.', g_sub:'Members only', g_btn:'Enter', g_err:'Incorrect password.' },
@@ -512,38 +497,6 @@ function setLang(l) {
   }
 }
 
-function checkGate(e) {
-  e.preventDefault();
-  const val = document.getElementById('gateInput').value;
-  const err = document.getElementById('gateError');
-  if (val === PASS) {
-    try { localStorage.setItem('fa_auth','1'); } catch(e){}
-    const gate = document.getElementById('gate');
-    gate.classList.add('hidden');
-    setTimeout(() => gate.style.display='none', 650);
-    document.getElementById('site').classList.add('visible');
-    setLang(lang);
-    document.querySelector('.lang-select').value = lang;
-  } else {
-    err.textContent = T[lang].g_err;
-    document.getElementById('gateInput').value = '';
-    document.getElementById('gateInput').focus();
-  }
-}
-
-// Auto-lang UI
-document.getElementById('g-sub').textContent = T[lang].g_sub;
-document.getElementById('g-btn').textContent = T[lang].g_btn;
-
-// Check if already authenticated
-try {
-  if (localStorage.getItem('fa_auth') === '1') {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('site').classList.add('visible');
-    setLang(lang);
-    document.querySelector('.lang-select').value = lang;
-  }
-} catch(e) {}
-
-document.getElementById('gateInput').focus();
+setLang(lang);
+document.querySelector('.lang-select').value = lang;
 </script>
