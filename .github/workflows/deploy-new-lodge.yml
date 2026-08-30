@@ -42,26 +42,56 @@ jobs:
             cp -r velum-template/assets dist/${{ inputs.slug }}/
           fi
 
-      # ── 2. Déployer sur Cloudflare Pages ─────────────────────────────────
+      # ── 2. Déployer sur Cloudflare Pages via API directe ────────────────
       - name: Déployer sur Cloudflare Pages
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SLUG: ${{ inputs.slug }}
         run: |
-          npx wrangler@latest pages deploy dist/${{ inputs.slug }} \
-            --project-name=velum-${{ inputs.slug }} \
-            --commit-dirty=true
+          PROJECT=velum-${SLUG}
+
+          # Créer le projet Pages s'il n'existe pas
+          curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"${PROJECT}\",\"production_branch\":\"main\"}" | \
+            python3 -c "import sys,json; r=json.load(sys.stdin); print('Project:', r.get('result',{}).get('name','already exists') or r.get('errors'))"
+
+          # Zipper les fichiers du site
+          cd dist/${SLUG}
+          zip -r ../../site.zip .
+          cd ../..
+
+          # Upload via Direct Upload API
+          DEPLOY=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -F "manifest=@/dev/null;type=application/json" \
+            -F "file=@site.zip;type=application/zip" 2>&1 || true)
+
+          # Fallback: upload fichiers individuels
+          UPLOAD_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}/deployments"
+          curl -s -X POST "${UPLOAD_URL}" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -F "index.html=@dist/${SLUG}/index.html;type=text/html" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin); d=r.get('result',{}); print('Deploy URL:', d.get('url','?'), '| Errors:', r.get('errors','none'))"
 
       # ── 3. Enregistrer la loge dans le registre KV ───────────────────────
       - name: Enregistrer la loge dans KV
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SLUG: ${{ inputs.slug }}
+          LODGE_NAME: ${{ inputs.lodge_name }}
         run: |
-          npx wrangler@latest kv key put \
-            --namespace-id=bf2daa2ce915450599a4de04d554e99d \
-            "lodge:${{ inputs.slug }}" \
-            "{\"slug\":\"${{ inputs.slug }}\",\"name\":\"${{ inputs.lodge_name }}\",\"created\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          curl -s -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/bf2daa2ce915450599a4de04d554e99d/values/lodge%3A${SLUG}" \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"slug\":\"${SLUG}\",\"name\":\"${LODGE_NAME}\",\"created\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin); print('KV:', r.get('success'), r.get('errors',''))"
 
       # ── 4. Créer l'utilisateur Firebase admin ────────────────────────────
       - name: Créer utilisateur Firebase
