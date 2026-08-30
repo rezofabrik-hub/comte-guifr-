@@ -1,0 +1,73 @@
+name: Déployer le site FraternApp + API Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'velum-onboarding/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy onboarding + API worker
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. Déployer le site de vente sur Cloudflare Pages ─────────────────
+      - name: Déployer le site de vente (Pages)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Créer le projet Pages s'il n'existe pas
+          curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"fraternapp-onboarding","production_branch":"main"}' | \
+            python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print('Pages project:', 'created' if d.get('success') else d.get('errors',[{}])[0].get('message','already exists'))"
+
+          # Déployer le dossier velum-onboarding/
+          npx wrangler@latest pages deploy velum-onboarding \
+            --project-name=fraternapp-onboarding \
+            --branch=main \
+            --commit-dirty=true
+
+          echo "Site de vente : https://fraternapp-onboarding.pages.dev"
+
+      # ── 2. Déployer l'API Worker ──────────────────────────────────────────
+      - name: Déployer l'API Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler@latest deploy \
+            --config velum-onboarding/wrangler.jsonc \
+            --name velum-onboarding
+
+          echo "API Worker déployé : velum-onboarding.workers.dev"
+
+      # ── 3. Configurer les secrets du Worker (si pas déjà fait) ───────────
+      - name: Configurer les secrets du Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_TOKEN_VAL: ${{ secrets.GH_ACTIONS_TOKEN }}
+          GITHUB_REPO_VAL: ${{ github.repository }}
+        run: |
+          echo "${GITHUB_TOKEN_VAL}" | npx wrangler@latest secret put GITHUB_TOKEN \
+            --config velum-onboarding/wrangler.jsonc --name velum-onboarding || true
+          echo "${GITHUB_REPO_VAL}" | npx wrangler@latest secret put GITHUB_REPO \
+            --config velum-onboarding/wrangler.jsonc --name velum-onboarding || true
+          echo "Secrets Worker configurés."
+
+      # ── 4. Résumé ─────────────────────────────────────────────────────────
+      - name: Résumé
+        run: |
+          echo "### Déploiement FraternApp" >> $GITHUB_STEP_SUMMARY
+          echo "- **Site de vente** : https://fraternapp-onboarding.pages.dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Worker** : https://velum-onboarding.rezofabrik.workers.dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **Flux** : visiteur → formulaire → API → GitHub Actions → loge déployée automatiquement" >> $GITHUB_STEP_SUMMARY
