@@ -1,0 +1,10 @@
+<svelte:head>
+  <title>FraternApp — Votre loge en ligne</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --gold: #b8860b; --bg: #faf9f7; --surface: #fff; --border: #e5e0d8; --text: #1a1a1a; --muted: #6b6560; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  </style>
+</svelte:head>
+
+<slot />
