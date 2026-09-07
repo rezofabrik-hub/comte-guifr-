@@ -1,9 +1,93 @@
-// v2026-08-29c — allow all authenticated users, no size check
+// ═══════════════════════════════════════════════════════════════════════════
+// Règles Storage — Velum Loge · Multi-tenant v1 · 2026-09-07
+// ═══════════════════════════════════════════════════════════════════════════
+// REMPLACE la règle actuelle, qui était :
+//
+//     match /{allPaths=**} {
+//       allow read, write: if request.auth != null;    // ← tout le monde, partout
+//     }
+//
+// Conséquences de la règle actuelle :
+//   · aucun cloisonnement entre loges → un membre de la loge A lit, écrase et
+//     supprime les PDF de la loge B (bloquant pour la revente du produit)
+//   · aucun contrôle de rôle → n'importe quel membre supprime le Règlement
+//     Intérieur ou une planche archivée
+//   · aucune limite de taille ni de type → un compte suffit à téléverser
+//     plusieurs Go sur un projet Blaze (facturé à l'usage)
+//
+// Les fichiers sont rangés sous  <appId>/…  (ex. site-cg51/…), ce qui permet
+// de rejouer le même cloisonnement que Firestore.
+// ═══════════════════════════════════════════════════════════════════════════
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function userEmail()   { return request.auth.token.email; }
+    function emailDomain() { return userEmail().split('@')[1]; }
+
+    function knownDomain() {
+      return emailDomain() == 'cg51-virtuel.fr'
+          || emailDomain().matches('.*\\.velum\\.fr');
+    }
+
+    function emailLodgeId() {
+      return emailDomain() == 'cg51-virtuel.fr'
+        ? 'site-cg51'
+        : emailDomain().split('.velum.fr')[0];
+    }
+
+    function ownLodge(appId) {
+      return isSignedIn() && knownDomain() && emailLodgeId() == appId;
+    }
+
+    function hasRole(role) {
+      let local = userEmail().split('@')[0];
+      return (local == role || local.split('.')[0] == role) && knownDomain();
+    }
+
+    function isVMouArchitecte() {
+      return isSignedIn() && (hasRole('vm') || hasRole('architecte'));
+    }
+
+    function isSecretaire() {
+      return isSignedIn() && (hasRole('secretaire') || hasRole('vm') || hasRole('architecte'));
+    }
+
+    // Types acceptés : PDF, images, documents bureautiques
+    function typeAutorise() {
+      return request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('application/vnd\\.openxmlformats.*');
+    }
+
+    function tailleOk() {
+      return request.resource.size < 25 * 1024 * 1024;   // 25 Mo par fichier
+    }
+
+    // ─── Espace de la loge ────────────────────────────────────────────────
+    match /{appId}/{allPaths=**} {
+
+      // Lecture : tout membre de CETTE loge, et personne d'autre
+      allow read: if ownLodge(appId);
+
+      // Dépôt / remplacement : Secrétaire, VM, Architecte uniquement
+      allow create, update: if isSecretaire()
+                            && ownLodge(appId)
+                            && typeAutorise()
+                            && tailleOk();
+
+      // Suppression : VM / Architecte uniquement
+      allow delete: if isVMouArchitecte() && ownLodge(appId);
+    }
+
+    // ─── Fallback : tout refuser ──────────────────────────────────────────
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

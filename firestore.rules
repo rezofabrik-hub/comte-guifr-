@@ -1,41 +1,64 @@
-// Règles Firestore — Velum Loge · Multi-tenant v3 · redeploy-2026-08-30
-// Chaque loge est isolée par son appId (slug) dans le chemin Firestore.
-// Les emails suivent le format : grade@{slug}.velum.fr
-// v2026-08-27b — fix: remplace startsWith/endsWith (invalides) par split('@') et matches()
+// ═══════════════════════════════════════════════════════════════════════════
+// Règles Firestore — Velum Loge · Multi-tenant v4 · durcissement 2026-09-07
+// ═══════════════════════════════════════════════════════════════════════════
+// Basé sur la v3 (multi-tenant par appId dérivé du domaine e-mail).
+//
+// CE QUI CHANGE PAR RAPPORT À LA v3 :
+//   1. members     → séparation des données de compte (voir members_private)
+//   2. agenda      → écriture réservée au Secrétaire/VM/Architecte (était : tout membre)
+//   3. partout     → garde-fou de taille de document (anti-abus de facturation Blaze)
+//   4. loges       → règle explicite (la collection existe mais n'était pas couverte)
+//   5. isSecretaire() était défini mais JAMAIS utilisé → il l'est maintenant
+//
+// ⚠️ CETTE VERSION NE SUFFIT PAS SEULE. Elle doit être accompagnée de :
+//   A. Firebase Auth → Paramètres → Actions des utilisateurs
+//      → DÉCOCHER « Activer la création (inscription) »
+//      Sans ça, n'importe qui crée architecte.x@<domaine> et devient Architecte.
+//   B. Suppression du champ accountPwd des documents members (voir AUDIT).
+//      Aucune règle Firestore ne peut masquer un champ : c'est tout le document
+//      ou rien. Tant que le mot de passe est dans le document, tout membre le lit.
+// ═══════════════════════════════════════════════════════════════════════════
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─── Identité ──────────────────────────────────────────────────────────
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email != null;
     }
 
     function userEmail() {
       return request.auth.token.email;
     }
 
-    // Extrait le slug de la loge depuis l'email
-    // Formats supportés : vm@cg51.velum.fr → cg51 | maitre@cg51-virtuel.fr → site-cg51
+    function emailDomain() {
+      return userEmail().split('@')[1];
+    }
+
+    function knownDomain() {
+      return emailDomain() == 'cg51-virtuel.fr'
+          || emailDomain().matches('.*\\.velum\\.fr');
+    }
+
+    // Extrait le slug de la loge depuis l'e-mail
+    // vm@cg51.velum.fr → cg51   |   maitre@cg51-virtuel.fr → site-cg51 (legacy)
     function emailLodgeId() {
-      let domain = userEmail().split('@')[1];
-      // Domaine legacy lcg51.fr → site-cg51
-      return domain == 'cg51-virtuel.fr' ? 'site-cg51' : domain.split('.velum.fr')[0];
+      return emailDomain() == 'cg51-virtuel.fr'
+        ? 'site-cg51'
+        : emailDomain().split('.velum.fr')[0];
     }
 
-    // Vérifie que l'utilisateur appartient bien à la loge demandée
+    // L'utilisateur appartient-il bien à la loge demandée ?
     function ownLodge(appId) {
-      return emailLodgeId() == appId;
+      return isSignedIn() && knownDomain() && emailLodgeId() == appId;
     }
 
-    // startsWith/endsWith ne sont pas supportés en Firestore rules → utiliser split('@') et matches()
-    // Supporte : grade@domain (compte partagé) ET grade.prenom.nom@domain (compte individuel)
+    // ─── Rôles ─────────────────────────────────────────────────────────────
+    // Supporte grade@domaine (compte partagé) ET grade.prenom.nom@domaine
     function hasRole(role) {
-      let parts = userEmail().split('@');
-      let local = parts[0];
-      let domain = parts[1];
-      let prefix = local.split('.')[0];
-      return (local == role || prefix == role) &&
-             (domain == 'cg51-virtuel.fr' || domain.matches('.*\\.velum\\.fr'));
+      let local = userEmail().split('@')[0];
+      return (local == role || local.split('.')[0] == role) && knownDomain();
     }
 
     function isVMouArchitecte() {
@@ -50,80 +73,140 @@ service cloud.firestore {
       return isSignedIn() && (hasRole('tresorier') || hasRole('vm') || hasRole('architecte'));
     }
 
-    function isGradeMember() {
-      let domain = userEmail().split('@')[1];
-      return isSignedIn() && (domain == 'cg51-virtuel.fr' || domain.matches('.*\\.velum\\.fr'));
+    // Membre régulier de la loge (n'importe quel grade)
+    function isMember(appId) {
+      return ownLodge(appId);
     }
 
-    // ── Membres ──────────────────────────────────────────────────────────────
+    // ─── Garde-fous anti-abus ──────────────────────────────────────────────
+    // Firestore plafonne à 1 Mio/document. On limite plus bas pour éviter
+    // qu'un compte compromis ne gonfle la facture Blaze en écrivant en boucle.
+    function tailleOk() {
+      return request.resource.size() < 60;               // max 60 champs
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  MEMBRES — annuaire de la loge (nom, grade, office, tél, e-mail)
+    // ─────────────────────────────────────────────────────────────────────
+    // ⚠️ Tout membre connecté lit ce document EN ENTIER. Il ne doit donc
+    //    contenir AUCUN secret. Voir members_private ci-dessous.
     match /artifacts/{appId}/public/data/members/{memberId} {
-      allow read: if isSignedIn() && ownLodge(appId);
+      allow read:   if isMember(appId);
       allow create, delete: if isVMouArchitecte() && ownLodge(appId);
-      allow update: if (isVMouArchitecte() || isTresorier()) && ownLodge(appId);
+      allow update: if (isVMouArchitecte() || isTresorier()) && ownLodge(appId)
+                    && tailleOk();
     }
 
-    // ── Agenda / Ordre des Travaux ────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    //  MEMBRES — données de compte (accountEmail, réinitialisations…)
+    // ─────────────────────────────────────────────────────────────────────
+    // Nouvelle collection : y déplacer tout ce qui ne doit PAS être lisible
+    // par l'ensemble des membres. Ne JAMAIS y remettre de mot de passe en clair.
+    match /artifacts/{appId}/public/data/members_private/{memberId} {
+      allow read, write: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  AGENDA / ORDRE DES TRAVAUX
+    // ─────────────────────────────────────────────────────────────────────
+    // v3 : tout membre pouvait créer/modifier/SUPPRIMER l'agenda entier.
+    // v4 : lecture pour tous les membres, écriture Secrétaire/VM/Architecte.
     match /artifacts/{appId}/public/data/agenda/{itemId} {
-      allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isSignedIn() && ownLodge(appId);
+      allow read:   if isMember(appId);
+      allow create, update, delete: if isSecretaire() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Planches ─────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    //  PRÉSENCES — à créer si tu ajoutes la confirmation de présence
+    // ─────────────────────────────────────────────────────────────────────
+    // Chaque membre gère UNIQUEMENT sa propre réponse (document = son uid).
+    match /artifacts/{appId}/public/data/presences/{tenueId}/reponses/{uid} {
+      allow read:   if isMember(appId);
+      allow write:  if isMember(appId)
+                    && (uid == request.auth.uid || isSecretaire());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  PLANCHES / BIBLIOTHÈQUE / LIENS
+    // ─────────────────────────────────────────────────────────────────────
+    // ⚠️ Le cloisonnement par grade (Apprenti / Compagnon / Maître) n'est PAS
+    //    applicable ici tant que le grade du lecteur n'est pas disponible côté
+    //    serveur. Aujourd'hui il n'existe que dans l'interface : un Apprenti
+    //    peut lire les planches Maître via l'API. Voir AUDIT §4 pour la
+    //    migration (custom claims ou index memberIndex/{uid}).
     match /artifacts/{appId}/public/data/planches/{docId} {
-      allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
+      allow read:   if isMember(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Bibliothèque ──────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/bibliotheque/{docId} {
-      allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
+      allow read:   if isMember(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Liens utiles ──────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/liens/{docId} {
-      allow read: if isSignedIn() && ownLodge(appId);
-      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId);
+      allow read:   if isMember(appId);
+      allow create, update, delete: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Paramètres (identité, logo, mots de passe, welcome…) ─────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    //  PARAMÈTRES DE LA LOGE (identité, logo, textes d'accueil)
+    // ─────────────────────────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/settings/{docId} {
-      allow read: if isSignedIn() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId);
+      allow read:  if isMember(appId);
+      allow write: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Trésorerie (accès Trésorier + VM + Architecte) ───────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    //  TRÉSORERIE
+    // ─────────────────────────────────────────────────────────────────────
+    // Données financières nominatives → lecture Trésorier/VM/Architecte.
     match /artifacts/{appId}/public/data/tresor_transactions/{docId} {
-      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
+      allow read, write: if isTresorier() && ownLodge(appId) && tailleOk();
     }
     match /artifacts/{appId}/public/data/tresor_cotisations/{docId} {
-      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
-    }
-    match /artifacts/{appId}/public/data/tresor_membres/{docId} {
-      allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
-    }
-    match /artifacts/{appId}/public/data/tresor_agapes/{docId} {
-      allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
-    }
-    match /artifacts/{appId}/public/data/tresor_planches/{docId} {
-      allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
-    }
-    match /artifacts/{appId}/public/data/tresor_presences/{docId} {
-      allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
-    }
-    match /artifacts/{appId}/public/data/tresor_settings/{docId} {
-      allow read: if isGradeMember() && ownLodge(appId);
-      allow write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
+      allow read, write: if isTresorier() && ownLodge(appId) && tailleOk();
     }
     match /artifacts/{appId}/public/data/tresor_charges/{docId} {
-      allow read, write: if isVMouArchitecte() && ownLodge(appId) || isTresorier() && ownLodge(appId);
+      allow read, write: if isTresorier() && ownLodge(appId) && tailleOk();
     }
 
-    // ── Fallback : tout refuser ───────────────────────────────────────────────
+    // Données consultables par tous les membres (agapes, présences, planches)
+    match /artifacts/{appId}/public/data/tresor_membres/{docId} {
+      allow read:  if isMember(appId);
+      allow write: if isTresorier() && ownLodge(appId) && tailleOk();
+    }
+    match /artifacts/{appId}/public/data/tresor_agapes/{docId} {
+      allow read:  if isMember(appId);
+      allow write: if isTresorier() && ownLodge(appId) && tailleOk();
+    }
+    match /artifacts/{appId}/public/data/tresor_planches/{docId} {
+      allow read:  if isMember(appId);
+      allow write: if isTresorier() && ownLodge(appId) && tailleOk();
+    }
+    match /artifacts/{appId}/public/data/tresor_presences/{docId} {
+      allow read:  if isMember(appId);
+      allow write: if isTresorier() && ownLodge(appId) && tailleOk();
+    }
+    match /artifacts/{appId}/public/data/tresor_settings/{docId} {
+      allow read:  if isMember(appId);
+      allow write: if isTresorier() && ownLodge(appId) && tailleOk();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  REGISTRE DES LOGES (collection racine « loges »)
+    // ─────────────────────────────────────────────────────────────────────
+    // Elle existe dans la base mais aucune règle v3 ne la couvrait : elle est
+    // donc actuellement INACCESSIBLE (tombe dans le fallback deny-all).
+    // Si l'app en a besoin, décommenter en adaptant. Sinon, la supprimer.
+    // match /loges/{lodgeId} {
+    //   allow read:  if isSignedIn() && lodgeId == emailLodgeId();
+    //   allow write: if false;   // réservé au SDK Admin / console
+    // }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  FALLBACK : tout refuser
+    // ─────────────────────────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

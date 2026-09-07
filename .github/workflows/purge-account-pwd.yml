@@ -1,0 +1,114 @@
+name: Purger accountPwd des membres (audit sécurité)
+
+# Déclencher manuellement depuis GitHub Actions → Run workflow
+# À exécuter UNE SEULE FOIS pour supprimer les mots de passe en clair.
+# Le champ accountPwd ne doit jamais revenir dans ces documents.
+on:
+  workflow_dispatch:
+    inputs:
+      app_id:
+        description: "Identifiant de la loge (ex: site-cg51)"
+        required: true
+        default: "site-cg51"
+      dry_run:
+        description: "Simulation seulement (true = ne modifie rien, false = supprime vraiment)"
+        required: true
+        default: "true"
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Purger accountPwd + envoyer reset emails
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          APP_ID: ${{ inputs.app_id }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          npm install firebase-admin --silent
+          NODE_PATH=$(pwd)/node_modules node - <<'EOF'
+          const { initializeApp, cert } = require('firebase-admin/app');
+          const { getAuth } = require('firebase-admin/auth');
+          const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+
+          const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          initializeApp({ credential: cert(sa) });
+
+          const auth = getAuth();
+          const db = getFirestore();
+          const appId = process.env.APP_ID;
+          const dryRun = process.env.DRY_RUN !== 'false';
+
+          (async () => {
+            const col = db.collection(`artifacts/${appId}/public/data/members`);
+            const snap = await col.get();
+
+            console.log(`\n=== Audit accountPwd — loge ${appId} (${dryRun ? 'SIMULATION' : 'RÉEL'}) ===`);
+            console.log(`Membres trouvés : ${snap.size}\n`);
+
+            let purged = 0;
+            let resetsSent = 0;
+            let already_clean = 0;
+
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const hasPwd = 'accountPwd' in data;
+              const email = data.accountEmail || data.email || null;
+
+              if (hasPwd) {
+                console.log(`[PURGE] ${doc.id} — accountPwd présent${email ? ` (${email})` : ''}`);
+                if (!dryRun) {
+                  await doc.ref.update({ accountPwd: FieldValue.delete() });
+                }
+                purged++;
+              } else {
+                already_clean++;
+              }
+
+              // Envoyer reset email si l'utilisateur a un compte Firebase Auth
+              if (!dryRun && email) {
+                try {
+                  await auth.getUserByEmail(email);
+                  await auth.generatePasswordResetLink(email);
+                  // Pas d'envoi direct depuis Admin SDK — on log pour info
+                  // Le reset par email se fait via sendPasswordResetEmail() côté client
+                  // ou via l'API REST Firebase
+                  console.log(`[RESET-LINK] ${email} → lien générable`);
+                  resetsSent++;
+                } catch (e) {
+                  if (e.code !== 'auth/user-not-found') {
+                    console.warn(`[WARN] ${email} : ${e.message}`);
+                  }
+                }
+              }
+            }
+
+            console.log(`\n=== Résultat ===`);
+            console.log(`accountPwd supprimés  : ${dryRun ? `${purged} (simulation — rien modifié)` : purged}`);
+            console.log(`Déjà propres          : ${already_clean}`);
+            console.log(`Comptes Auth trouvés  : ${resetsSent}`);
+
+            if (dryRun && purged > 0) {
+              console.log(`\n⚠️  Relancez avec dry_run=false pour supprimer vraiment les ${purged} champs accountPwd.`);
+            }
+            if (!dryRun && purged > 0) {
+              console.log(`\n✅ ${purged} champs accountPwd supprimés de Firestore.`);
+              console.log(`   Faites changer leurs mots de passe aux membres concernés via l'interface.`);
+            }
+
+            process.exit(0);
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - name: Résumé
+        run: |
+          echo "### Purge accountPwd — ${{ inputs.app_id }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "**Mode :** Simulation (aucune modification)" >> $GITHUB_STEP_SUMMARY
+            echo "Relancez avec **dry_run = false** pour appliquer." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode :** Réel — champ accountPwd supprimé des documents members" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Faites changer leurs mots de passe aux membres via l'interface." >> $GITHUB_STEP_SUMMARY
+          fi
