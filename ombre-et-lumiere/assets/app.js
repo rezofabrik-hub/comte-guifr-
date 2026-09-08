@@ -49,7 +49,7 @@ function injectSociete(){
 function renderHome(){
   $('#home-cats').innerHTML = Object.entries(CAT).map(([k,c]) => `
     <a class="card" href="#/catalogue/${k}">
-      <div class="ph">Visuel ${esc(c.court)}</div>
+      <div class="ph"><img src="${IMG_GAMME[k]}" alt="${esc(c.label)}" loading="lazy"></div>
       <div class="body">
         <span class="ref">${countProduits(c)} modèles</span>
         <h3>${esc(c.label)}</h3>
@@ -110,9 +110,9 @@ function renderFilters(){
 
 let currentCat = null;
 
-function cardProduit(p, f){
+function cardProduit(p, f, cat){
   return `<a class="card" href="#/produit/${encodeURIComponent(p.ref)}">
-    <div class="ph">${esc(p.nom)}</div>
+    <div class="ph"><img src="${imgFor(p.ref, cat)}" alt="${esc(p.nom)}" loading="lazy"></div>
     <div class="body">
       <span class="ref">${hasRef(p.ref) ? 'RÉF. ' + esc(p.ref) : esc(f.nom).toUpperCase()}</span>
       <h3>${esc(p.nom)}</h3>
@@ -153,7 +153,7 @@ function renderCatBody(){
         <h3>${esc(f.nom)}</h3>
         <span>${esc(f.note || '')}</span>
       </div>
-      <div class="grid g4">${prods.map(p => cardProduit(p, f)).join('')}</div>`;
+      <div class="grid g4">${prods.map(p => cardProduit(p, f, k)).join('')}</div>`;
   }).join('')).join('');
 
   $('#cat-body').innerHTML = found ? html :
@@ -174,7 +174,11 @@ function renderProd(ref){
   $('#p-fam').textContent  = f.nom;
   $('#p-name').textContent = p.nom;
   $('#p-ref').textContent  = hasRef(p.ref) ? 'Référence fabricant ' + p.ref : '';
-  $('#p-hero').textContent = 'Visuel ' + p.nom;
+  $('#p-hero').innerHTML = `<img src="${imgFor(p.ref, ck)}" alt="${esc(p.nom)}">`;
+  const th = thumbsFor(p.ref);
+  $('#p-thumbs').innerHTML = th.map((t, i) =>
+    `<div class="ph"><img src="${t}" alt="${esc(p.nom)} — vue ${i + 2}" loading="lazy"></div>`).join('');
+  $('#p-thumbs').hidden = th.length === 0;
   $('#p-pitch').textContent = p.pitch || '';
 
   $('#p-checks').innerHTML = p.checks
@@ -198,7 +202,7 @@ function renderProd(ref){
   const voisins = f.produits.filter(x => x.ref !== p.ref).slice(0,4);
   $('#p-related').innerHTML = voisins.length
     ? `<div class="famtitle"><h3>Autres modèles ${esc(f.nom.toLowerCase())}</h3></div>
-       <div class="grid g4">${voisins.map(x => cardProduit(x, f)).join('')}</div>` : '';
+       <div class="grid g4">${voisins.map(x => cardProduit(x, f, ck)).join('')}</div>` : '';
 
   document.title = hasRef(p.ref)
     ? `${p.nom} (réf. ${p.ref}) — ${f.nom} · Ombre et Lumière`
