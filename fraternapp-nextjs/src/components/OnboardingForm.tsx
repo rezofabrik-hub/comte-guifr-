@@ -44,7 +44,7 @@ export default function OnboardingForm() {
           {state.url}
         </a>
         <p style={{ color: 'var(--muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '1rem' }}>
-          Un email de confirmation vous a été envoyé.
+          Un email avec votre lien de connexion vous sera envoyé dès que le déploiement est terminé.
         </p>
       </div>
     );
@@ -58,7 +58,6 @@ export default function OnboardingForm() {
       <Field label="Identifiant (slug) *" name="slug" placeholder="loge-lumiere-75" pattern="[a-z0-9-]{3,40}"
              title="Minuscules, chiffres et tirets, 3–40 caractères" required />
       <Field label="Email de contact *" name="contact_email" type="email" placeholder="admin@exemple.com" required />
-      <Field label="Mot de passe administrateur *" name="initial_password" type="password" placeholder="8 caractères minimum" required minLength={8} />
       <Field label="Domaine personnalisé" name="custom_domain" placeholder="loge.votre-domaine.fr" />
 
       {state.status === 'error' && (

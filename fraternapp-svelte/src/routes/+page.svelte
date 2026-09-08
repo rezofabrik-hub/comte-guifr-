@@ -34,7 +34,6 @@
       <label>Nom de la loge *<input name="lodge_name" placeholder="Loge Lumière de l'Orient" required /></label>
       <label>Identifiant (slug) *<input name="slug" placeholder="loge-lumiere-75" pattern="[a-z0-9-]{3,40}" required /></label>
       <label>Email de contact *<input name="contact_email" type="email" placeholder="admin@exemple.com" required /></label>
-      <label>Mot de passe admin *<input name="initial_password" type="password" placeholder="8 caractères minimum" minlength="8" required /></label>
       <label>Domaine personnalisé<input name="custom_domain" placeholder="loge.votre-domaine.fr" /></label>
       {#if status === 'error'}<p class="error">{message}</p>{/if}
       <button type="submit" disabled={status === 'loading'}>

@@ -1,10 +1,30 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+// Protection admin : accès via header x-admin-secret ou cookie admin_secret
+// Configurer ADMIN_SECRET dans les variables d'environnement
+function isAuthorized(): boolean {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) return false; // si non configuré, bloquer tout accès
+
+  const hdrs = headers();
+  const fromHeader = hdrs.get('x-admin-secret');
+  const fromCookie = hdrs.get('cookie')
+    ?.split(';')
+    .find(c => c.trim().startsWith('admin_secret='))
+    ?.split('=')[1]?.trim();
+
+  return fromHeader === secret || fromCookie === secret;
+}
+
 export default async function AdminPage() {
+  if (!isAuthorized()) {
+    redirect('/admin/login');
+  }
+
   const lodges = await prisma.lodge.findMany({ orderBy: { createdAt: 'desc' } });
 
   const statusColor: Record<string, string> = {
