@@ -92,10 +92,9 @@ modèle. C'est géré par `hasRef()` dans `app.js`.
 
 ## À compléter avant mise en ligne
 
-1. **Coordonnées réelles** — dans `SOCIETE` (`assets/data.js`) :
-   - `tel` / `telHref` : renseignés (06 62 18 14 01) ;
-   - `mail` : `contact@ombre-et-lumiere.fr` est à confirmer ;
-   - `adresse` : seule la commune (66300 Thuir) est renseignée, la rue manque.
+1. **Installateur partenaire** — la page Entreprise contient un encadré
+   « Qui fait quoi » où il faut inscrire le nom du partenaire et ses références
+   d'assurance. C'est le seul point qui reste bloquant côté contenu.
 2. **Photos** — les visuels produit viennent du fournisseur (voir la section
    « Visuels » ci-dessus) : faire confirmer le droit d'usage et récupérer le pack
    haute définition. Les photos de chantier de la page Réalisations restent à
@@ -104,10 +103,10 @@ modèle. C'est géré par `hasRef()` dans `app.js`.
    rien envoyer (`$('#quote')` dans `app.js`). Pour le brancher, remplacer le
    gestionnaire `submit` par un `fetch()` vers un service d'envoi (Cloudflare
    Worker + Resend, comme le reste du dépôt, ou un formulaire hébergé).
-4. **Mentions légales** — Patrick est auto-entrepreneur ; la page `#/mentions`
-   liste en italique les éléments obligatoires restant à fournir (SIREN,
-   répertoire des métiers, mention de TVA au titre de l'article 293 B du CGI,
-   hébergeur, et surtout l'assurance décennale).
+4. **Mentions légales** — identité renseignée d'après l'attestation RNE du
+   08/09/2026 (SIREN 323 165 589, SIRET 323 165 589 00041, entrepreneur
+   individuel, APE 7021Z). Restent la mention de TVA (art. 293 B du CGI),
+   l'hébergeur, et l'attestation de responsabilité civile professionnelle.
 5. **Photos de chantier** — quand Patrick en aura, créer une vraie page
    Réalisations à côté de la galerie d'inspirations.
 
@@ -128,3 +127,28 @@ python3 build-artifact.py /chemin/ombre-et-lumiere.html
 
 Produit un HTML autonome (~6 Mo) avec CSS, JS et images intégrés, à ouvrir
 directement ou à publier tel quel.
+
+## Périmètre d'activité — à ne pas modifier à la légère
+
+L'attestation d'immatriculation au RNE déclare deux activités :
+
+1. apporteur d'affaires en publicité et communication (activité principale,
+   APE 7021Z) ;
+2. **achat-revente** de toiles de stores, stores, lambrequins lumineux et
+   divers articles non réglementés, en clientèle.
+
+**La pose n'est pas une activité déclarée.** Le site est donc rédigé sur le
+registre « nous vendons, notre installateur partenaire pose » : conseil, prise
+de cotes, commande et fourniture d'un côté ; installation sous l'assurance
+décennale du partenaire de l'autre.
+
+Ne pas réintroduire de formulations du type « nous posons », « pose par nos
+soins », « notre équipe installe », « atelier » ou « showroom » : elles
+sortiraient du périmètre déclaré, et la pose de protections solaires sur bâti
+relève de l'assurance décennale obligatoire (art. L241-1 du Code des
+assurances). Si Patrick ajoute un jour l'activité de pose à son
+immatriculation et souscrit une décennale, ces formulations redeviendront
+exactes — pas avant.
+
+L'adresse du siège est un domicile : elle ne figure que dans les mentions
+légales, où la loi l'impose. Partout ailleurs le site n'affiche que la commune.

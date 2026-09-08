@@ -39,6 +39,8 @@ function injectSociete(){
     if (a.dataset.mail !== 'href') a.textContent = SOCIETE.mail;
   });
   $$('[data-adresse]').forEach(n => { n.innerHTML = SOCIETE.adresse.map(l => `<li>${esc(l)}</li>`).join(''); });
+  // Hors mentions légales, on n'affiche que la commune : le siège est un domicile
+  $$('[data-commune]').forEach(n => { n.textContent = SOCIETE.adresse[SOCIETE.adresse.length - 1]; });
   $$('[data-horaires]').forEach(n => { n.innerHTML = SOCIETE.horaires.map(l => `<p>${esc(l)}</p>`).join(''); });
   $$('[data-total]').forEach(n => { n.textContent = TOTAL; });
   $$('[data-year]').forEach(n => { n.textContent = new Date().getFullYear(); });

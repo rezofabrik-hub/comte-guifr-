@@ -4,7 +4,8 @@
 
    L'arborescence, les références et les caractéristiques
    techniques reprennent la gamme du fournisseur MecanoToldo
-   (mecanotoldo.com), dont l'entreprise est revendeur-poseur.
+   (mecanotoldo.com), dont l'entreprise est revendeur.
+   La pose est assurée par un installateur partenaire.
    Les textes de présentation sont rédigés pour Ombre et Lumière.
    =========================================================== */
 
@@ -12,15 +13,19 @@ const SOCIETE = {
   nom:"Ombre et Lumière",
   baseline:"Patrick Thais · Thuir",
   gerant:"Patrick Thais",
-  statut:"Auto-entrepreneur (entreprise individuelle)",
+  statut:"Entrepreneur individuel",
+  siren:"323 165 589",
+  siret:"32316558900041",
+  ape:"7021Z — Conseil en relations publiques et communication",
+  immatriculation:"Registre national des entreprises, le 16 juin 2026",
   tel:"06 62 18 14 01",
   telHref:"+33662181401",
-  mail:"contact@ombre-et-lumiere.fr",
-  adresse:["66300 Thuir","Pyrénées-Orientales"],
+  mail:"josydiffusion@gmail.com",
+  adresse:["53 Résidence des Albères — étage 2","66300 Thuir"],
   horaires:[
     "Lundi – vendredi : 8 h 30 – 12 h / 14 h – 18 h",
     "Samedi : sur rendez-vous",
-    "Métré à domicile sur toute la semaine"
+    "Prise de cotes à domicile sur toute la semaine"
   ]
 };
 
@@ -59,7 +64,7 @@ const CAT = {
   "stores":{
     label:"Stores bannes & coffres",
     court:"Stores",
-    desc:"Le cœur du métier : 31 modèles de protection solaire extérieure, du store de balcon à l'abri de terrasse de 10 mètres. Bannes traditionnelles, monoblocs, stores coffre, descentes verticales, stores de terrasse et de véranda — toute la gamme, sans exception.",
+    desc:"Le cœur du catalogue : 31 modèles de protection solaire extérieure, du store de balcon à l'abri de terrasse de 10 mètres. Bannes traditionnelles, monoblocs, stores coffre, descentes verticales, stores de terrasse et de véranda — toute la gamme, sans exception.",
     familles:[
 
       /* ---------------------------------------- coffres */
@@ -663,7 +668,7 @@ const MARQUES = [
 
 /* ══════════════════════════════════════════ GALERIE ═══════════ */
 /* Photos du fabricant, présentées comme exemples d'installations des
-   modèles que nous posons — et non comme nos propres chantiers.
+   modèles de notre catalogue — et non comme nos propres chantiers.
    Chaque vignette renvoie vers la fiche du modèle concerné. */
 const GALERIE = [
   {ref:"giro",     legende:"Pergola bioclimatique à lames orientables, en version autoportante au bord d'une terrasse."},
