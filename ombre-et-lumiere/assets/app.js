@@ -1,5 +1,5 @@
 /* ===========================================================
-   Rezo Stores — routeur et rendu
+   Ombre et Lumière — routeur et rendu
    Site statique : un seul document, navigation par hash.
    =========================================================== */
 
@@ -201,22 +201,22 @@ function renderProd(ref){
        <div class="grid g4">${voisins.map(x => cardProduit(x, f)).join('')}</div>` : '';
 
   document.title = hasRef(p.ref)
-    ? `${p.nom} (réf. ${p.ref}) — ${f.nom} · Rezo Stores`
-    : `${p.nom} — ${f.nom} · Rezo Stores`;
+    ? `${p.nom} (réf. ${p.ref}) — ${f.nom} · Ombre et Lumière`
+    : `${p.nom} — ${f.nom} · Ombre et Lumière`;
   return true;
 }
 
 /* ---------------- routeur ---------------- */
 
 const TITRES = {
-  '':          "Rezo Stores — Stores bannes, pergolas et protection solaire · Perpignan (66)",
-  'entreprise':"L'entreprise — Rezo Stores",
-  'catalogue': "Catalogue — Rezo Stores",
-  'marques':   "Nos marques partenaires — Rezo Stores",
-  'realisations':"Réalisations dans les P.-O. — Rezo Stores",
-  'devis':     "Demande de devis gratuit — Rezo Stores",
-  'contact':   "Contact & atelier — Rezo Stores",
-  'mentions':  "Mentions légales — Rezo Stores"
+  '':          "Ombre et Lumière — Stores bannes, pergolas et protection solaire · Thuir (66)",
+  'entreprise':"L'entreprise — Ombre et Lumière",
+  'catalogue': "Catalogue — Ombre et Lumière",
+  'marques':   "Nos marques partenaires — Ombre et Lumière",
+  'realisations':"Réalisations dans les P.-O. — Ombre et Lumière",
+  'devis':     "Demande de devis gratuit — Ombre et Lumière",
+  'contact':   "Contact — Ombre et Lumière",
+  'mentions':  "Mentions légales — Ombre et Lumière"
 };
 
 const VUES = {
