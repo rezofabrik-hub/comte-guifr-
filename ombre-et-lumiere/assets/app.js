@@ -59,15 +59,7 @@ function renderHome(){
 
   $('#home-zones').innerHTML = ZONES.map(z => `<span>${esc(z)}</span>`).join('');
 
-  $('#home-real').innerHTML = REALISATIONS.slice(0,3).map(r => `
-    <a class="card" href="#/realisations">
-      <div class="ph">Photo chantier</div>
-      <div class="body">
-        <span class="ref">${esc(r.commune)}</span>
-        <h3>${esc(r.titre)}</h3>
-        <p>${esc(r.txt)}</p>
-      </div>
-    </a>`).join('');
+  $('#home-real').innerHTML = GALERIE.slice(0,3).map(carteGalerie).join('');
 }
 
 function renderMarques(){
@@ -79,16 +71,24 @@ function renderMarques(){
     </div>`).join('');
 }
 
-function renderRealisations(){
-  $('#real-grid').innerHTML = REALISATIONS.map(r => `
-    <a class="card" href="#/devis">
-      <div class="ph">Photo chantier</div>
-      <div class="body">
-        <span class="ref">${esc(r.commune)}</span>
-        <h3>${esc(r.titre)}</h3>
-        <p>${esc(r.txt)}</p>
-      </div>
-    </a>`).join('');
+/* Une vignette de galerie : la photo du modèle, sa légende, et le lien
+   vers sa fiche. Aucune de ces photos n'est présentée comme un chantier. */
+function carteGalerie(g){
+  const hit = findProd(g.ref);
+  if (!hit) return '';
+  const {p, f, ck} = hit;
+  return `<a class="card" href="#/produit/${encodeURIComponent(p.ref)}">
+    <div class="ph"><img src="${imgFor(p.ref, ck)}" alt="${esc(g.legende)}" loading="lazy"></div>
+    <div class="body">
+      <span class="ref">${esc(f.nom)}</span>
+      <h3>${esc(p.nom)}</h3>
+      <p>${esc(g.legende)}</p>
+    </div>
+  </a>`;
+}
+
+function renderGalerie(){
+  $('#real-grid').innerHTML = GALERIE.map(carteGalerie).join('');
 }
 
 function renderDevisSelect(){
@@ -217,7 +217,7 @@ const TITRES = {
   'entreprise':"L'entreprise — Ombre et Lumière",
   'catalogue': "Catalogue — Ombre et Lumière",
   'marques':   "Nos marques partenaires — Ombre et Lumière",
-  'realisations':"Réalisations dans les P.-O. — Ombre et Lumière",
+  'galerie':   "Inspirations — Ombre et Lumière",
   'devis':     "Demande de devis gratuit — Ombre et Lumière",
   'contact':   "Contact — Ombre et Lumière",
   'mentions':  "Mentions légales — Ombre et Lumière"
@@ -225,7 +225,7 @@ const TITRES = {
 
 const VUES = {
   '':'#v-home', 'entreprise':'#v-entreprise', 'catalogue':'#v-cat', 'produit':'#v-prod',
-  'marques':'#v-marques', 'realisations':'#v-real', 'devis':'#v-devis',
+  'marques':'#v-marques', 'galerie':'#v-real', 'devis':'#v-devis',
   'contact':'#v-contact', 'mentions':'#v-mentions'
 };
 
@@ -233,7 +233,8 @@ function route(){
   const h = (location.hash || '#/').slice(2);
   const [path, qs] = h.split('?');
   const seg = path.split('/').filter(Boolean);
-  const key = seg[0] || '';
+  // #/realisations reste valide : c'est l'ancienne adresse de la galerie
+  const key = (seg[0] === 'realisations') ? 'galerie' : (seg[0] || '');
 
   $$('.view').forEach(v => v.classList.remove('on'));
   $('#nav').classList.remove('open');
@@ -263,7 +264,7 @@ function route(){
 injectSociete();
 renderHome();
 renderMarques();
-renderRealisations();
+renderGalerie();
 renderFilters();
 renderDevisSelect();
 

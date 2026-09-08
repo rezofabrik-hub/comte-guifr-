@@ -661,14 +661,29 @@ const MARQUES = [
   {nom:"DICKSON",role:"Toiles techniques",txt:"Référence mondiale du tissu technique outdoor, garanties longues sur la tenue aux UV."}
 ];
 
-/* ══════════════════════════════════════════ RÉALISATIONS ══════ */
-const REALISATIONS = [
-  {commune:"Thuir",titre:"Coffre Conceptbox 5 m motorisé",txt:"Réf. 5036, toile acrylique teint masse, moteur RTS et lambrequin enroulable sur une terrasse plein sud."},
-  {commune:"Céret",titre:"Pergola bioclimatique adossée",txt:"Lames orientables motorisées, éclairage LED périphérique et capteur de pluie."},
-  {commune:"Perpignan",titre:"Deux Vertical Nexus 130",txt:"Réf. 4006, guidage ZIP Classe III, screen 5 %, commande centralisée sur une baie de 5 m."},
-  {commune:"Ille-sur-Têt",titre:"Monobloc Concept 7 m",txt:"Réf. 3046 sur barre porteuse 40 × 40 : la façade en galets ne pouvait pas reprendre les efforts."},
-  {commune:"Canet-en-Roussillon",titre:"Store de véranda 7035",txt:"Tension par guides à piston sur une verrière plein sud, Classe III."},
-  {commune:"Argelès-sur-Mer",titre:"Vertical Paravento",txt:"Réf. 4016 en coupe-vent de terrasse, guides aluminium 120 × 40 et capteur vent."}
+/* ══════════════════════════════════════════ GALERIE ═══════════ */
+/* Photos du fabricant, présentées comme exemples d'installations des
+   modèles que nous posons — et non comme nos propres chantiers.
+   Chaque vignette renvoie vers la fiche du modèle concerné. */
+const GALERIE = [
+  {ref:"giro",     legende:"Pergola bioclimatique à lames orientables, en version autoportante au bord d'une terrasse."},
+  {ref:"5036",     legende:"Store coffre sur façade : la toile et les bras disparaissent entièrement une fois repliés."},
+  {ref:"4005",     legende:"Descente verticale à guidage ZIP : la toile reste plaquée dans les coulisses, sans jour latéral."},
+  {ref:"5066",     legende:"Store coffre grande largeur, jusqu'à 10 mètres en une seule toile."},
+  {ref:"6050",     legende:"Abri de terrasse à double pente monté sur pieds, avec évacuation d'eau des deux côtés."},
+  {ref:"2026",     legende:"Banne traditionnelle à bras invisibles, classée III au vent."},
+  {ref:"wood",     legende:"Pergola à structure bois et toile motorisée."},
+  {ref:"7010",     legende:"Toile coulissante sur rails, repliée en accordéon au-dessus d'un patio."},
+  {ref:"3092",     legende:"Monobloc sur barre porteuse : la façade ne reprend aucun effort. Terrasse de restaurant."},
+  {ref:"7030",     legende:"Store de toiture posé sur une verrière, là où la chaleur s'accumule le plus vite."},
+  {ref:"vision",   legende:"Pergola bioclimatique à poteaux affinés, sur une architecture contemporaine."},
+  {ref:"4016",     legende:"Coupe-vent de terrasse à guides aluminium, pour prolonger l'usage à la mi-saison."},
+  {ref:"5076",     legende:"Store coffre à profil carré, dans l'esprit des façades en enduit clair."},
+  {ref:"1017",     legende:"Paravent latéral rétractable : intimité et coupe-vent entre deux terrasses."},
+  {ref:"tecnic",   legende:"Toile tendue entre deux structures existantes, sans poteau supplémentaire."},
+  {ref:"7020",     legende:"Store corbeille de devanture, autant décoratif que protecteur."},
+  {ref:"illumination-led", legende:"Éclairage LED intégré dans le canal des bras, gradable à la télécommande."},
+  {ref:"nl58",     legende:"Store enrouleur intérieur à tube 58 mm, toile screen."}
 ];
 
 /* ══════════════════════════════════════════ ZONE ══════════════ */

@@ -53,12 +53,19 @@ Pour remplacer un visuel par une photo maison : écraser le fichier
 correspondant dans `assets/img/` en gardant le même nom. Aucune autre
 modification n'est nécessaire.
 
-Les photos de la page **Réalisations** sont volontairement laissées vides :
-ce sont les chantiers de Patrick, et c'est le seul contenu qui le distingue
-des autres revendeurs de la même gamme.
+La page **Inspirations** (`#/galerie`) présente 18 de ces photos comme
+exemples d'installations des modèles du catalogue, chaque vignette renvoyant
+vers la fiche du modèle. Une mention explicite précise qu'il s'agit de photos
+du fabricant et non de chantiers réalisés par Ombre et Lumière — c'est ce qui
+permet d'illustrer le site sans rien s'attribuer.
+
+Le jour où Patrick aura ses propres photos de chantier, elles méritent une
+page à part, qui pourra elle porter le titre « Réalisations » : c'est le seul
+contenu qui le distingue des autres revendeurs de la même gamme, et celui qui
+fait remonter le site sur « store banne + commune ».
 
 Pages : `#/` · `#/entreprise` · `#/catalogue` (+ `#/catalogue/<gamme>`) ·
-`#/produit/<référence>` · `#/marques` · `#/realisations` · `#/devis`
+`#/produit/<référence>` · `#/marques` · `#/galerie` · `#/devis`
 (+ `#/devis?p=<référence>` pour présélectionner un modèle) · `#/contact` ·
 `#/mentions`.
 
@@ -75,7 +82,9 @@ Presque tout se pilote depuis `assets/data.js`, sans toucher au HTML :
   (nuancier). Ajouter un produit le fait apparaître dans le catalogue, la
   recherche, le sélecteur du formulaire de devis et les compteurs du site.
 - **`RAL_BASE` / `RAL_STD`** — le nuancier de structure du fournisseur.
-- **`MARQUES`**, **`REALISATIONS`**, **`ZONES`** — les trois listes correspondantes.
+- **`MARQUES`**, **`GALERIE`**, **`ZONES`** — les trois listes correspondantes.
+  `GALERIE` associe une référence produit à une légende ; la photo est reprise
+  automatiquement du modèle.
 
 Les fiches produit affichent la référence fabricant uniquement quand elle est
 numérique (gamme Stores) ; les autres gammes sont identifiées par leur nom de
@@ -99,8 +108,8 @@ modèle. C'est géré par `hasRef()` dans `app.js`.
    liste en italique les éléments obligatoires restant à fournir (SIREN,
    répertoire des métiers, mention de TVA au titre de l'article 293 B du CGI,
    hébergeur, et surtout l'assurance décennale).
-5. **Réalisations** — les six chantiers listés dans `REALISATIONS` sont des
-   exemples plausibles, à remplacer par de vrais chantiers.
+5. **Photos de chantier** — quand Patrick en aura, créer une vraie page
+   Réalisations à côté de la galerie d'inspirations.
 
 ## Développement local
 
