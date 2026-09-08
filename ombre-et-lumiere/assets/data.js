@@ -12,8 +12,9 @@ const SOCIETE = {
   nom:"Ombre et Lumière",
   baseline:"Patrick Thais · Thuir",
   gerant:"Patrick Thais",
-  tel:"04 68 00 00 00",
-  telHref:"+33468000000",
+  statut:"Auto-entrepreneur (entreprise individuelle)",
+  tel:"06 62 18 14 01",
+  telHref:"+33662181401",
   mail:"contact@ombre-et-lumiere.fr",
   adresse:["66300 Thuir","Pyrénées-Orientales"],
   horaires:[
