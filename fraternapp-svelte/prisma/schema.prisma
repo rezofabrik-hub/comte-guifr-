@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Lodge {
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique @db.VarChar(40)
+  name          String   @db.VarChar(255)
+  contactEmail  String   @db.VarChar(255)
+  adminEmail    String   @db.VarChar(255)
+  customDomain  String?  @db.VarChar(255)
+  pagesUrl      String   @db.VarChar(255)
+  status        LodgeStatus @default(PROVISIONING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("lodges")
+}
+
+enum LodgeStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+}

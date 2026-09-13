@@ -474,12 +474,6 @@ footer a { color: rgba(201,160,68,0.7); text-decoration: none; }
           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;"
           onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
       </div>
-      <div>
-        <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-bottom:0.4rem;">Mot de passe administrateur</label>
-        <input id="s_pass" type="password" placeholder="8 caractères minimum"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:border-color 0.18s;"
-          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
-      </div>
     </div>
 
     <button id="signupBtn" onclick="submitSignup()"
@@ -563,16 +557,14 @@ async function submitSignup() {
   const name  = document.getElementById('s_name').value.trim();
   const slug  = document.getElementById('s_slug').value.trim();
   const email = document.getElementById('s_email').value.trim();
-  const pass  = document.getElementById('s_pass').value;
   const msg   = document.getElementById('signupMsg');
   const btn   = document.getElementById('signupBtn');
 
   msg.style.display = 'none';
 
-  if (!name || !slug || !email || !pass) { showSignupMsg('warn', 'Veuillez remplir tous les champs.'); return; }
+  if (!name || !slug || !email) { showSignupMsg('warn', 'Veuillez remplir tous les champs obligatoires.'); return; }
   if (!/^[a-z0-9-]{3,40}$/.test(slug))  { showSignupMsg('warn', 'Slug invalide : minuscules, chiffres et tirets, 3–40 caractères.'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showSignupMsg('warn', 'Adresse email invalide.'); return; }
-  if (pass.length < 8) { showSignupMsg('warn', 'Mot de passe trop court (8 caractères minimum).'); return; }
 
   btn.disabled = true;
   btn.textContent = 'Déploiement en cours…';
@@ -582,11 +574,11 @@ async function submitSignup() {
     const res = await fetch('https://velum-onboarding.rezofabrik.workers.dev/api/provision', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, lodge_name: name, contact_email: email, initial_password: pass, custom_domain: '' }),
+      body: JSON.stringify({ slug, lodge_name: name, contact_email: email, custom_domain: '' }),
     });
     const data = await res.json();
     if (data.ok) {
-      showSignupMsg('ok', `✓ Votre loge est déployée ! Accessible sur https://${slug}.fraternapp.com dans ~2 minutes. Un email de confirmation a été envoyé à ${email}.`);
+      showSignupMsg('ok', `✓ Votre loge est déployée ! Accessible sur https://${slug}.fraternapp.com dans ~2 minutes. Un email avec votre lien de connexion vous sera envoyé à ${email}.`);
       btn.textContent = 'Loge créée avec succès ✓';
     } else {
       showSignupMsg('err', 'Erreur : ' + (data.error || 'inconnue'));
