@@ -3627,7 +3627,7 @@ EXEMPLE DE FORMAT CORRECT :
                             setIsLogged(true); setFbError(null);
                             return;
                         }
-                        if (result.reason === 'not_found') return setFbError("Nom non trouvé. Noms connus: " + (result.debug_names||[]).join(', '));
+                        if (result.reason === 'not_found') return setFbError("Nom non trouvé dans la liste des membres.");
                         if (result.reason === 'wrong_pwd') return setFbError("Mot de passe incorrect.");
                         if (result.reason === 'no_members') return setFbError("Liste membres vide (règles Firestore ?).");
                         return setFbError("Erreur de connexion: " + (result.reason||'?'));
