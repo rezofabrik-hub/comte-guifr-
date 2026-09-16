@@ -3236,8 +3236,20 @@
                     return `La <strong>Loge Comte Guifré n°51</strong> est à l'Orient de <strong>Perpignan</strong>, sous l'obédience du <strong>Grand Orient de France</strong> (G∴O∴D∴F∴).<br><br>Elle travaille au Rite Français et réunit des hommes et des femmes attachés aux valeurs de Liberté, Égalité, Fraternité.`;
 
                 // Planches / archives / bibliothèque
-                if (has('planche','expose','ecriture','texte','conference','archive','bibliotheque','document','lecture','cahier'))
-                    return `Une <strong>Planche</strong> est un exposé philosophique présenté en loge par un F∴ ou une S∴.<br><br>Accédez aux planches dans l'onglet <strong>Les Archives</strong> — le contenu varie selon votre grade.<br>Vous pouvez aussi soumettre votre propre planche via le bouton dédié.`;
+                if (has('planche','expose','ecriture','texte','conference','archive','bibliotheque','document','lecture','cahier','livre','bouquin')) {
+                    const bList = (siteData.books||[]).filter(b => {
+                        const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+                        if (bg.includes('maitre')) return rank() >= 2;
+                        if (bg.includes('compagnon')) return rank() >= 1;
+                        return true;
+                    }).slice(0,5);
+                    const pList = (siteData.planches||[]).slice(0,4);
+                    let reply = `📚 <strong>Archives & Bibliothèque</strong><br>`;
+                    if (pList.length > 0) reply += `<br>Planches : ${pList.map(p=>`"${p.title}"`).join(', ')}`;
+                    if (bList.length > 0) reply += `<br>Documents : ${bList.map(b=>`"${b.title}" (${b.categorie||'doc'})`).join(', ')}`;
+                    reply += `<br><br>Accédez à tout dans l'onglet <strong>Les Archives</strong>.`;
+                    return reply;
+                }
 
                 // Légende d'Hiram (rang ≥ 2)
                 if (has('hiram','legende','mort','assassin','3eme degre','troisieme degre','acacia','cercueil','resurrection','perte du mot')) {
@@ -3276,8 +3288,13 @@
                     return `Les mots, signes et attouchements sont confidentiels — ils sont transmis oralement en loge, lors des cérémonies rituelles.<br>Pour en savoir plus, adressez-vous au <strong>VM</strong> ou à l'<strong>Architecte</strong>.`;
 
                 // Liens / ressources externes
-                if (has('lien','ressource','site','web','lecture','hiram.be','gadlu','livre','bibliographie'))
-                    return `Des liens utiles sont disponibles dans l'onglet <strong>Chaîne d'Union</strong> :<br>• Hiram.be — weblog maçonnique<br>• GADLU.INFO — portail maçonnique<br>• Musée de la Franc-Maçonnerie<br>Et d'autres ressources sélectionnées par la loge.`;
+                if (has('lien','ressource','site','web','hiram.be','gadlu.info','musee','bibliographie','chaine union')) {
+                    const lList = (siteData.liens||[]).slice(0,6);
+                    if (lList.length > 0) {
+                        return `🔗 <strong>Liens Chaîne d'Union</strong><br><br>${lList.map(l=>`• <strong>${l.t||l.title||'Lien'}</strong>${l.d||l.description ? ' — '+(l.d||l.description) : ''}`).join('<br>')}<br><br>Retrouvez tous les liens dans l'onglet <strong>Chaîne d'Union</strong>.`;
+                    }
+                    return `Des liens utiles sont disponibles dans l'onglet <strong>Chaîne d'Union</strong> :<br>• Hiram.be — weblog maçonnique<br>• GADLU.INFO — portail maçonnique<br>• Musée de la Franc-Maçonnerie`;
+                }
 
                 // Aide / que peux-tu faire
                 if (has('aide','help','que peux tu','tu peux','tu sais','capacite','fonction','quoi faire','comment'))
@@ -3299,8 +3316,9 @@
                 if (claudeApiKey) {
                     try {
                         const nowIA = new Date(); nowIA.setHours(0,0,0,0);
-                        const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= nowIA).slice(0,5);
-                        const officers = siteData.members.filter(m => m.role && m.role.trim()).slice(0,10);
+                        const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= nowIA).slice(0,8);
+                        const officers = siteData.members.filter(m => m.role && m.role.trim()).slice(0,15);
+                        const allMembers = siteData.members.slice(0,30);
                         const gradeLabel2 = { vm:'VM / Officier', architecte:'Architecte', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' };
                         const rankVal = rank();
                         const rankName = rankVal >= 3 ? 'VM/Officier' : rankVal === 2 ? 'Maître' : rankVal === 1 ? 'Compagnon' : 'Apprenti';
@@ -3324,7 +3342,8 @@ Message de bienvenue de la loge : ${welcomeText || 'Non défini'}
 
 Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' avec agapes' : ''}${a.agapesInfo ? ' ('+a.agapesInfo+')' : ''}`).join(' | ') : 'Aucune tenue programmée'}
 
-Officiers et membres de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}${m.grade?' ('+m.grade+')':''}`).join(' | ') : 'Non disponible'}
+Officiers de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}${m.grade?' ('+m.grade+')':''}`).join(' | ') : 'Non disponible'}
+Tous les membres : ${allMembers.length > 0 ? allMembers.map(m => `${m.name}${m.grade?' ('+m.grade+')':''}${m.role?' ['+m.role+']':''}`).join(', ') : 'Non disponible'}
 Total membres : ${siteData.members.length || 'Non disponible'}
 
 Planches disponibles (${rankName}) : ${(siteData.planches||[]).filter(p => {
@@ -3348,12 +3367,18 @@ INSTRUCTIONS :
 - Utilise le vocabulaire maçonnique approprié (F∴, S∴, G∴A∴D∴L∴U∴, etc.)
 - Si l'info n'est pas dans les données ci-dessus, oriente vers l'onglet du site approprié
 - Format : HTML simple uniquement (<strong>, <br>, <em>) — pas de markdown, pas de listes ul/li
-- Sois précis et court (3-5 phrases max)`;
+- Sois précis et utile — cite les vraies données du site (noms, dates, titres) quand c'est pertinent
+- Longueur : 3-6 phrases max
+- Si tu ne sais pas, dis-le honnêtement et oriente vers l'onglet concerné`;
+
+                        // Debug: log si pas de données
+                        if (upcoming.length === 0 && siteData.agenda.length === 0) console.warn('[Colibri] Aucune donnée agenda reçue');
+                        if (siteData.members.length === 0) console.warn('[Colibri] Aucun membre reçu');
 
                         const res = await fetch('https://api.anthropic.com/v1/messages', {
                             method: 'POST',
                             headers: { 'x-api-key': claudeApiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-calls': 'true' },
-                            body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: systemPrompt, messages: [{ role: 'user', content: text }] })
+                            body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: systemPrompt, messages: [{ role: 'user', content: text }] })
                         });
                         if (res.ok) {
                             const data = await res.json();
@@ -3361,8 +3386,11 @@ INSTRUCTIONS :
                             setTyping(false);
                             setMessages(m => [...m, { role:'bot', html: reply, t: nowT() }]);
                             return;
+                        } else {
+                            const errData = await res.json().catch(()=>({}));
+                            console.warn('[Colibri] Erreur API Claude:', res.status, errData?.error?.message || res.statusText);
                         }
-                    } catch(e) { /* fallback sur getReply */ }
+                    } catch(e) { console.warn('[Colibri] Exception API Claude:', e?.message); }
                 }
 
                 setTimeout(() => {
