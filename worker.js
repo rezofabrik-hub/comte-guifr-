@@ -78,10 +78,16 @@ export default {
         // Lire les membres
         const membersData = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
         const docs = membersData?.documents || [];
+        if (docs.length === 0) return new Response(JSON.stringify({ ok: false, reason: 'no_members', debug: !!membersData }), { headers: JSON_HEADERS });
         const clean = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+        const words = n => clean(n).match(/[a-z]+/g) || [];
         const found = docs.find(doc => {
           const docName = doc.fields?.name?.stringValue || '';
-          return clean(docName).includes(clean(name)) || clean(name).includes(clean(docName));
+          const dw = words(docName);
+          const nw = words(name);
+          // chaque mot du nom saisi doit apparaître dans le nom du document (et vice versa)
+          return nw.every(w => dw.some(d => d.includes(w) || w.includes(d))) ||
+                 dw.every(w => nw.some(n => n.includes(w) || w.includes(n)));
         });
 
         if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found' }), { headers: JSON_HEADERS });
