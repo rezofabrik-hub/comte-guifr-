@@ -2860,78 +2860,29 @@
             );
         }
 
-        function MembresComptesSection_UNUSED({ api, FB_KEY }) {
-            const [membres, setMembres] = React.useState([]); // [{id, ...data}]
+        function MembresComptesSection({ api }) {
+            const [membres, setMembres] = React.useState([]);
             const [statuts, setStatuts] = React.useState({});
-            const [creerTout, setCreerTout] = React.useState(false);
-            const [editPwd, setEditPwd] = React.useState({}); // {docId: newPwd}
+            const [editPwd, setEditPwd] = React.useState({});
             const [showPwd, setShowPwd] = React.useState({});
 
             const loadMembres = React.useCallback(() => {
                 const col = api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'members');
                 api.getDocs(col).then(snap => {
                     const list = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => m.name);
+                    list.sort((a,b) => (a.name||'').localeCompare(b.name||''));
                     setMembres(list);
                 }).catch(()=>{});
             }, [api]);
 
             React.useEffect(() => { loadMembres(); }, [loadMembres]);
 
-            const normEmail = (name) => name.trim().toLowerCase()
-                .normalize("NFD").replace(/[̀-ͯ]/g,"")
-                .replace(/[^a-z\s-]/g,'').trim().replace(/\s+/g,'.');
-
-            const genEmail = (m) => {
-                const grade = (m.grade||'apprenti').toLowerCase().trim()
-                    .normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z]/g,'');
-                const gradeKey = grade.includes('maitre')||grade.includes('matre') ? 'maitre'
-                    : grade.includes('compagnon') ? 'compagnon'
-                    : grade.includes('tresor') ? 'tresorier' : 'apprenti';
-                return `${gradeKey}.${normEmail(m.name)}@${LOGE_EMAIL_DOMAIN}`;
-            };
-
-            const genPwd = (name) => {
-                const parts = name.trim().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-zA-Z\s]/g,'').split(/\s+/);
-                return parts.map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join('')+'27!';
-            };
-
-            const fbSignIn = async (email, pwd) => {
-                const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`,{
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ email, password: pwd, returnSecureToken: true })
-                });
-                return r.json();
-            };
-
-            const creerCompte = async (m) => {
-                const id = m.id;
-                setStatuts(s=>({...s,[id]:'...'}));
-                const email = m.accountEmail || genEmail(m);
-                const pwd = m.accountPwd || genPwd(m.name);
-                try {
-                    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_KEY}`,{
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({ email, password: pwd, returnSecureToken: true })
-                    });
-                    const d = await r.json();
-                    if (d.error && d.error.message !== 'EMAIL_EXISTS') {
-                        setStatuts(s=>({...s,[id]:'err:'+d.error.message}));
-                        return;
-                    }
-                    // Sauvegarder email+pwd dans le doc membre
-                    await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountEmail: email, accountPwd: pwd });
-                    setStatuts(s=>({...s,[id]: d.error ? 'existe' : 'ok'}));
-                    loadMembres();
-                } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
-            };
-
             const changerMotDePasse = async (m) => {
                 const id = m.id;
                 const newPwd = (editPwd[id]||'').trim();
-                if (!newPwd || newPwd.length < 6) return alert('Mot de passe trop court (min 6 caractères).');
+                if (!newPwd || newPwd.length < 4) return alert('Mot de passe trop court (min 4 caractères).');
                 setStatuts(s=>({...s,[id]:'pwd...'}));
                 try {
-                    // Firestore-only: no Firebase Auth needed for member password
                     await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountPwd: newPwd });
                     setEditPwd(e=>({...e,[id]:''}));
                     setStatuts(s=>({...s,[id]:'pwd_ok'}));
@@ -2939,87 +2890,45 @@
                 } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
             };
 
-            const supprimerCompte = async (m) => {
-                if (!confirm(`Supprimer le compte de ${m.name} ?`)) return;
-                const id = m.id;
-                setStatuts(s=>({...s,[id]:'del...'}));
-                const email = m.accountEmail || genEmail(m);
-                const pwd = m.accountPwd || genPwd(m.name);
-                try {
-                    const sign = await fbSignIn(email, pwd);
-                    if (!sign.idToken) { setStatuts(s=>({...s,[id]:'err:connexion'})); return; }
-                    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FB_KEY}`,{
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({ idToken: sign.idToken })
-                    });
-                    const d = await r.json();
-                    if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
-                    await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountEmail: '', accountPwd: '' });
-                    setStatuts(s=>({...s,[id]:'del_ok'}));
-                    loadMembres();
-                } catch(e) { setStatuts(s=>({...s,[id]:'err:'+e.message})); }
-            };
-
-            const creerTousComptes = async () => {
-                setCreerTout(true);
-                for (const m of membres) await creerCompte(m);
-                setCreerTout(false);
-            };
-
             if (membres.length === 0) return (
                 <div className="bg-white rounded-2xl shadow p-5 border border-slate-100">
-                    <h2 className="text-sm font-bold text-slate-700 font-sans uppercase tracking-widest mb-2">Comptes Membres Individuels</h2>
+                    <h2 className="text-sm font-bold text-slate-700 font-sans uppercase tracking-widest mb-2">Mots de passe membres</h2>
                     <p className="text-xs text-slate-400 font-sans">Aucun membre chargé.</p>
                 </div>
             );
 
             return (
                 <div className="bg-white rounded-2xl shadow p-5 border border-slate-100 space-y-4">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h2 className="text-sm font-bold text-slate-700 font-sans uppercase tracking-widest">Comptes Membres Individuels</h2>
-                        <button onClick={creerTousComptes} disabled={creerTout} className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl font-sans disabled:opacity-40">
-                            {creerTout ? 'Création...' : 'Créer / Vérifier tous'}
-                        </button>
-                    </div>
+                    <h2 className="text-sm font-bold text-slate-700 font-sans uppercase tracking-widest">Mots de passe membres</h2>
                     <div className="text-[10px] text-slate-500 font-sans bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        Le membre se connecte avec son <strong>nom</strong> + son <strong>mot de passe</strong> — aucun email à retenir.<br/>
-                        Les comptes Architecte et VM gardent leurs identifiants actuels.
+                        Chaque membre se connecte avec son <strong>nom</strong> + son <strong>mot de passe personnel</strong>.<br/>
+                        Modifiez un mot de passe ici, puis communiquez-le au membre.
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {membres.map(m => {
-                            const pwd = m.accountPwd || genPwd(m.name);
-                            const hasAccount = !!(m.accountEmail && m.accountEmail.length > 0);
                             const st = statuts[m.id] || '';
-                            const isShowPwd = showPwd[m.id];
+                            const currentPwd = m.accountPwd || '';
+                            const isShow = showPwd[m.id];
                             return (
-                                <div key={m.id} className="border border-slate-100 rounded-xl px-3 py-3 space-y-2 text-xs font-sans">
+                                <div key={m.id} className="border border-slate-100 rounded-xl px-3 py-2 space-y-2 text-xs font-sans">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-bold text-slate-700 w-36 truncate">{m.name}</span>
-                                        <div className="flex items-center gap-1 flex-1">
-                                            <span className="font-mono text-[10px] text-slate-600">{isShowPwd ? pwd : '••••••••'}</span>
-                                            <button type="button" onClick={()=>setShowPwd(s=>({...s,[m.id]:!s[m.id]}))} className="text-slate-300 hover:text-amber-600 text-[10px] px-1">👁</button>
-                                        </div>
-                                        {!hasAccount
-                                            ? <button onClick={()=>creerCompte(m)} disabled={st==='...'} className="bg-slate-800 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40">
-                                                {st==='...'?'...':st==='ok'?'✓ Créé':st==='existe'?'✓ Existe':st.startsWith('err')?'✗ Erreur':'Créer'}
-                                              </button>
-                                            : <span className="text-green-600 text-[10px] font-bold">✓ Actif</span>
-                                        }
-                                        {hasAccount && <button onClick={()=>supprimerCompte(m)} disabled={st.includes('...')} className="text-red-400 hover:text-red-600 font-bold text-[10px] px-2 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all disabled:opacity-40">
-                                            {st==='del...'?'...':st==='del_ok'?'✓ Supprimé':'Supprimer'}
-                                        </button>}
+                                        <span className="font-bold text-slate-700 w-40 truncate">{m.name}</span>
+                                        <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded font-mono">{m.grade||'—'}</span>
+                                        {currentPwd ? (
+                                            <div className="flex items-center gap-1 ml-auto">
+                                                <span className="font-mono text-[10px] text-slate-600">{isShow ? currentPwd : '••••••••'}</span>
+                                                <button type="button" onClick={()=>setShowPwd(s=>({...s,[m.id]:!s[m.id]}))} className="text-slate-300 hover:text-amber-600 text-[10px] px-1">👁</button>
+                                            </div>
+                                        ) : <span className="text-[10px] text-orange-400 ml-auto">Aucun mdp défini</span>}
                                     </div>
-                                    {hasAccount && (
-                                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-50">
-                                            <span className="text-[10px] text-slate-400">Nouveau mdp :</span>
-                                            <input type="text" placeholder="Nouveau mot de passe..." value={editPwd[m.id]||''} onChange={e=>setEditPwd(p=>({...p,[m.id]:e.target.value}))}
-                                                className="flex-1 min-w-32 border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:border-amber-400" />
-                                            <button onClick={()=>changerMotDePasse(m)} disabled={!editPwd[m.id] || st==='pwd...'} className="bg-slate-700 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40">
-                                                {st==='pwd...'?'...':st==='pwd_ok'?'✓ Modifié':'Modifier'}
-                                            </button>
-                                        </div>
-                                    )}
-                                    {st.startsWith('err') && <div className="text-red-500 text-[10px]">{st.replace('err:','Erreur : ')}</div>}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <input type="text" placeholder="Nouveau mot de passe..." value={editPwd[m.id]||''} onChange={e=>setEditPwd(p=>({...p,[m.id]:e.target.value}))}
+                                            className="flex-1 min-w-32 border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:border-amber-400" />
+                                        <button onClick={()=>changerMotDePasse(m)} disabled={!editPwd[m.id] || st==='pwd...'} className="bg-slate-700 hover:bg-amber-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40">
+                                            {st==='pwd...'?'...':st==='pwd_ok'?'✓ Enregistré':'Enregistrer'}
+                                        </button>
+                                        {st.startsWith('err') && <span className="text-red-500 text-[10px]">{st.replace('err:','Erreur : ')}</span>}
+                                    </div>
                                 </div>
                             );
                         })}
@@ -3690,26 +3599,43 @@ EXEMPLE DE FORMAT CORRECT :
                     : gradeKey === 'tresorier' || gradeKey === 'vm' || gradeKey === 'secretaire' ? { apprenti:true, compagnon:true, maitre:true }
                     : { apprenti:true, compagnon:false, maitre:false };
 
-                // Essayer d'abord le compte individuel (sauf vm)
+                // Vérification via le worker (mot de passe individuel stocké dans Firestore)
                 if (gradeKey !== 'vm') {
-                    const indivEmail = `${gradeKey}.${normalizeName(n)}@${LOGE_EMAIL_DOMAIN}`;
                     try {
-                        await api.signInWithEmailAndPassword(api.auth, indivEmail, p.trim());
-                        setUnlockedGrades(grades);
-                        setIsArchitect(false);
-                        setIsTresorier(gradeKey === 'tresorier');
-                        setLoginGradeKey(gradeKey);
-                        setMemberName(n.trim());
-                        setMemberRole(gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
-                        setMemberGenre(genre || 'frere');
-                        setPendingNameMatch(n.trim());
-                        if (gradeKey === 'secretaire') setActiveView('agenda');
-                        sessionStorage.setItem('lgMemberName', n.trim());
-                        setIsLogged(true); setFbError(null);
-                        return;
-                    } catch(e) { /* pas de compte individuel, essai compte grade */ }
+                        const resp = await fetch('/api/member-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: n.trim(), gradeKey, memberPassword: p.trim() })
+                        });
+                        const result = await resp.json();
+                        if (result.ok && result.gradePwd) {
+                            try {
+                                await api.signInWithEmailAndPassword(api.auth, GRADE_ACCOUNTS[gradeKey], result.gradePwd);
+                            } catch(e) {
+                                return setFbError("Erreur d'accès au grade. Contactez l'Architecte.");
+                            }
+                            setUnlockedGrades(grades);
+                            setIsArchitect(false);
+                            setIsTresorier(gradeKey === 'tresorier');
+                            setLoginGradeKey(gradeKey);
+                            setMemberName(result.memberName || n.trim());
+                            setMemberRole(result.memberRole || (gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : ''));
+                            setMemberGenre(result.memberGenre || genre || 'frere');
+                            setPendingNameMatch(result.memberName || n.trim());
+                            if (gradeKey === 'secretaire') setActiveView('agenda');
+                            sessionStorage.setItem('lgMemberName', result.memberName || n.trim());
+                            setIsLogged(true); setFbError(null);
+                            return;
+                        }
+                        if (result.reason === 'not_found') return setFbError("Nom non trouvé dans la liste des membres.");
+                        if (result.reason === 'wrong_pwd') return setFbError("Mot de passe incorrect.");
+                        return setFbError("Erreur de connexion. Réessayez.");
+                    } catch(e) {
+                        return setFbError("Erreur réseau. Réessayez.");
+                    }
                 }
 
+                // VM : connexion directe avec le mot de passe du grade
                 try {
                     await api.signInWithEmailAndPassword(api.auth, GRADE_ACCOUNTS[gradeKey], p.trim());
                 } catch (e) {
@@ -3717,14 +3643,13 @@ EXEMPLE DE FORMAT CORRECT :
                 }
                 setUnlockedGrades(grades);
                 setIsArchitect(false);
-                setIsTresorier(gradeKey === 'tresorier');
+                setIsTresorier(false);
                 setLoginGradeKey(gradeKey);
-                setMemberName(n.trim());
-                setMemberRole(gradeKey === 'vm' ? 'Vénérable Maître' : gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
+                setMemberName(n.trim() || 'Vénérable Maître');
+                setMemberRole('Vénérable Maître');
                 setMemberGenre(genre || 'frere');
                 setPendingNameMatch(n.trim());
-                sessionStorage.setItem('lgMemberName', n.trim());
-                if (gradeKey === 'secretaire') setActiveView('agenda');
+                sessionStorage.setItem('lgMemberName', n.trim() || 'Vénérable Maître');
                 setIsLogged(true); setFbError(null);
             };
 
@@ -3862,7 +3787,7 @@ EXEMPLE DE FORMAT CORRECT :
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
                             </div>
                         )}
-                        {activeView === 'configuration' && (isArchitect || isVM) && <ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />}
+                        {activeView === 'configuration' && (isArchitect || isVM) && <div className="space-y-6"><ConfigurationView api={api} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} logeLogo={logeLogo} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} />{isArchitect && <MembresComptesSection api={api} />}</div>}
                         {activeView === 'agenda' && <AgendaView items={agendaItems} canEdit={canEditAgenda} onAdd={(t)=>api.addDoc(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda'), t)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} onDelete={(id)=>api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'agenda', id))} canSee={canSee} apiKey={claudeApiKey} />}
                         {activeView === 'visite' && <VisiteView items={agendaItems} canEdit={canEdit} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} apiKey={claudeApiKey} />}
                         {activeView === 'grade_auth' && <GradeAuthScreen grade={pendingGrade} onCancel={()=>setActiveView('home')} onValidate={handleGradeUnlock} logo={logeLogo} />}
