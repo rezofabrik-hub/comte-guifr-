@@ -16,6 +16,10 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4'
+          secrets: |
+            CLAUDE_API_KEY
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
 
       - name: Configurer la Worker Route lcg51.fr → comte-guifr
         run: |

@@ -3423,9 +3423,9 @@ EXEMPLE DE FORMAT CORRECT :
                         if (upcoming.length === 0 && siteData.agenda.length === 0) console.warn('[Colibri] Aucune donnée agenda reçue');
                         if (siteData.members.length === 0) console.warn('[Colibri] Aucun membre reçu');
 
-                        const res = await fetch('https://api.anthropic.com/v1/messages', {
+                        const res = await fetch('/api/claude', {
                             method: 'POST',
-                            headers: { 'x-api-key': claudeApiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-calls': 'true' },
+                            headers: { 'content-type': 'application/json' },
                             body: JSON.stringify({ model: 'claude-3-5-haiku-20241022', max_tokens: 500, system: systemPrompt, messages: [{ role: 'user', content: text }] })
                         });
                         if (res.ok) {
