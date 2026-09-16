@@ -3354,7 +3354,8 @@
                 setInput('');
                 setTyping(true);
 
-                if (claudeApiKey) {
+                // Always use server-side proxy — key is stored in Cloudflare Worker secret
+                {
                     try {
                         const nowIA = new Date(); nowIA.setHours(0,0,0,0);
                         const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= nowIA).slice(0,8);
