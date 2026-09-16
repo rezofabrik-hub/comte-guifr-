@@ -3067,6 +3067,35 @@
             const [typing, setTyping] = useState(false);
             const [sugsHidden, setSugsHidden] = useState(false);
             const endRef = useRef(null);
+            const [siteData, setSiteData] = useState({ agenda: [], members: [] });
+
+            // Charger les données réelles depuis Firestore
+            useEffect(() => {
+                const api = window.FB_API;
+                if (!api) return;
+                const appId = api.appId;
+                const base = `https://firestore.googleapis.com/v1/projects/${appId}/databases/(default)/documents/artifacts/${appId}/public/data`;
+                Promise.all([
+                    fetch(`${base}/agenda?pageSize=50`).then(r=>r.json()).catch(()=>({})),
+                    fetch(`${base}/members?pageSize=200`).then(r=>r.json()).catch(()=>({}))
+                ]).then(([agendaRes, membersRes]) => {
+                    const agenda = (agendaRes.documents||[]).map(d => {
+                        const f = d.fields||{};
+                        return {
+                            title: f.title?.stringValue||'',
+                            date: f.date?.stringValue||f.dateDebut?.stringValue||'',
+                            type: f.type?.stringValue||'',
+                            agapes: f.agapes?.booleanValue||false,
+                            agapesInfo: f.agapesInfo?.stringValue||'',
+                        };
+                    }).filter(a => a.date).sort((a,b) => a.date.localeCompare(b.date));
+                    const members = (membersRes.documents||[]).map(d => {
+                        const f = d.fields||{};
+                        return { name: f.name?.stringValue||'', role: f.role?.stringValue||'', grade: f.grade?.stringValue||'' };
+                    });
+                    setSiteData({ agenda, members });
+                });
+            }, []);
 
             const rank = () => {
                 const m = { vm:3, architecte:3, tresorier:3, secretaire:3, maitre:2, compagnon:1, apprenti:0 };
@@ -3107,12 +3136,45 @@
 
             function getReply(q) {
                 const lq = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'');
-                if (/(prochaine|tenue|travaux|quand|date|calendrier)/.test(lq))
-                    return `La prochaine tenue de la <strong>Loge Comte Guifré n°51</strong> :<br><br>📅 <strong>3 octobre 2025</strong><br>Ouverture solennelle de l'année maçonnique 5025 — avec agapes fraternelles.<br><br>Programme complet dans l'onglet <strong>Ordre des Travaux</strong>.`;
-                if (/(agapes|repas|manger|diner|banquet|intendant|prix|tarif)/.test(lq))
-                    return `🍽️ <strong>Agapes du 7 novembre 2025</strong><br><br>Intendante : S∴ Marie SIONNET<br>Entrée : Salade de chèvre chaud<br>Plat : Daube catalane · Dessert : Crème catalane<br>💶 <strong>22 €</strong> · Inscription via Framadate.`;
-                if (/(venerable|vm|bruno|ramon|officier|membres|tableau)/.test(lq))
-                    return `Officiers de la Loge :<br><br>👑 <strong>VM</strong> : F∴ Bruno RAMON<br>🔱 <strong>1er Surv.</strong> : F∴ David LOIRET<br>🔱 <strong>2ème Surv.</strong> : F∴ Claude CARCELLER<br>📐 <strong>Architecte</strong> : F∴ Laurent MIENVILLE<br><br>17 membres — Rite Français, Orient de Perpignan.`;
+
+                if (/(prochaine|tenue|travaux|quand|date|calendrier)/.test(lq)) {
+                    const today = new Date().toISOString().slice(0,10);
+                    const next = siteData.agenda.find(a => a.date >= today);
+                    if (next) {
+                        const d = new Date(next.date);
+                        const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+                        return `📅 Prochaine tenue :<br><br><strong>${next.title||'Tenue'}</strong><br>${dateStr}${next.agapesInfo ? `<br><br>🍽️ ${next.agapesInfo}` : next.agapes ? '<br>🍽️ Agapes fraternelles' : ''}<br><br>Programme complet dans l'onglet <strong>Ordre des Travaux</strong>.`;
+                    }
+                    return `Aucune tenue programmée pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
+                }
+
+                if (/(agapes|repas|manger|diner|banquet|intendant|prix|tarif)/.test(lq)) {
+                    const today = new Date().toISOString().slice(0,10);
+                    const next = siteData.agenda.find(a => a.date >= today && (a.agapes || a.agapesInfo));
+                    if (next) {
+                        const d = new Date(next.date);
+                        const dateStr = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+                        return `🍽️ <strong>Agapes — ${next.title||'Tenue'}</strong><br>${dateStr}<br><br>${next.agapesInfo || 'Informations disponibles dans l\'onglet Ordre des Travaux.'}`;
+                    }
+                    return `Pas d'agapes prochaines annoncées pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
+                }
+
+                if (/(venerable|vm|officier|membres|tableau|freres|soeurs|combien)/.test(lq)) {
+                    const officers = siteData.members.filter(m => m.role && m.role.trim());
+                    const vm = officers.find(m => /venerable|v\.m\.|vm/i.test(m.role));
+                    const surv1 = officers.find(m => /1er|premier.*surv/i.test(m.role));
+                    const surv2 = officers.find(m => /2.me|deuxi.*surv/i.test(m.role));
+                    const arch = officers.find(m => /architecte/i.test(m.role));
+                    const total = siteData.members.length;
+                    let reply = `Officiers de la Loge :<br><br>`;
+                    if (vm) reply += `👑 <strong>VM</strong> : ${vm.name}<br>`;
+                    if (surv1) reply += `🔱 <strong>1er Surv.</strong> : ${surv1.name}<br>`;
+                    if (surv2) reply += `🔱 <strong>2ème Surv.</strong> : ${surv2.name}<br>`;
+                    if (arch) reply += `📐 <strong>Architecte</strong> : ${arch.name}<br>`;
+                    if (!vm && !surv1) reply += `Consultez le <strong>Tableau de Loge</strong> pour la liste complète.`;
+                    if (total > 0) reply += `<br>${total} membres — Rite Français, Orient de Perpignan.`;
+                    return reply;
+                }
                 if (/(hiram|legende|mort|perte|assassin|troisieme|3eme)/.test(lq)) {
                     const b = blocked(2); if (b) return b;
                     return `La <strong>Légende d'Hiram</strong> est au cœur du 3ème degré.<br><br>Hiram Abiif, Grand Architecte du Temple, refusa de livrer le Mot Sacré à trois compagnons félons. Il mourut plutôt que de trahir son serment.<br><br>Son corps fut retrouvé grâce à une branche d'acacia. <em>Symbole de la fidélité sur la mort — résurrection symbolique au 3ème degré.</em>`;
