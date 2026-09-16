@@ -3048,14 +3048,38 @@
             return (
                 <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
                     {open && (
-                        <div style={{width:340, height:500, marginBottom:12, borderRadius:20, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.35)'}}>
+                        <div style={{width:350, height:520, marginBottom:14, borderRadius:24, overflow:'hidden', boxShadow:'0 12px 50px rgba(0,0,0,0.4)'}}>
                             <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} onClose={()=>setOpen(false)} />
                         </div>
                     )}
                     <button onClick={()=>setOpen(o=>!o)}
-                        style={{width:56,height:56,borderRadius:'50%',background:open?'#374151':'#d97706',border:'none',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,0.3)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}
+                        style={{width:62,height:62,borderRadius:'50%',background: open ? '#1e293b' : 'linear-gradient(135deg,#b45309,#d97706,#92400e)',border:'2px solid rgba(255,255,255,0.2)',cursor:'pointer',boxShadow:'0 6px 24px rgba(180,83,9,0.55)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',transition:'all .25s',position:'relative'}}
                         title="Le Petit Colibri — Assistant maçonnique">
-                        {open ? <i className="fa-solid fa-xmark" style={{color:'white',fontSize:20}}></i> : <span style={{fontSize:26}}>🐦</span>}
+                        {open
+                            ? <i className="fa-solid fa-xmark" style={{color:'white',fontSize:22}}></i>
+                            : <>
+                                <svg width="34" height="34" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    {/* Corps */}
+                                    <ellipse cx="34" cy="36" rx="13" ry="9" fill="#16a34a"/>
+                                    {/* Ventre */}
+                                    <ellipse cx="34" cy="38" rx="8" ry="6" fill="#4ade80"/>
+                                    {/* Tête */}
+                                    <circle cx="22" cy="28" r="9" fill="#15803d"/>
+                                    {/* Bec long */}
+                                    <rect x="4" y="26.5" width="16" height="3" rx="1.5" fill="#a16207"/>
+                                    {/* Oeil */}
+                                    <circle cx="20" cy="26" r="2.2" fill="white"/>
+                                    <circle cx="20.5" cy="26" r="1.1" fill="#1e293b"/>
+                                    {/* Aile */}
+                                    <ellipse cx="38" cy="30" rx="11" ry="5" fill="#166534" transform="rotate(-20 38 30)"/>
+                                    {/* Queue */}
+                                    <ellipse cx="47" cy="40" rx="8" ry="3" fill="#15803d" transform="rotate(20 47 40)"/>
+                                    {/* Brillance */}
+                                    <circle cx="18" cy="25" r="1.2" fill="rgba(255,255,255,0.6)"/>
+                                </svg>
+                                <span style={{fontSize:7,color:'rgba(255,255,255,0.85)',fontWeight:'bold',letterSpacing:'0.05em',marginTop:1,fontFamily:"sans-serif"}}>COLIBRI</span>
+                              </>
+                        }
                     </button>
                 </div>
             );
@@ -3136,74 +3160,142 @@
 
             function getReply(q) {
                 const lq = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'');
+                const has = (...words) => words.some(w => lq.includes(w));
 
-                if (/(prochaine|tenue|travaux|quand|date|calendrier)/.test(lq)) {
-                    const today = new Date().toISOString().slice(0,10);
-                    const next = siteData.agenda.find(a => a.date >= today);
-                    if (next) {
-                        const d = new Date(next.date);
-                        const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-                        return `📅 Prochaine tenue :<br><br><strong>${next.title||'Tenue'}</strong><br>${dateStr}${next.agapesInfo ? `<br><br>🍽️ ${next.agapesInfo}` : next.agapes ? '<br>🍽️ Agapes fraternelles' : ''}<br><br>Programme complet dans l'onglet <strong>Ordre des Travaux</strong>.`;
-                    }
-                    return `Aucune tenue programmée pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
+                // Salutations
+                if (has('bonjour','bonsoir','salut','hello','ave','coucou','bonne journee','bonne soiree')) {
+                    const h = new Date().getHours();
+                    return `${h<12?'Bonjour':'Bonsoir'} ! 🐦<br>Je suis <strong>Le Petit Colibri</strong>, votre assistant maçonnique.<br>Posez-moi vos questions : tenues, symboles, membres, rituels…`;
                 }
 
-                if (/(agapes|repas|manger|diner|banquet|intendant|prix|tarif)/.test(lq)) {
+                // Remerciements
+                if (has('merci','parfait','super','bravo','excellent','nickel','genial','top','cool'))
+                    return `Avec plaisir, F∴ ou S∴ ! 🌟 À la Gloire du G∴A∴D∴L∴U∴ ✦`;
+
+                // Tenues / agenda / calendrier
+                if (has('tenue','travaux','seance','reunion','quand','prochain','prochaine','date','calendrier','programme','ordre du jour','odj','ouverture','fermeture loge')) {
+                    const today = new Date().toISOString().slice(0,10);
+                    const upcoming = siteData.agenda.filter(a => a.date >= today);
+                    if (upcoming.length === 0) return `Aucune tenue programmée pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
+                    const next = upcoming[0];
+                    const d = new Date(next.date);
+                    const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+                    let reply = `📅 <strong>Prochaine tenue</strong><br><br><strong>${next.title||'Tenue'}</strong><br>${dateStr}`;
+                    if (next.agapesInfo) reply += `<br><br>🍽️ ${next.agapesInfo}`;
+                    else if (next.agapes) reply += `<br>🍽️ Agapes fraternelles`;
+                    if (upcoming.length > 1) {
+                        reply += `<br><br>Tenues suivantes :<br>`;
+                        upcoming.slice(1,3).forEach(a => {
+                            const dd = new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+                            reply += `• ${a.title||'Tenue'} — ${dd}<br>`;
+                        });
+                    }
+                    reply += `<br>Programme complet : onglet <strong>Ordre des Travaux</strong>.`;
+                    return reply;
+                }
+
+                // Agapes / repas
+                if (has('agape','agapes','repas','manger','diner','banquet','intendant','prix','tarif','menu','cuisine','bouffe','table')) {
                     const today = new Date().toISOString().slice(0,10);
                     const next = siteData.agenda.find(a => a.date >= today && (a.agapes || a.agapesInfo));
                     if (next) {
-                        const d = new Date(next.date);
-                        const dateStr = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
-                        return `🍽️ <strong>Agapes — ${next.title||'Tenue'}</strong><br>${dateStr}<br><br>${next.agapesInfo || 'Informations disponibles dans l\'onglet Ordre des Travaux.'}`;
+                        const d = new Date(next.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+                        return `🍽️ <strong>Agapes — ${next.title||'Tenue'}</strong><br>${d}<br><br>${next.agapesInfo||'Détails dans l\'onglet <strong>Ordre des Travaux</strong>.'}`;
                     }
-                    return `Pas d'agapes prochaines annoncées pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
+                    return `Pas d'agapes annoncées prochainement. Les détails apparaissent dans l'onglet <strong>Ordre des Travaux</strong> dès qu'ils sont disponibles.`;
                 }
 
-                if (/(venerable|vm|officier|membres|tableau|freres|soeurs|combien)/.test(lq)) {
+                // Membres / officiers / tableau de loge
+                if (has('venerable','vm','officier','membre','frere','soeur','tableau','qui est','combien','surveillant','architecte','secretaire','tresorier','orateur','expert','hospitalier','maitre ceremonie','couvreur')) {
                     const officers = siteData.members.filter(m => m.role && m.role.trim());
-                    const vm = officers.find(m => /venerable|v\.m\.|vm/i.test(m.role));
-                    const surv1 = officers.find(m => /1er|premier.*surv/i.test(m.role));
-                    const surv2 = officers.find(m => /2.me|deuxi.*surv/i.test(m.role));
-                    const arch = officers.find(m => /architecte/i.test(m.role));
+                    const find = (re) => officers.find(m => re.test((m.role||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
+                    const vm = find(/venerable|v\.?m\.?/);
+                    const s1 = find(/1er|premier.*surv/);
+                    const s2 = find(/2.me|deuxi.*surv/);
+                    const arch = find(/architecte/);
+                    const sec = find(/secretaire/);
+                    const tresor = find(/tresorier/);
                     const total = siteData.members.length;
-                    let reply = `Officiers de la Loge :<br><br>`;
+                    let reply = `👥 <strong>Tableau de la Loge Comte Guifré n°51</strong><br><br>`;
                     if (vm) reply += `👑 <strong>VM</strong> : ${vm.name}<br>`;
-                    if (surv1) reply += `🔱 <strong>1er Surv.</strong> : ${surv1.name}<br>`;
-                    if (surv2) reply += `🔱 <strong>2ème Surv.</strong> : ${surv2.name}<br>`;
+                    if (s1) reply += `🔱 <strong>1er Surv.</strong> : ${s1.name}<br>`;
+                    if (s2) reply += `🔱 <strong>2ème Surv.</strong> : ${s2.name}<br>`;
                     if (arch) reply += `📐 <strong>Architecte</strong> : ${arch.name}<br>`;
-                    if (!vm && !surv1) reply += `Consultez le <strong>Tableau de Loge</strong> pour la liste complète.`;
-                    if (total > 0) reply += `<br>${total} membres — Rite Français, Orient de Perpignan.`;
+                    if (sec) reply += `📋 <strong>Secrétaire</strong> : ${sec.name}<br>`;
+                    if (tresor) reply += `💰 <strong>Trésorier</strong> : ${tresor.name}<br>`;
+                    if (!vm && !s1) reply += `Consultez l'onglet <strong>Tableau de Loge</strong> pour la liste complète.<br>`;
+                    if (total > 0) reply += `<br><em>${total} membres · Rite Français · Orient de Perpignan</em>`;
                     return reply;
                 }
-                if (/(hiram|legende|mort|perte|assassin|troisieme|3eme)/.test(lq)) {
+
+                // Chercher un membre par son nom
+                if (has('contact','coordonnee','telephone','email','adresse') || (siteData.members.length > 0 && siteData.members.some(m => lq.includes(m.name.toLowerCase().split(' ')[0].normalize('NFD').replace(/[̀-ͯ]/g,''))))) {
+                    return `Les coordonnées des membres sont disponibles dans l'onglet <strong>Tableau de Loge</strong> après connexion.<br>Pour toute urgence, contactez le VM directement.`;
+                }
+
+                // Cotisation / finance / trésorerie
+                if (has('cotisation','cotiser','finance','argent','tresorerie','budget','payer','paiement','euro','cout','combien ca coute'))
+                    return `Pour les informations financières (cotisations, budget), contactez le <strong>Trésorier</strong> de la loge.<br>Les détails sont dans l'onglet <strong>Trésorerie</strong> (accès réservé aux officiers).`;
+
+                // Rite Français
+                if (has('rite','rite francais','ritual','rituel','ceremonie','ceremonie','troisieme','3eme degre','2eme degre','1er degre','degre','degree'))
+                    return `La Loge Comte Guifré n°51 travaille au <strong>Rite Français</strong>.<br><br>3 degrés symboliques :<br>• 1er — Apprenti<br>• 2ème — Compagnon<br>• 3ème — Maître<br><br>Fondé en 1786, le Rite Français est le rite maçonnique le plus pratiqué en France au G∴O∴D∴F∴`;
+
+                // Loge / présentation / histoire
+                if (has('loge','comte guifre','n 51','orient','perpignan','grand orient','godf','obedience','qui sommes','presentation','histoire de la loge'))
+                    return `La <strong>Loge Comte Guifré n°51</strong> est à l'Orient de <strong>Perpignan</strong>, sous l'obédience du <strong>Grand Orient de France</strong> (G∴O∴D∴F∴).<br><br>Elle travaille au Rite Français et réunit des hommes et des femmes attachés aux valeurs de Liberté, Égalité, Fraternité.`;
+
+                // Planches / archives / bibliothèque
+                if (has('planche','expose','ecriture','texte','conference','archive','bibliotheque','document','lecture','cahier'))
+                    return `Une <strong>Planche</strong> est un exposé philosophique présenté en loge par un F∴ ou une S∴.<br><br>Accédez aux planches dans l'onglet <strong>Les Archives</strong> — le contenu varie selon votre grade.<br>Vous pouvez aussi soumettre votre propre planche via le bouton dédié.`;
+
+                // Légende d'Hiram (rang ≥ 2)
+                if (has('hiram','legende','mort','assassin','3eme degre','troisieme degre','acacia','cercueil','resurrection','perte du mot')) {
                     const b = blocked(2); if (b) return b;
-                    return `La <strong>Légende d'Hiram</strong> est au cœur du 3ème degré.<br><br>Hiram Abiif, Grand Architecte du Temple, refusa de livrer le Mot Sacré à trois compagnons félons. Il mourut plutôt que de trahir son serment.<br><br>Son corps fut retrouvé grâce à une branche d'acacia. <em>Symbole de la fidélité sur la mort — résurrection symbolique au 3ème degré.</em>`;
+                    return `La <strong>Légende d'Hiram</strong> est au cœur du 3ème degré.<br><br>Hiram Abiif, Grand Architecte du Temple de Salomon, refusa de livrer le Mot Sacré à trois compagnons félons. Il mourut plutôt que de trahir son serment.<br><br>Son corps fut retrouvé grâce à une branche d'<strong>acacia</strong> — symbole d'immortalité. La résurrection symbolique confère au Maître la pleine conscience de sa condition.<br><em>« Viril. Fide. Taciturn. »</em>`;
                 }
-                if (/(equerre|angle|droit|rectitude)/.test(lq))
-                    return `L'<strong>Équerre</strong> règle nos actions envers nos frères, sœurs et l'humanité.<br><br>Bijou du 2ème Surveillant au Rite Français.<br><em>« L'équerre règle nos actions, le compas circonscrit nos désirs. »</em>`;
-                if (/(compas|desir|limite)/.test(lq))
-                    return `Le <strong>Compas</strong> circonscrit nos désirs — bijou du Vénérable Maître. La liberté de chacun s'arrête là où commence celle d'autrui.`;
-                if (/(etoile|flamboyante|pentacle|geometrie)/.test(lq)) {
+
+                // Étoile Flamboyante (rang ≥ 1)
+                if (has('etoile','flamboyante','pentacle','pentagramme','geometrie','lettre g','2eme degre','deuxieme degre')) {
                     const b = blocked(1); if (b) return b;
-                    return `L'<strong>Étoile Flamboyante</strong> — symbole du 2ème degré. Pentagramme à 5 branches : <strong>Géométrie</strong>, reine des sciences. En son centre la lettre <strong>G</strong>.<br><em>« Que l'Étoile Flamboyante éclaire ton chemin. »</em>`;
+                    return `L'<strong>Étoile Flamboyante</strong> est le symbole central du 2ème degré.<br><br>Pentagramme à 5 branches — reine des sciences : <strong>Géométrie</strong>. En son centre, la lettre <strong>G</strong> (Gnose, Géométrie, G∴A∴D∴L∴U∴).<br><em>« Que l'Étoile Flamboyante éclaire ton chemin vers la Vérité. »</em>`;
                 }
-                if (/(silence|pierre|brute|cubique|apprenti|initiation)/.test(lq))
-                    return `L'<strong>Apprenti</strong> est la <em>Pierre Brute</em>, à dégrossir par :<br>• Le <strong>Silence</strong> — écouter avant de parler<br>• L'<strong>Observation</strong> — voir avant de comprendre<br>• La <strong>Persévérance</strong> — travailler sur soi chaque jour`;
-                if (/(mot|sacre|signe|attouchement|secret)/.test(lq))
-                    return `Les mots, signes et attouchements sont confidentiels — transmis oralement en loge.<br>Contactez <strong>F∴ Bruno RAMON</strong> (VM) ou <strong>F∴ Laurent MIENVILLE</strong> (Architecte).`;
-                if (/(chaine|union|cloture|fermeture)/.test(lq))
-                    return `La <strong>Chaîne d'Union</strong> clôture chaque tenue. Les membres se tiennent par la main en croisant les bras.<br>Trois battements : <em>Force, Force, Force !</em>`;
-                if (/(gadlu|grand architecte|univers)/.test(lq))
-                    return `Le <strong>G∴A∴D∴L∴U∴</strong> n'est pas un dieu dogmatique. Pour chaque Maçon : la raison, la nature, la divinité… selon ses convictions. Le G∴O∴D∴F∴ ne requiert aucune croyance particulière.`;
-                if (/(planche|expose|ecriture)/.test(lq))
-                    return `Une <strong>Planche</strong> est un exposé philosophique présenté en loge.<br>Accédez aux planches dans l'onglet <strong>Planches</strong> (selon votre grade).`;
-                if (/^(bonjour|bonsoir|salut|hello|ave)/.test(lq)) {
-                    const h = new Date().getHours();
-                    return `${h<12?'Bonjour':'Bonsoir'} ! 🐦<br>Comment puis-je vous aider ? Tenues, symboles, membres… posez votre question !`;
-                }
-                if (/(merci|parfait|super|bravo|excellent)/.test(lq))
-                    return `Avec plaisir ! 🌟 À la Gloire du G∴A∴D∴L∴U∴ ✦`;
-                return `Je ferai de mon mieux. Pour approfondir :<br>• Tenue d'instruction<br>• Onglet <strong>Archives</strong><br>• Soumettre une <strong>planche</strong> en loge<br><em>Essayez : « Prochaine tenue », « Équerre »${rank()>=2?", « Légende d'Hiram »":''}</em>`;
+
+                // Équerre
+                if (has('equerre','angle droit','rectitude','action','juste'))
+                    return `L'<strong>Équerre</strong> règle nos actions envers nos frères, sœurs et l'humanité.<br><br>Bijou du <strong>2ème Surveillant</strong> au Rite Français.<br><em>« L'équerre règle nos actions, le compas circonscrit nos désirs. »</em>`;
+
+                // Compas
+                if (has('compas','desir','limite','circonscrit'))
+                    return `Le <strong>Compas</strong> circonscrit nos désirs — bijou du <strong>Vénérable Maître</strong>.<br>Il rappelle que la liberté de chacun s'arrête là où commence celle d'autrui.`;
+
+                // Pierre brute / apprentissage / initiation
+                if (has('pierre','brute','cubique','apprenti','initiation','commence','debutant','nouveau','nouveau membre','reception'))
+                    return `L'<strong>Apprenti</strong> est symbolisé par la <em>Pierre Brute</em>, à dégrossir par :<br>• Le <strong>Silence</strong> — écouter avant de parler<br>• L'<strong>Observation</strong> — voir avant de comprendre<br>• La <strong>Persévérance</strong> — travailler sur soi chaque jour<br><br>L'initiation marque l'entrée dans le monde maçonnique, un voyage intérieur.`;
+
+                // GADLU
+                if (has('gadlu','grand architecte','univers','dieu','croyance','religion','laique','laicite'))
+                    return `Le <strong>G∴A∴D∴L∴U∴</strong> (Grand Architecte De L'Univers) n'est pas un dieu dogmatique.<br><br>Pour chaque Maçon : la raison, la nature, la divinité… selon ses propres convictions. Le G∴O∴D∴F∴ ne requiert aucune croyance particulière — il est résolument laïque.`;
+
+                // Chaîne d'union / clôture
+                if (has('chaine','union','cloture','fermeture','fin de tenue','battement','force'))
+                    return `La <strong>Chaîne d'Union</strong> clôture chaque tenue.<br><br>Les membres se tiennent par la main en croisant les bras, formant un cercle fraternellement uni.<br>Trois battements rythmés : <em>Force · Force · Force !</em>`;
+
+                // Mots, signes, attouchements (secrets rituels)
+                if (has('mot','sacre','signe','attouchement','secret','rituel','passe','parole','pass'))
+                    return `Les mots, signes et attouchements sont confidentiels — ils sont transmis oralement en loge, lors des cérémonies rituelles.<br>Pour en savoir plus, adressez-vous au <strong>VM</strong> ou à l'<strong>Architecte</strong>.`;
+
+                // Liens / ressources externes
+                if (has('lien','ressource','site','web','lecture','hiram.be','gadlu','livre','bibliographie'))
+                    return `Des liens utiles sont disponibles dans l'onglet <strong>Chaîne d'Union</strong> :<br>• Hiram.be — weblog maçonnique<br>• GADLU.INFO — portail maçonnique<br>• Musée de la Franc-Maçonnerie<br>Et d'autres ressources sélectionnées par la loge.`;
+
+                // Aide / que peux-tu faire
+                if (has('aide','help','que peux tu','tu peux','tu sais','capacite','fonction','quoi faire','comment'))
+                    return `Je peux vous renseigner sur :<br><br>📅 <strong>Agenda</strong> — prochaines tenues, agapes<br>👥 <strong>Membres</strong> — officiers, tableau de loge<br>🔷 <strong>Symboles</strong> — équerre, compas, pierre brute…<br>📚 <strong>Rituels</strong> — selon votre grade<br>🏛️ <strong>La Loge</strong> — histoire, rite, Orient<br><br>Posez votre question librement !`;
+
+                // Réponse par défaut enrichie
+                const suggestions = rank()>=2 ? `« Légende d'Hiram », « Prochaine tenue »` : rank()>=1 ? `« Étoile Flamboyante », « Prochaine tenue »` : `« Prochaine tenue », « Équerre », « Pierre brute »`;
+                return `Je n'ai pas trouvé de réponse précise à votre question.<br><br>Essayez par exemple : ${suggestions}<br><br>Ou consultez directement les onglets du site : <strong>Ordre des Travaux</strong>, <strong>Les Archives</strong>, <strong>Tableau de Loge</strong>.`;
             }
 
             function sendMsg(text) {
@@ -3226,13 +3318,26 @@
             return (
                 <div className="bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col" style={{height:'100%'}}>
                     {/* Header */}
-                    <div className="flex items-center gap-3 px-5 py-3 border-b bg-slate-900">
-                        <span style={{fontSize:24}}>🐦</span>
-                        <div className="flex-1">
-                            <div className="font-serif font-bold text-amber-400 text-sm">Le Petit Colibri</div>
-                            <div className="text-slate-400 text-xs">{gradeLabel[loginGradeKey]||'Assistant'} · En ligne</div>
+                    <div className="flex items-center gap-3 px-4 py-3 border-b" style={{background:'linear-gradient(135deg,#0f2417,#14532d,#1a3a20)'}}>
+                        <svg width="38" height="38" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+                            <ellipse cx="34" cy="36" rx="13" ry="9" fill="#16a34a"/>
+                            <ellipse cx="34" cy="38" rx="8" ry="6" fill="#4ade80"/>
+                            <circle cx="22" cy="28" r="9" fill="#15803d"/>
+                            <rect x="4" y="26.5" width="16" height="3" rx="1.5" fill="#a16207"/>
+                            <circle cx="20" cy="26" r="2.2" fill="white"/>
+                            <circle cx="20.5" cy="26" r="1.1" fill="#1e293b"/>
+                            <ellipse cx="38" cy="30" rx="11" ry="5" fill="#166534" transform="rotate(-20 38 30)"/>
+                            <ellipse cx="47" cy="40" rx="8" ry="3" fill="#15803d" transform="rotate(20 47 40)"/>
+                            <circle cx="18" cy="25" r="1.2" fill="rgba(255,255,255,0.6)"/>
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-serif font-bold text-amber-400 text-sm leading-tight">Le Petit Colibri</div>
+                            <div className="text-green-400 text-[10px] font-semibold flex items-center gap-1">
+                                <span style={{width:6,height:6,borderRadius:'50%',background:'#4ade80',display:'inline-block'}}></span>
+                                {gradeLabel[loginGradeKey]||'Assistant maçonnique'} · En ligne
+                            </div>
                         </div>
-                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">{gradeLabel[loginGradeKey]||'—'}</span>
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full border flex-shrink-0" style={{background:'rgba(251,191,36,0.15)',color:'#fbbf24',borderColor:'rgba(251,191,36,0.3)'}}>{gradeLabel[loginGradeKey]||'—'}</span>
                     </div>
 
                     {/* Messages */}
