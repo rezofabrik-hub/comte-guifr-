@@ -3196,7 +3196,7 @@
                 }
 
                 // Membres / officiers / tableau de loge
-                if (has('venerable','vm','officier','membre','frere','soeur','tableau','qui est','combien','surveillant','architecte','secretaire','tresorier','orateur','expert','hospitalier','maitre ceremonie','couvreur')) {
+                if (has('venerable','vm','officier','membre','frere','soeur','tableau','qui est','combien','surveillant','architecte','secretaire','tresorier','orateur','expert','hospitalier','maitre ceremonie','couvreur','intendant','aumone','chancelier','porte glaive','porte etendard','maitre des banquets','chapelain')) {
                     const officers = siteData.members.filter(m => m.role && m.role.trim());
                     const find = (re) => officers.find(m => re.test((m.role||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
                     const vm = find(/venerable|v\.?m\.?/);
@@ -3205,7 +3205,35 @@
                     const arch = find(/architecte/);
                     const sec = find(/secretaire/);
                     const tresor = find(/tresorier/);
+                    const orat = find(/orateur/);
+                    const expert = find(/expert/);
+                    const couvreur = find(/couvreur/);
+                    const hosp = find(/hospitalier/);
+                    const intend = find(/intendant/);
                     const total = siteData.members.length;
+
+                    // Si question sur un rôle précis, répondre directement
+                    if (has('couvreur')) {
+                        if (couvreur) return `🚪 Le <strong>Couvreur</strong> de la Loge est <strong>${couvreur.name}</strong>${couvreur.grade?' ('+couvreur.grade+')':''}.<br>Il veille à la sécurité des tenues en gardant la porte du Temple.`;
+                        return `Le rôle de <strong>Couvreur</strong> n'est pas renseigné pour le moment.<br>Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
+                    if (has('orateur')) {
+                        if (orat) return `⚖️ L'<strong>Orateur</strong> de la Loge est <strong>${orat.name}</strong>${orat.grade?' ('+orat.grade+')':''}.<br>Il veille au respect des lois et règlements maçonniques.`;
+                        return `Le rôle d'<strong>Orateur</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
+                    if (has('expert')) {
+                        if (expert) return `🔍 L'<strong>Expert</strong> de la Loge est <strong>${expert.name}</strong>${expert.grade?' ('+expert.grade+')':''}.<br>Il instruit les candidats et vérifie les mots et signes rituels.`;
+                        return `Le rôle d'<strong>Expert</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
+                    if (has('hospitalier')) {
+                        if (hosp) return `🤝 L'<strong>Hospitalier</strong> est <strong>${hosp.name}</strong>${hosp.grade?' ('+hosp.grade+')':''}.<br>Il s'occupe de l'entraide fraternelle au sein de la Loge.`;
+                        return `Le rôle d'<strong>Hospitalier</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
+                    if (has('intendant')) {
+                        if (intend) return `🍽️ L'<strong>Intendant</strong> est <strong>${intend.name}</strong>${intend.grade?' ('+intend.grade+')':''}.<br>Il organise les agapes fraternelles.`;
+                        return `Le rôle d'<strong>Intendant</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
+
                     let reply = `👥 <strong>Tableau de la Loge Comte Guifré n°51</strong><br><br>`;
                     if (vm) reply += `👑 <strong>VM</strong> : ${vm.name}<br>`;
                     if (s1) reply += `🔱 <strong>1er Surv.</strong> : ${s1.name}<br>`;
@@ -3213,7 +3241,14 @@
                     if (arch) reply += `📐 <strong>Architecte</strong> : ${arch.name}<br>`;
                     if (sec) reply += `📋 <strong>Secrétaire</strong> : ${sec.name}<br>`;
                     if (tresor) reply += `💰 <strong>Trésorier</strong> : ${tresor.name}<br>`;
-                    if (!vm && !s1) reply += `Consultez l'onglet <strong>Tableau de Loge</strong> pour la liste complète.<br>`;
+                    if (orat) reply += `⚖️ <strong>Orateur</strong> : ${orat.name}<br>`;
+                    if (expert) reply += `🔍 <strong>Expert</strong> : ${expert.name}<br>`;
+                    if (couvreur) reply += `🚪 <strong>Couvreur</strong> : ${couvreur.name}<br>`;
+                    if (hosp) reply += `🤝 <strong>Hospitalier</strong> : ${hosp.name}<br>`;
+                    if (!vm && officers.length === 0) reply += `Consultez l'onglet <strong>Tableau de Loge</strong> pour la liste complète.<br>`;
+                    if (officers.length > 0 && !vm && !s1 && !arch) {
+                        reply += officers.slice(0,6).map(m=>`• <strong>${m.role}</strong> : ${m.name}`).join('<br>') + '<br>';
+                    }
                     if (total > 0) reply += `<br><em>${total} membres · Rite Français · Orient de Perpignan</em>`;
                     return reply;
                 }
