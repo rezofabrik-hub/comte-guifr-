@@ -3043,13 +3043,13 @@
         // LE PETIT COLIBRI — Chatbot Maçonnique
         // ==========================================
 
-        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades }) {
+        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey }) {
             const [open, setOpen] = useState(false);
             return (
                 <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
                     {open && (
                         <div style={{width:350, height:520, marginBottom:14, borderRadius:24, overflow:'hidden', boxShadow:'0 12px 50px rgba(0,0,0,0.4)'}}>
-                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} onClose={()=>setOpen(false)} />
+                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} onClose={()=>setOpen(false)} />
                         </div>
                     )}
                     <button onClick={()=>setOpen(o=>!o)}
@@ -3085,7 +3085,7 @@
             );
         }
 
-        function ColibriView({ loginGradeKey, memberName, unlockedGrades, onClose }) {
+        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, onClose }) {
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [typing, setTyping] = useState(false);
@@ -3298,13 +3298,62 @@
                 return `Je n'ai pas trouvé de réponse précise à votre question.<br><br>Essayez par exemple : ${suggestions}<br><br>Ou consultez directement les onglets du site : <strong>Ordre des Travaux</strong>, <strong>Les Archives</strong>, <strong>Tableau de Loge</strong>.`;
             }
 
-            function sendMsg(text) {
+            async function sendMsg(text) {
                 if (!text.trim()) return;
                 setSugsHidden(true);
                 const t = nowT();
                 setMessages(m => [...m, { role:'user', html: text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'), t }]);
                 setInput('');
                 setTyping(true);
+
+                if (claudeApiKey) {
+                    try {
+                        const today = new Date().toISOString().slice(0,10);
+                        const upcoming = siteData.agenda.filter(a => a.date >= today).slice(0,5);
+                        const officers = siteData.members.filter(m => m.role && m.role.trim()).slice(0,10);
+                        const gradeLabel2 = { vm:'VM / Officier', architecte:'Architecte', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' };
+                        const rankVal = rank();
+                        const rankName = rankVal >= 3 ? 'VM/Officier' : rankVal === 2 ? 'Maître' : rankVal === 1 ? 'Compagnon' : 'Apprenti';
+
+                        const systemPrompt = `Tu es Le Petit Colibri, assistant maçonnique de la Loge Comte Guifré n°51, Orient de Perpignan, Rite Français, obédience Grand Orient de France (G∴O∴D∴F∴).
+
+L'utilisateur connecté est de grade : ${gradeLabel2[loginGradeKey]||'Apprenti'} (rang ${rankVal}/3).
+
+RÈGLES STRICTES DE CONFIDENTIALITÉ PAR GRADE :
+- Rang 0 (Apprenti) : peut accéder aux informations générales, tenues, symboles de base (équerre, compas, pierre brute, GADLU, chaîne d'union)
+- Rang 1 (Compagnon) : + Étoile Flamboyante, voyages symboliques du 2ème degré
+- Rang 2 (Maître) : + Légende d'Hiram, mot sacré, résurrection symbolique du 3ème degré
+- Rang 3 (VM/Officier) : accès complet
+
+Si une question concerne un contenu au-dessus du rang de l'utilisateur, réponds : "🔒 Cette information est réservée aux [grade requis] et au-dessus."
+
+DONNÉES RÉELLES DE LA LOGE (utilise-les pour répondre) :
+Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `${a.title||'Tenue'} le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' (agapes)' : ''}${a.agapesInfo ? ' — ' + a.agapesInfo : ''}`).join(' | ') : 'Aucune tenue programmée'}
+Officiers : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}`).join(', ') : 'Non disponible'}
+Nombre de membres : ${siteData.members.length || 'Non disponible'}
+
+INSTRUCTIONS :
+- Réponds en français, de façon concise et fraternelle (tu/vous selon le ton de l'utilisateur)
+- Utilise le vocabulaire maçonnique approprié (F∴, S∴, G∴A∴D∴L∴U∴, etc.)
+- Si tu n'as pas l'information, oriente vers l'onglet approprié du site
+- Réponds en HTML simple (gras avec <strong>, sauts de ligne avec <br>, pas de balises complexes)
+- Maximum 3-4 phrases, sois précis`;
+
+                        const res = await fetch('https://api.anthropic.com/v1/messages', {
+                            method: 'POST',
+                            headers: { 'x-api-key': claudeApiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-calls': 'true' },
+                            body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: systemPrompt, messages: [{ role: 'user', content: text }] })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            const reply = data.content?.[0]?.text || getReply(text);
+                            setTyping(false);
+                            setMessages(m => [...m, { role:'bot', html: reply, t: nowT() }]);
+                            return;
+                        }
+                    } catch(e) { /* fallback sur getReply */ }
+                }
+
                 setTimeout(() => {
                     setTyping(false);
                     setMessages(m => [...m, { role:'bot', html: getReply(text), t: nowT() }]);
@@ -3756,7 +3805,7 @@
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
 
                     {/* ── Le Petit Colibri — Widget flottant ── */}
-                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} />
+                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} />
                 </div>
             );
         }
