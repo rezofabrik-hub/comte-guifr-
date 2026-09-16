@@ -1,44 +1,131 @@
-// Cloudflare Worker — sert les assets statiques + proxy /api/claude
+// Cloudflare Worker — sert les assets statiques + proxy /api/claude + auth membres
+const FB_API_KEY = 'AIzaSyA4IGmEv_bPt4Q5dnxjT2FIySP3JvAhQ20';
+const FB_PROJECT = 'site-cg51';
+const LOGE_APP_ID = 'site-cg51';
+const JSON_HEADERS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+
+async function fbSignIn(email, password) {
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, returnSecureToken: true }),
+  });
+  return r.json();
+}
+
+async function fsGet(path, idToken) {
+  const r = await fetch(`https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${path}`, {
+    headers: { 'Authorization': `Bearer ${idToken}` },
+  });
+  return r.ok ? r.json() : null;
+}
+
+async function fsUpdate(path, fields, idToken) {
+  const fieldPaths = Object.keys(fields).join(',');
+  const body = { fields: {} };
+  for (const [k, v] of Object.entries(fields)) body.fields[k] = { stringValue: v };
+  const r = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${path}?updateMask.fieldPaths=${fieldPaths}`,
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify(body) }
+  );
+  return r.ok;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    // Proxy vers l'API Anthropic — la clé vient du secret Cloudflare CLAUDE_API_KEY
-    if (url.pathname === '/api/claude' && request.method === 'POST') {
-      const apiKey = env.CLAUDE_API_KEY;
-      if (!apiKey) {
-        return new Response(JSON.stringify({ error: { message: 'Clé API non configurée sur le serveur' } }), {
-          status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-      try {
-        const body = await request.json();
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-        const data = await resp.text();
-        return new Response(data, {
-          status: resp.status,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: { message: e.message } }), {
-          status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-    }
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' }
       });
+    }
+
+    // ── Proxy Claude API ──────────────────────────────────────────────────────
+    if (url.pathname === '/api/claude' && request.method === 'POST') {
+      const apiKey = env.CLAUDE_API_KEY;
+      if (!apiKey) return new Response(JSON.stringify({ error: { message: 'Clé API non configurée' } }), { status: 500, headers: JSON_HEADERS });
+      try {
+        const body = await request.json();
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        return new Response(await resp.text(), { status: resp.status, headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: { message: e.message } }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // ── Vérification mot de passe membre + retour mot de passe de grade ───────
+    if (url.pathname === '/api/member-login' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) {
+        return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
+      }
+      try {
+        const { name, gradeKey, memberPassword } = await request.json();
+
+        // Signer en tant que compte worker
+        const auth = await fbSignIn(workerEmail, workerPwd);
+        if (!auth.idToken) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth' }), { headers: JSON_HEADERS });
+
+        const idToken = auth.idToken;
+
+        // Lire les membres
+        const membersData = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
+        const docs = membersData?.documents || [];
+        const clean = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+        const found = docs.find(doc => {
+          const docName = doc.fields?.name?.stringValue || '';
+          return clean(docName).includes(clean(name)) || clean(name).includes(clean(docName));
+        });
+
+        if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found' }), { headers: JSON_HEADERS });
+
+        const fields = found.fields || {};
+        const storedPwd = fields.accountPwd?.stringValue || '';
+        if (!storedPwd || storedPwd !== memberPassword) {
+          return new Response(JSON.stringify({ ok: false, reason: 'wrong_pwd' }), { headers: JSON_HEADERS });
+        }
+
+        // Mot de passe OK — récupérer le mot de passe de grade
+        const pwdsDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/settings/gradesPasswords`, idToken);
+        const gradePwd = pwdsDoc?.fields?.[gradeKey]?.stringValue || null;
+
+        return new Response(JSON.stringify({
+          ok: true,
+          gradePwd,
+          memberName: fields.name?.stringValue || name,
+          memberRole: fields.role?.stringValue || '',
+          memberGenre: fields.genre?.stringValue || 'frere',
+        }), { headers: JSON_HEADERS });
+
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // ── Changement mot de passe membre (par l'Architecte) ────────────────────
+    if (url.pathname === '/api/member-pwd' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) {
+        return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
+      }
+      try {
+        const { memberId, newPwd, architecteToken } = await request.json();
+        if (!architecteToken) return new Response(JSON.stringify({ ok: false, reason: 'no_auth' }), { status: 401, headers: JSON_HEADERS });
+
+        // Utiliser le token de l'Architecte pour la mise à jour (il a les droits Firestore)
+        const ok = await fsUpdate(`artifacts/${LOGE_APP_ID}/public/data/members/${memberId}`, { accountPwd: newPwd }, architecteToken);
+        return new Response(JSON.stringify({ ok }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
     }
 
     // Tout le reste → assets statiques
