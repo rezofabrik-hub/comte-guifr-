@@ -3043,13 +3043,13 @@
         // LE PETIT COLIBRI — Chatbot Maçonnique
         // ==========================================
 
-        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey }) {
+        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity }) {
             const [open, setOpen] = useState(false);
             return (
                 <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
                     {open && (
                         <div style={{width:350, height:520, marginBottom:14, borderRadius:24, overflow:'hidden', boxShadow:'0 12px 50px rgba(0,0,0,0.4)'}}>
-                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} onClose={()=>setOpen(false)} />
+                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} onClose={()=>setOpen(false)} />
                         </div>
                     )}
                     <button onClick={()=>setOpen(o=>!o)}
@@ -3085,7 +3085,7 @@
             );
         }
 
-        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, onClose }) {
+        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, onClose }) {
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [typing, setTyping] = useState(false);
@@ -3101,8 +3101,9 @@
                 const base = `https://firestore.googleapis.com/v1/projects/${appId}/databases/(default)/documents/artifacts/${appId}/public/data`;
                 Promise.all([
                     fetch(`${base}/agenda?pageSize=50`).then(r=>r.json()).catch(()=>({})),
-                    fetch(`${base}/members?pageSize=200`).then(r=>r.json()).catch(()=>({}))
-                ]).then(([agendaRes, membersRes]) => {
+                    fetch(`${base}/members?pageSize=200`).then(r=>r.json()).catch(()=>({})),
+                    fetch(`${base}/planches?pageSize=50`).then(r=>r.json()).catch(()=>({})),
+                ]).then(([agendaRes, membersRes, planchesRes]) => {
                     const agenda = (agendaRes.documents||[]).map(d => {
                         const f = d.fields||{};
                         return {
@@ -3117,7 +3118,11 @@
                         const f = d.fields||{};
                         return { name: f.name?.stringValue||'', role: f.role?.stringValue||'', grade: f.grade?.stringValue||'' };
                     });
-                    setSiteData({ agenda, members });
+                    const planches = (planchesRes.documents||[]).map(d => {
+                        const f = d.fields||{};
+                        return { title: f.title?.stringValue||'', author: f.author?.stringValue||f.submittedBy?.stringValue||'', grade: f.grade?.stringValue||'' };
+                    });
+                    setSiteData({ agenda, members, planches });
                 });
             }, []);
 
@@ -3315,29 +3320,41 @@
                         const rankVal = rank();
                         const rankName = rankVal >= 3 ? 'VM/Officier' : rankVal === 2 ? 'Maître' : rankVal === 1 ? 'Compagnon' : 'Apprenti';
 
-                        const systemPrompt = `Tu es Le Petit Colibri, assistant maçonnique de la Loge Comte Guifré n°51, Orient de Perpignan, Rite Français, obédience Grand Orient de France (G∴O∴D∴F∴).
+                        const logeName = logeIdentity?.name || 'Comte Guifré n°51';
+                        const logeOrient = logeIdentity?.orient || 'Perpignan';
+                        const systemPrompt = `Tu es Le Petit Colibri, assistant maçonnique de la Loge ${logeName}, Orient de ${logeOrient}, Rite Français, obédience Grand Orient de France (G∴O∴D∴F∴).
 
-L'utilisateur connecté est de grade : ${gradeLabel2[loginGradeKey]||'Apprenti'} (rang ${rankVal}/3).
+L'utilisateur connecté est : ${memberName||'Frère/Sœur'}, grade ${gradeLabel2[loginGradeKey]||'Apprenti'} (rang ${rankVal}/3).
 
 RÈGLES STRICTES DE CONFIDENTIALITÉ PAR GRADE :
-- Rang 0 (Apprenti) : peut accéder aux informations générales, tenues, symboles de base (équerre, compas, pierre brute, GADLU, chaîne d'union)
+- Rang 0 (Apprenti) : informations générales, tenues, symboles de base (équerre, compas, pierre brute, GADLU, chaîne d'union)
 - Rang 1 (Compagnon) : + Étoile Flamboyante, voyages symboliques du 2ème degré
-- Rang 2 (Maître) : + Légende d'Hiram, mot sacré, résurrection symbolique du 3ème degré
+- Rang 2 (Maître) : + Légende d'Hiram, mot sacré, résurrection symbolique
 - Rang 3 (VM/Officier) : accès complet
+Si question hors rang : réponds exactement "🔒 Cette information est réservée aux [grade requis] et au-dessus."
 
-Si une question concerne un contenu au-dessus du rang de l'utilisateur, réponds : "🔒 Cette information est réservée aux [grade requis] et au-dessus."
+CONTENU RÉEL DU SITE (base-toi PRIORITAIREMENT sur ces données pour répondre) :
 
-DONNÉES RÉELLES DE LA LOGE (utilise-les pour répondre) :
-Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `${a.title||'Tenue'} le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' (agapes)' : ''}${a.agapesInfo ? ' — ' + a.agapesInfo : ''}`).join(' | ') : 'Aucune tenue programmée'}
-Officiers : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}`).join(', ') : 'Non disponible'}
-Nombre de membres : ${siteData.members.length || 'Non disponible'}
+Message de bienvenue de la loge : ${welcomeText || 'Non défini'}
+
+Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' avec agapes' : ''}${a.agapesInfo ? ' ('+a.agapesInfo+')' : ''}`).join(' | ') : 'Aucune tenue programmée'}
+
+Officiers et membres de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}${m.grade?' ('+m.grade+')':''}`).join(' | ') : 'Non disponible'}
+Total membres : ${siteData.members.length || 'Non disponible'}
+
+Planches disponibles (${rankName}) : ${(siteData.planches||[]).filter(p => {
+    const pg = (p.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    if (pg.includes('maitre')) return rankVal >= 2;
+    if (pg.includes('compagnon')) return rankVal >= 1;
+    return true;
+}).slice(0,8).map(p => `"${p.title}" (${p.author||'anonyme'})`).join(', ') || 'Aucune'}
 
 INSTRUCTIONS :
-- Réponds en français, de façon concise et fraternelle (tu/vous selon le ton de l'utilisateur)
+- Réponds en français, de façon concise et fraternelle
 - Utilise le vocabulaire maçonnique approprié (F∴, S∴, G∴A∴D∴L∴U∴, etc.)
-- Si tu n'as pas l'information, oriente vers l'onglet approprié du site
-- Réponds en HTML simple (gras avec <strong>, sauts de ligne avec <br>, pas de balises complexes)
-- Maximum 3-4 phrases, sois précis`;
+- Si l'info n'est pas dans les données ci-dessus, oriente vers l'onglet du site approprié
+- Format : HTML simple uniquement (<strong>, <br>, <em>) — pas de markdown, pas de listes ul/li
+- Sois précis et court (3-5 phrases max)`;
 
                         const res = await fetch('https://api.anthropic.com/v1/messages', {
                             method: 'POST',
@@ -3805,7 +3822,7 @@ INSTRUCTIONS :
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
 
                     {/* ── Le Petit Colibri — Widget flottant ── */}
-                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} />
+                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} />
                 </div>
             );
         }
