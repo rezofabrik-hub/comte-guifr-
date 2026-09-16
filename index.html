@@ -2950,25 +2950,16 @@
                         const d = await r.json();
                         if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
                     } else {
-                        // Can't sign in — delete and recreate
-                        // Try deletion with all candidates first
-                        for (const pwd of pwdCandidates) {
-                            const sign = await fbSignIn(email, pwd);
-                            if (sign.idToken) {
-                                await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FB_KEY}`,{
-                                    method:'POST', headers:{'Content-Type':'application/json'},
-                                    body: JSON.stringify({ idToken: sign.idToken })
-                                });
-                                break;
-                            }
-                        }
-                        // Recreate with new password
+                        // Can't authenticate — create fresh account with new email to bypass old one
+                        const newEmail = genEmail(m).replace('@', `+${Date.now()}@`);
                         const r2 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_KEY}`,{
                             method:'POST', headers:{'Content-Type':'application/json'},
-                            body: JSON.stringify({ email, password: newPwd, returnSecureToken: true })
+                            body: JSON.stringify({ email: newEmail, password: newPwd, returnSecureToken: true })
                         });
                         const d2 = await r2.json();
                         if (d2.error) { setStatuts(s=>({...s,[id]:'err:'+d2.error.message})); return; }
+                        // Update stored email too
+                        await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountEmail: newEmail });
                     }
                     await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountPwd: newPwd });
                     setEditPwd(e=>({...e,[id]:''}));
