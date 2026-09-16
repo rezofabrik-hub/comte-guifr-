@@ -20,6 +20,20 @@ async function fsGet(path, idToken) {
   return r.ok ? r.json() : null;
 }
 
+async function fsGetAllDocs(path, idToken) {
+  let docs = [];
+  let pageToken = null;
+  do {
+    const url = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${path}?pageSize=300${pageToken ? '&pageToken=' + pageToken : ''}`;
+    const r = await fetch(url, { headers: { 'Authorization': `Bearer ${idToken}` } });
+    if (!r.ok) break;
+    const data = await r.json();
+    if (data.documents) docs = docs.concat(data.documents);
+    pageToken = data.nextPageToken || null;
+  } while (pageToken);
+  return docs;
+}
+
 async function fsUpdate(path, fields, idToken) {
   const fieldPaths = Object.keys(fields).join(',');
   const body = { fields: {} };
@@ -76,9 +90,8 @@ export default {
         const idToken = auth.idToken;
 
         // Lire les membres
-        const membersData = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
-        const docs = membersData?.documents || [];
-        if (docs.length === 0) return new Response(JSON.stringify({ ok: false, reason: 'no_members', debug: !!membersData }), { headers: JSON_HEADERS });
+        const docs = await fsGetAllDocs(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
+        if (docs.length === 0) return new Response(JSON.stringify({ ok: false, reason: 'no_members' }), { headers: JSON_HEADERS });
         const words = n => (n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z]+/).filter(w => w.length > 0);
         const found = docs.find(doc => {
           const docName = doc.fields?.name?.stringValue || '';
@@ -88,7 +101,7 @@ export default {
                  dw.every(w => nw.some(n => n.includes(w) || w.includes(n)));
         });
 
-        if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found', debug_names: docs.slice(0,5).map(d=>d.fields?.name?.stringValue||'?'), debug_input: name }), { headers: JSON_HEADERS });
+        if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found', debug_names: docs.map(d=>d.fields?.name?.stringValue||'?'), debug_input: name }), { headers: JSON_HEADERS });
 
         const fields = found.fields || {};
         const storedPwd = fields.accountPwd?.stringValue || '';
