@@ -2933,16 +2933,43 @@
                 if (!newPwd || newPwd.length < 6) return alert('Mot de passe trop court (min 6 caractères).');
                 setStatuts(s=>({...s,[id]:'pwd...'}));
                 const email = m.accountEmail || genEmail(m);
-                const currentPwd = m.accountPwd || genPwd(m.name);
+                // Try all known passwords to sign in
+                const pwdCandidates = [m.accountPwd, genPwd(m.name), m.accountPwd+'!', 'Loge2024!'].filter(Boolean);
+                let idToken = null;
+                for (const pwd of pwdCandidates) {
+                    const sign = await fbSignIn(email, pwd);
+                    if (sign.idToken) { idToken = sign.idToken; break; }
+                }
                 try {
-                    const sign = await fbSignIn(email, currentPwd);
-                    if (!sign.idToken) { setStatuts(s=>({...s,[id]:'err:connexion'})); return; }
-                    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_KEY}`,{
-                        method:'POST', headers:{'Content-Type':'application/json'},
-                        body: JSON.stringify({ idToken: sign.idToken, password: newPwd, returnSecureToken: true })
-                    });
-                    const d = await r.json();
-                    if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
+                    if (idToken) {
+                        // Update existing account
+                        const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FB_KEY}`,{
+                            method:'POST', headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify({ idToken, password: newPwd, returnSecureToken: true })
+                        });
+                        const d = await r.json();
+                        if (d.error) { setStatuts(s=>({...s,[id]:'err:'+d.error.message})); return; }
+                    } else {
+                        // Can't sign in — delete and recreate
+                        // Try deletion with all candidates first
+                        for (const pwd of pwdCandidates) {
+                            const sign = await fbSignIn(email, pwd);
+                            if (sign.idToken) {
+                                await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FB_KEY}`,{
+                                    method:'POST', headers:{'Content-Type':'application/json'},
+                                    body: JSON.stringify({ idToken: sign.idToken })
+                                });
+                                break;
+                            }
+                        }
+                        // Recreate with new password
+                        const r2 = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FB_KEY}`,{
+                            method:'POST', headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify({ email, password: newPwd, returnSecureToken: true })
+                        });
+                        const d2 = await r2.json();
+                        if (d2.error) { setStatuts(s=>({...s,[id]:'err:'+d2.error.message})); return; }
+                    }
                     await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id), { accountPwd: newPwd });
                     setEditPwd(e=>({...e,[id]:''}));
                     setStatuts(s=>({...s,[id]:'pwd_ok'}));
