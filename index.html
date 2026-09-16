@@ -3043,13 +3043,13 @@
         // LE PETIT COLIBRI — Chatbot Maçonnique
         // ==========================================
 
-        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches }) {
+        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches, books, liens }) {
             const [open, setOpen] = useState(false);
             return (
                 <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
                     {open && (
                         <div style={{width:350, height:520, marginBottom:14, borderRadius:24, overflow:'hidden', boxShadow:'0 12px 50px rgba(0,0,0,0.4)'}}>
-                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} onClose={()=>setOpen(false)} />
+                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} books={books} liens={liens} onClose={()=>setOpen(false)} />
                         </div>
                     )}
                     <button onClick={()=>setOpen(o=>!o)}
@@ -3085,7 +3085,7 @@
             );
         }
 
-        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches, onClose }) {
+        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches, books, liens, onClose }) {
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [typing, setTyping] = useState(false);
@@ -3107,6 +3107,8 @@
                 })),
                 members: members||[],
                 planches: planches||[],
+                books: books||[],
+                liens: liens||[],
             };
 
             const rank = () => {
@@ -3331,6 +3333,15 @@ Planches disponibles (${rankName}) : ${(siteData.planches||[]).filter(p => {
     if (pg.includes('compagnon')) return rankVal >= 1;
     return true;
 }).slice(0,8).map(p => `"${p.title}" (${p.author||'anonyme'})`).join(', ') || 'Aucune'}
+
+Bibliothèque / Archives : ${(siteData.books||[]).filter(b => {
+    const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    if (bg.includes('maitre')) return rankVal >= 2;
+    if (bg.includes('compagnon')) return rankVal >= 1;
+    return true;
+}).slice(0,10).map(b => `"${b.title}" (${b.categorie||'document'}${b.author?', '+b.author:''})`).join(', ') || 'Aucun document'}
+
+Liens Chaîne d'Union : ${(siteData.liens||[]).slice(0,10).map(l => `${l.t||l.title||'Lien'} — ${l.d||l.description||''}`).join(' | ') || 'Aucun lien disponible'}
 
 INSTRUCTIONS :
 - Réponds en français, de façon concise et fraternelle
@@ -3805,7 +3816,7 @@ INSTRUCTIONS :
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
 
                     {/* ── Le Petit Colibri — Widget flottant ── */}
-                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} />
+                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} books={books} liens={liens} />
                 </div>
             );
         }
