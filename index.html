@@ -3692,54 +3692,24 @@ EXEMPLE DE FORMAT CORRECT :
                     : gradeKey === 'tresorier' || gradeKey === 'vm' || gradeKey === 'secretaire' ? { apprenti:true, compagnon:true, maitre:true }
                     : { apprenti:true, compagnon:false, maitre:false };
 
-                // Vérifier d'abord le mot de passe individuel via Firestore REST (sauf vm)
+                // Essayer d'abord le compte individuel (sauf vm)
                 if (gradeKey !== 'vm') {
+                    const indivEmail = `${gradeKey}.${normalizeName(n)}@${LOGE_EMAIL_DOMAIN}`;
                     try {
-                        const BASE = `https://firestore.googleapis.com/v1/projects/site-cg51/databases/(default)/documents/artifacts/${LOGE_APP_ID}/public/data`;
-                        const [membersResp, pwdsResp] = await Promise.all([
-                            fetch(`${BASE}/members?pageSize=200`),
-                            fetch(`${BASE}/settings/gradesPasswords`),
-                        ]);
-                        console.log('[Login] Firestore members status:', membersResp.status, 'pwds status:', pwdsResp.status);
-                        const membersSnap = membersResp.ok ? await membersResp.json() : null;
-                        const pwdsSnap = pwdsResp.ok ? await pwdsResp.json() : null;
-                        console.log('[Login] membres trouvés:', membersSnap?.documents?.length, 'gradePwds:', !!pwdsSnap);
-                        const docs = membersSnap?.documents || [];
-                        const clean = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
-                        const found = docs.find(doc => {
-                            const docName = doc.fields?.name?.stringValue || '';
-                            return clean(docName).includes(clean(n)) || clean(n).includes(clean(docName));
-                        });
-                        console.log('[Login] membre trouvé:', found?.fields?.name?.stringValue, 'accountPwd défini:', !!found?.fields?.accountPwd?.stringValue);
-                        if (found) {
-                            const fields = found.fields || {};
-                            const storedPwd = fields.accountPwd?.stringValue || '';
-                            if (storedPwd && storedPwd === p.trim()) {
-                                // Mot de passe Firestore OK → connexion compte grade partagé
-                                const gradePwd = pwdsSnap?.fields?.[gradeKey]?.stringValue;
-                                console.log('[Login] mdp Firestore OK, gradePwd disponible:', !!gradePwd);
-                                if (gradePwd) {
-                                    await api.signInWithEmailAndPassword(api.auth, GRADE_ACCOUNTS[gradeKey], gradePwd);
-                                } else {
-                                    await api.signInWithEmailAndPassword(api.auth, GRADE_ACCOUNTS[gradeKey], p.trim()).catch(()=>{});
-                                }
-                                setUnlockedGrades(grades);
-                                setIsArchitect(false);
-                                setIsTresorier(gradeKey === 'tresorier');
-                                setLoginGradeKey(gradeKey);
-                                setMemberName((fields.name?.stringValue || n).trim());
-                                setMemberRole(gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : fields.role?.stringValue || '');
-                                setMemberGenre(fields.genre?.stringValue || genre || 'frere');
-                                setPendingNameMatch((fields.name?.stringValue || n).trim());
-                                if (gradeKey === 'secretaire') setActiveView('agenda');
-                                sessionStorage.setItem('lgMemberName', (fields.name?.stringValue || n).trim());
-                                setIsLogged(true); setFbError(null);
-                                return;
-                            } else {
-                                console.log('[Login] mdp Firestore NON correspondant. Stocké:', storedPwd ? '(défini)' : '(vide)', 'Saisi:', p.trim() ? '(défini)' : '(vide)');
-                            }
-                        }
-                    } catch(e) { console.warn('[Login] Firestore REST erreur:', e?.message); }
+                        await api.signInWithEmailAndPassword(api.auth, indivEmail, p.trim());
+                        setUnlockedGrades(grades);
+                        setIsArchitect(false);
+                        setIsTresorier(gradeKey === 'tresorier');
+                        setLoginGradeKey(gradeKey);
+                        setMemberName(n.trim());
+                        setMemberRole(gradeKey === 'tresorier' ? 'Trésorier' : gradeKey === 'secretaire' ? 'Secrétaire' : '');
+                        setMemberGenre(genre || 'frere');
+                        setPendingNameMatch(n.trim());
+                        if (gradeKey === 'secretaire') setActiveView('agenda');
+                        sessionStorage.setItem('lgMemberName', n.trim());
+                        setIsLogged(true); setFbError(null);
+                        return;
+                    } catch(e) { /* pas de compte individuel, essai compte grade */ }
                 }
 
                 try {
