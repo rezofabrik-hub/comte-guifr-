@@ -35,6 +35,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes dot { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
         .prose pre { background-color: #f1f5f9; padding: 1rem; border-radius: 0.5rem; }
     </style>
 </head>
@@ -3039,6 +3040,199 @@
         }
 
         // ==========================================
+        // LE PETIT COLIBRI — Chatbot Maçonnique
+        // ==========================================
+
+        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades }) {
+            const [open, setOpen] = useState(false);
+            return (
+                <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
+                    {open && (
+                        <div style={{width:340, height:500, marginBottom:12, borderRadius:20, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.35)'}}>
+                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} onClose={()=>setOpen(false)} />
+                        </div>
+                    )}
+                    <button onClick={()=>setOpen(o=>!o)}
+                        style={{width:56,height:56,borderRadius:'50%',background:open?'#374151':'#d97706',border:'none',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,0.3)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}
+                        title="Le Petit Colibri — Assistant maçonnique">
+                        {open ? <i className="fa-solid fa-xmark" style={{color:'white',fontSize:20}}></i> : <span style={{fontSize:26}}>🐦</span>}
+                    </button>
+                </div>
+            );
+        }
+
+        function ColibriView({ loginGradeKey, memberName, unlockedGrades, onClose }) {
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [typing, setTyping] = useState(false);
+            const [sugsHidden, setSugsHidden] = useState(false);
+            const endRef = useRef(null);
+
+            const rank = () => {
+                const m = { vm:3, architecte:3, tresorier:3, secretaire:3, maitre:2, compagnon:1, apprenti:0 };
+                return m[loginGradeKey] ?? (unlockedGrades?.maitre ? 2 : unlockedGrades?.compagnon ? 1 : 0);
+            };
+
+            const gradeLabel = { vm:'VM / Officier', architecte:'Architecte', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' };
+
+            const sugs = {
+                apprenti: ['📅 Prochaine tenue ?', "⚖️ L'équerre", '🔵 La pierre brute', "🔗 Chaîne d'union"],
+                compagnon: ['📅 Prochaine tenue ?', '🌟 Étoile Flamboyante', '🍽️ Agapes', "⚖️ L'équerre"],
+                maitre: ["🔺 Légende d'Hiram", '📅 Prochaine tenue ?', '🍽️ Agapes', '📚 Les planches'],
+                vm: ['📅 Prochaine tenue ?', "🔺 Légende d'Hiram", '👥 Officiers', '🍽️ Agapes'],
+            };
+
+            const welcomes = {
+                apprenti: `Bonjour, F∴ ou S∴ Apprenti·e !<br>Je suis <strong>Le Petit Colibri</strong> 🐦<br>Posez-moi vos questions sur les <strong>symboles fondamentaux</strong>, les tenues et la vie de la loge.`,
+                compagnon: `Bienvenue, F∴ ou S∴ Compagnon·ne !<br>Je suis <strong>Le Petit Colibri</strong> 🐦<br>Posez vos questions sur les <strong>tenues, l'Étoile Flamboyante, les voyages</strong>…`,
+                maitre: `À la Gloire du G∴A∴D∴L∴U∴ !<br>Je suis <strong>Le Petit Colibri</strong> 🐦<br>Toute la connaissance vous est ouverte — <strong>légende d'Hiram, planches, rituels</strong>.`,
+                vm: `Bienvenu·e, F∴ ou S∴ Officier !<br>Je suis <strong>Le Petit Colibri</strong> 🐦<br>Accès complet — toutes les informations de la loge sont disponibles.`,
+            };
+
+            useEffect(() => {
+                const gk = ['vm','architecte','tresorier','secretaire'].includes(loginGradeKey) ? 'vm' : loginGradeKey || 'apprenti';
+                const t = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+                setMessages([{ role:'bot', html: welcomes[gk] || welcomes.apprenti, t }]);
+            }, [loginGradeKey]);
+
+            useEffect(() => { endRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, typing]);
+
+            function nowT() { return new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }); }
+
+            function blocked(minRank) {
+                if (rank() >= minRank) return null;
+                const labels = ['Apprenti','Compagnon','Maître','Officier'];
+                return `🔒 Cette information est réservée aux <strong>${labels[minRank]}s</strong> et au-dessus. Contactez le Vénérable pour y accéder.`;
+            }
+
+            function getReply(q) {
+                const lq = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'');
+                if (/(prochaine|tenue|travaux|quand|date|calendrier)/.test(lq))
+                    return `La prochaine tenue de la <strong>Loge Comte Guifré n°51</strong> :<br><br>📅 <strong>3 octobre 2025</strong><br>Ouverture solennelle de l'année maçonnique 5025 — avec agapes fraternelles.<br><br>Programme complet dans l'onglet <strong>Ordre des Travaux</strong>.`;
+                if (/(agapes|repas|manger|diner|banquet|intendant|prix|tarif)/.test(lq))
+                    return `🍽️ <strong>Agapes du 7 novembre 2025</strong><br><br>Intendante : S∴ Marie SIONNET<br>Entrée : Salade de chèvre chaud<br>Plat : Daube catalane · Dessert : Crème catalane<br>💶 <strong>22 €</strong> · Inscription via Framadate.`;
+                if (/(venerable|vm|bruno|ramon|officier|membres|tableau)/.test(lq))
+                    return `Officiers de la Loge :<br><br>👑 <strong>VM</strong> : F∴ Bruno RAMON<br>🔱 <strong>1er Surv.</strong> : F∴ David LOIRET<br>🔱 <strong>2ème Surv.</strong> : F∴ Claude CARCELLER<br>📐 <strong>Architecte</strong> : F∴ Laurent MIENVILLE<br><br>17 membres — Rite Français, Orient de Perpignan.`;
+                if (/(hiram|legende|mort|perte|assassin|troisieme|3eme)/.test(lq)) {
+                    const b = blocked(2); if (b) return b;
+                    return `La <strong>Légende d'Hiram</strong> est au cœur du 3ème degré.<br><br>Hiram Abiif, Grand Architecte du Temple, refusa de livrer le Mot Sacré à trois compagnons félons. Il mourut plutôt que de trahir son serment.<br><br>Son corps fut retrouvé grâce à une branche d'acacia. <em>Symbole de la fidélité sur la mort — résurrection symbolique au 3ème degré.</em>`;
+                }
+                if (/(equerre|angle|droit|rectitude)/.test(lq))
+                    return `L'<strong>Équerre</strong> règle nos actions envers nos frères, sœurs et l'humanité.<br><br>Bijou du 2ème Surveillant au Rite Français.<br><em>« L'équerre règle nos actions, le compas circonscrit nos désirs. »</em>`;
+                if (/(compas|desir|limite)/.test(lq))
+                    return `Le <strong>Compas</strong> circonscrit nos désirs — bijou du Vénérable Maître. La liberté de chacun s'arrête là où commence celle d'autrui.`;
+                if (/(etoile|flamboyante|pentacle|geometrie)/.test(lq)) {
+                    const b = blocked(1); if (b) return b;
+                    return `L'<strong>Étoile Flamboyante</strong> — symbole du 2ème degré. Pentagramme à 5 branches : <strong>Géométrie</strong>, reine des sciences. En son centre la lettre <strong>G</strong>.<br><em>« Que l'Étoile Flamboyante éclaire ton chemin. »</em>`;
+                }
+                if (/(silence|pierre|brute|cubique|apprenti|initiation)/.test(lq))
+                    return `L'<strong>Apprenti</strong> est la <em>Pierre Brute</em>, à dégrossir par :<br>• Le <strong>Silence</strong> — écouter avant de parler<br>• L'<strong>Observation</strong> — voir avant de comprendre<br>• La <strong>Persévérance</strong> — travailler sur soi chaque jour`;
+                if (/(mot|sacre|signe|attouchement|secret)/.test(lq))
+                    return `Les mots, signes et attouchements sont confidentiels — transmis oralement en loge.<br>Contactez <strong>F∴ Bruno RAMON</strong> (VM) ou <strong>F∴ Laurent MIENVILLE</strong> (Architecte).`;
+                if (/(chaine|union|cloture|fermeture)/.test(lq))
+                    return `La <strong>Chaîne d'Union</strong> clôture chaque tenue. Les membres se tiennent par la main en croisant les bras.<br>Trois battements : <em>Force, Force, Force !</em>`;
+                if (/(gadlu|grand architecte|univers)/.test(lq))
+                    return `Le <strong>G∴A∴D∴L∴U∴</strong> n'est pas un dieu dogmatique. Pour chaque Maçon : la raison, la nature, la divinité… selon ses convictions. Le G∴O∴D∴F∴ ne requiert aucune croyance particulière.`;
+                if (/(planche|expose|ecriture)/.test(lq))
+                    return `Une <strong>Planche</strong> est un exposé philosophique présenté en loge.<br>Accédez aux planches dans l'onglet <strong>Planches</strong> (selon votre grade).`;
+                if (/^(bonjour|bonsoir|salut|hello|ave)/.test(lq)) {
+                    const h = new Date().getHours();
+                    return `${h<12?'Bonjour':'Bonsoir'} ! 🐦<br>Comment puis-je vous aider ? Tenues, symboles, membres… posez votre question !`;
+                }
+                if (/(merci|parfait|super|bravo|excellent)/.test(lq))
+                    return `Avec plaisir ! 🌟 À la Gloire du G∴A∴D∴L∴U∴ ✦`;
+                return `Je ferai de mon mieux. Pour approfondir :<br>• Tenue d'instruction<br>• Onglet <strong>Archives</strong><br>• Soumettre une <strong>planche</strong> en loge<br><em>Essayez : « Prochaine tenue », « Équerre »${rank()>=2?", « Légende d'Hiram »":''}</em>`;
+            }
+
+            function sendMsg(text) {
+                if (!text.trim()) return;
+                setSugsHidden(true);
+                const t = nowT();
+                setMessages(m => [...m, { role:'user', html: text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'), t }]);
+                setInput('');
+                setTyping(true);
+                setTimeout(() => {
+                    setTyping(false);
+                    setMessages(m => [...m, { role:'bot', html: getReply(text), t: nowT() }]);
+                }, 700 + Math.random()*600);
+            }
+
+            const gk2 = ['vm','architecte','tresorier','secretaire'].includes(loginGradeKey) ? 'vm' : loginGradeKey || 'apprenti';
+            const chipList = sugs[gk2] || sugs.apprenti;
+            const userInitials = (loginGradeKey === 'vm' ? 'VM' : (loginGradeKey||'AP').slice(0,2).toUpperCase());
+
+            return (
+                <div className="bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col" style={{height:'100%'}}>
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-5 py-3 border-b bg-slate-900">
+                        <span style={{fontSize:24}}>🐦</span>
+                        <div className="flex-1">
+                            <div className="font-serif font-bold text-amber-400 text-sm">Le Petit Colibri</div>
+                            <div className="text-slate-400 text-xs">{gradeLabel[loginGradeKey]||'Assistant'} · En ligne</div>
+                        </div>
+                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">{gradeLabel[loginGradeKey]||'—'}</span>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3" style={{background:'#f8fafc'}}>
+                        {messages.map((m, i) => (
+                            <div key={i} className={`flex gap-2 items-end ${m.role==='user' ? 'flex-row-reverse' : ''}`} style={{maxWidth:'85%', alignSelf: m.role==='user'?'flex-end':'flex-start'}}>
+                                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-base ${m.role==='bot' ? 'bg-slate-200' : 'bg-amber-700 text-white'}`} style={{fontSize: m.role==='bot'?18:10, fontFamily:"'Cinzel',serif", fontWeight:'bold'}}>
+                                    {m.role==='bot' ? '🐦' : userInitials}
+                                </div>
+                                <div>
+                                    <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${m.role==='bot' ? 'bg-white border shadow-sm rounded-bl-none text-slate-700' : 'bg-amber-700 rounded-br-none text-white'}`}
+                                        dangerouslySetInnerHTML={{__html: m.html}}></div>
+                                    <div className={`text-xs text-slate-400 mt-0.5 ${m.role==='user'?'text-right':'text-left'}`}>{m.t}</div>
+                                </div>
+                            </div>
+                        ))}
+                        {typing && (
+                            <div className="flex gap-2 items-end" style={{alignSelf:'flex-start'}}>
+                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center" style={{fontSize:18}}>🐦</div>
+                                <div className="bg-white border shadow-sm rounded-2xl rounded-bl-none px-4 py-3 flex gap-1.5">
+                                    {[0,1,2].map(j=><span key={j} className="block rounded-full bg-slate-400" style={{width:7,height:7,animation:`dot 0.9s ${j*0.15}s ease-in-out infinite`}}></span>)}
+                                </div>
+                            </div>
+                        )}
+                        <div ref={endRef}></div>
+                    </div>
+
+                    {/* Suggestions */}
+                    {!sugsHidden && (
+                        <div className="flex gap-2 flex-wrap px-4 py-2 border-t bg-white">
+                            {chipList.map((c,i) => (
+                                <button key={i} onClick={()=>sendMsg(c.replace(/^[^\s]+\s/,''))}
+                                    className="text-xs px-3 py-1.5 rounded-full border border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all">
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Input */}
+                    <div className="flex gap-2 items-end px-4 py-3 border-t bg-white">
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl flex items-center px-3 focus-within:border-amber-400 transition-colors" style={{minHeight:44}}>
+                            <textarea
+                                value={input}
+                                onChange={e=>setInput(e.target.value)}
+                                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(input);}}}
+                                placeholder="Posez votre question…"
+                                rows={1}
+                                className="bg-transparent border-none outline-none text-slate-800 text-sm resize-none flex-1 py-2.5"
+                                style={{maxHeight:80, lineHeight:1.4, fontFamily:"'Inter',sans-serif"}}
+                            />
+                        </div>
+                        <button onClick={()=>sendMsg(input)} disabled={!input.trim()||typing}
+                            className="w-11 h-11 rounded-full bg-amber-600 hover:bg-amber-500 flex items-center justify-center shadow text-white flex-shrink-0 disabled:opacity-40 transition-all hover:scale-105 active:scale-95">
+                            <i className="fa-solid fa-paper-plane" style={{fontSize:14}}></i>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
         // COMPOSANT MAÎTRE (APP)
         // ==========================================
 
@@ -3393,6 +3587,9 @@
                         {activeView === 'write' && <WritePlancheView onBack={()=>setActiveView(loginGradeKey||'home')} onSubmit={async(p)=>{await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','planches'),{...p,submittedBy:memberName}); setActiveView(normalizeGrade(p.grade));}} defaultGrade={loginGradeKey||'apprenti'} currentUser={memberName} isArchitect={isArchitect} />}
                     </main>
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
+
+                    {/* ── Le Petit Colibri — Widget flottant ── */}
+                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} />
                 </div>
             );
         }
