@@ -88,7 +88,7 @@ export default {
                  dw.every(w => nw.some(n => n.includes(w) || w.includes(n)));
         });
 
-        if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found' }), { headers: JSON_HEADERS });
+        if (!found) return new Response(JSON.stringify({ ok: false, reason: 'not_found', debug_names: docs.slice(0,5).map(d=>d.fields?.name?.stringValue||'?'), debug_input: name }), { headers: JSON_HEADERS });
 
         const fields = found.fields || {};
         const storedPwd = fields.accountPwd?.stringValue || '';
