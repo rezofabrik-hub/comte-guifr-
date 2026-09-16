@@ -3299,7 +3299,9 @@ Total membres : ${siteData.members.length || 'Non disponible'}
 
 Planches disponibles (${rankName}) : ${(() => { const acc = (siteData.planches||[]).filter(p => { const pg = (p.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if (pg.includes('maitre')) return rankVal >= 2; if (pg.includes('compagnon')) return rankVal >= 1; return true; }); return `${acc.length} planches au total : ` + acc.map(p => `"${p.title}" par ${p.author||'anonyme'} (${p.grade||'Apprenti'})`).join(', '); })() || 'Aucune'}
 
-Bibliothèque / Archives : ${(() => { const acc = (siteData.books||[]).filter(b => { const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if (bg.includes('maitre')) return rankVal >= 2; if (bg.includes('compagnon')) return rankVal >= 1; return true; }); return acc.length > 0 ? `${acc.length} documents : ` + acc.map(b => `"${b.title}" (${b.categorie||'document'}${b.author?', '+b.author:''})`).join(', ') : 'Aucun document'; })()}
+Bibliothèque / Archives : ${(() => { const acc = (siteData.books||[]).filter(b => { const isH = (b.categorie||'').toLowerCase().startsWith('humour'); if (isH) return false; const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if (bg.includes('maitre')) return rankVal >= 2; if (bg.includes('compagnon')) return rankVal >= 1; return true; }); return acc.length > 0 ? `${acc.length} documents : ` + acc.map(b => `"${b.title}" (${b.categorie||'document'}${b.author?', '+b.author:''})`).join(', ') : 'Aucun document'; })()}
+
+Blagues / Humour maçonnique (selon grade) : ${(() => { const acc = (siteData.books||[]).filter(b => { const isH = (b.categorie||'').toLowerCase().startsWith('humour'); if (!isH) return false; const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if (bg.includes('maitre')) return rankVal >= 2; if (bg.includes('compagnon')) return rankVal >= 1; return true; }); return acc.length > 0 ? `${acc.length} blague(s) disponible(s) — liste complète : ` + acc.map((b,i) => `[${i+1}] "${b.title}"${b.description?' : '+b.description:''}`).join(' || ') : 'Aucune blague disponible'; })()}
 
 Liens Chaîne d'Union : ${(siteData.liens||[]).length > 0 ? (siteData.liens||[]).map(l => `${l.t||l.title||'Lien'} — ${l.d||l.description||''}`).join(' | ') : 'Aucun lien disponible'}
 
@@ -3309,8 +3311,9 @@ INSTRUCTIONS ABSOLUES :
 3. Si la question porte sur une tenue, donne la date exacte et le titre. Si sur un membre, donne son vrai nom et rôle.
 4. PRIORITÉ ABSOLUE : si la réponse se trouve dans les données ci-dessus, réponds DIRECTEMENT avec ces données. Ne renvoie vers un onglet du site QUE si l'information est vraiment absente des données.
 5. Si une question porte sur les fonctionnalités Architecte/VM/Secrétaire/Trésorier : réponds "Je ne gère pas cette fonctionnalité — adresse-toi directement à l'Architecte ou au Vénérable."
-6. Langue : français, ton fraternel, vocabulaire maçonnique (F∴, S∴, G∴A∴D∴L∴U∴).
-7. Longueur : 3-5 phrases max. Sois direct et précis.
+6. BLAGUES : si on te demande une blague ("une blague", "fais-moi rire", "raconte quelque chose de drôle"…), choisis-en UNE au hasard dans la liste "Blagues / Humour" ci-dessus et raconte-la intégralement avec son texte. Si aucune blague n'est disponible pour ce grade, dis-le.
+7. Langue : français, ton fraternel, vocabulaire maçonnique (F∴, S∴, G∴A∴D∴L∴U∴).
+8. Longueur : 3-5 phrases max, sauf pour les blagues où tu donnes le texte complet.
 
 EXEMPLE DE FORMAT CORRECT :
 "La prochaine tenue est <strong>Tenue d'Instruction</strong> le <strong>15 octobre 2025</strong>.<br>Elle aura lieu à l'Orient de Perpignan.<br>Consultez l'onglet <strong>Ordre des Travaux</strong> pour les détails."`;
