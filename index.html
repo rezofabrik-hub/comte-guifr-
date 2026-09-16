@@ -3095,7 +3095,16 @@
             // Utiliser les données déjà chargées par l'App (même source Firestore)
             const today = new Date(); today.setHours(0,0,0,0);
             const siteData = {
-                agenda: (agendaItems||[]).filter(a => a.date).sort((a,b) => a.date.localeCompare(b.date)),
+                agenda: (agendaItems||[]).filter(a => a.date).sort((a,b) => a.date.localeCompare(b.date)).map(a => ({
+                    ...a,
+                    agapesInfo: [
+                        a.entree ? `Entrée : ${a.entree}` : '',
+                        a.plat ? `Plat : ${a.plat}` : '',
+                        a.dessert ? `Dessert : ${a.dessert}` : '',
+                        a.prix ? `Prix : ${a.prix} €` : '',
+                        a.lienFramadate ? `Inscription : ${a.lienFramadate}` : '',
+                    ].filter(Boolean).join(' · ') || a.agapesInfo || '',
+                })),
                 members: members||[],
                 planches: planches||[],
             };
