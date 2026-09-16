@@ -3043,13 +3043,13 @@
         // LE PETIT COLIBRI — Chatbot Maçonnique
         // ==========================================
 
-        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity }) {
+        function ColibriFloat({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches }) {
             const [open, setOpen] = useState(false);
             return (
                 <div style={{position:'fixed', bottom:24, right:16, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
                     {open && (
                         <div style={{width:350, height:520, marginBottom:14, borderRadius:24, overflow:'hidden', boxShadow:'0 12px 50px rgba(0,0,0,0.4)'}}>
-                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} onClose={()=>setOpen(false)} />
+                            <ColibriView loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} onClose={()=>setOpen(false)} />
                         </div>
                     )}
                     <button onClick={()=>setOpen(o=>!o)}
@@ -3085,46 +3085,20 @@
             );
         }
 
-        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, onClose }) {
+        function ColibriView({ loginGradeKey, memberName, unlockedGrades, claudeApiKey, welcomeText, logeIdentity, agendaItems, members, planches, onClose }) {
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [typing, setTyping] = useState(false);
             const [sugsHidden, setSugsHidden] = useState(false);
             const endRef = useRef(null);
-            const [siteData, setSiteData] = useState({ agenda: [], members: [] });
 
-            // Charger les données réelles depuis Firestore
-            useEffect(() => {
-                const api = window.FB_API;
-                if (!api) return;
-                const appId = api.appId;
-                const base = `https://firestore.googleapis.com/v1/projects/${appId}/databases/(default)/documents/artifacts/${appId}/public/data`;
-                Promise.all([
-                    fetch(`${base}/agenda?pageSize=50`).then(r=>r.json()).catch(()=>({})),
-                    fetch(`${base}/members?pageSize=200`).then(r=>r.json()).catch(()=>({})),
-                    fetch(`${base}/planches?pageSize=50`).then(r=>r.json()).catch(()=>({})),
-                ]).then(([agendaRes, membersRes, planchesRes]) => {
-                    const agenda = (agendaRes.documents||[]).map(d => {
-                        const f = d.fields||{};
-                        return {
-                            title: f.title?.stringValue||'',
-                            date: f.date?.stringValue||f.dateDebut?.stringValue||'',
-                            type: f.type?.stringValue||'',
-                            agapes: f.agapes?.booleanValue||false,
-                            agapesInfo: f.agapesInfo?.stringValue||'',
-                        };
-                    }).filter(a => a.date).sort((a,b) => a.date.localeCompare(b.date));
-                    const members = (membersRes.documents||[]).map(d => {
-                        const f = d.fields||{};
-                        return { name: f.name?.stringValue||'', role: f.role?.stringValue||'', grade: f.grade?.stringValue||'' };
-                    });
-                    const planches = (planchesRes.documents||[]).map(d => {
-                        const f = d.fields||{};
-                        return { title: f.title?.stringValue||'', author: f.author?.stringValue||f.submittedBy?.stringValue||'', grade: f.grade?.stringValue||'' };
-                    });
-                    setSiteData({ agenda, members, planches });
-                });
-            }, []);
+            // Utiliser les données déjà chargées par l'App (même source Firestore)
+            const today = new Date(); today.setHours(0,0,0,0);
+            const siteData = {
+                agenda: (agendaItems||[]).filter(a => a.date).sort((a,b) => a.date.localeCompare(b.date)),
+                members: members||[],
+                planches: planches||[],
+            };
 
             const rank = () => {
                 const m = { vm:3, architecte:3, tresorier:3, secretaire:3, maitre:2, compagnon:1, apprenti:0 };
@@ -3179,8 +3153,8 @@
 
                 // Tenues / agenda / calendrier
                 if (has('tenue','travaux','seance','reunion','quand','prochain','prochaine','date','calendrier','programme','ordre du jour','odj','ouverture','fermeture loge')) {
-                    const today = new Date().toISOString().slice(0,10);
-                    const upcoming = siteData.agenda.filter(a => a.date >= today);
+                    const now = new Date(); now.setHours(0,0,0,0);
+                    const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= now);
                     if (upcoming.length === 0) return `Aucune tenue programmée pour le moment. Consultez l'onglet <strong>Ordre des Travaux</strong>.`;
                     const next = upcoming[0];
                     const d = new Date(next.date);
@@ -3201,8 +3175,8 @@
 
                 // Agapes / repas
                 if (has('agape','agapes','repas','manger','diner','banquet','intendant','prix','tarif','menu','cuisine','bouffe','table')) {
-                    const today = new Date().toISOString().slice(0,10);
-                    const next = siteData.agenda.find(a => a.date >= today && (a.agapes || a.agapesInfo));
+                    const now2 = new Date(); now2.setHours(0,0,0,0);
+                    const next = siteData.agenda.find(a => a.date && new Date(a.date) >= now2 && (a.agapes || a.agapesInfo));
                     if (next) {
                         const d = new Date(next.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
                         return `🍽️ <strong>Agapes — ${next.title||'Tenue'}</strong><br>${d}<br><br>${next.agapesInfo||'Détails dans l\'onglet <strong>Ordre des Travaux</strong>.'}`;
@@ -3313,8 +3287,8 @@
 
                 if (claudeApiKey) {
                     try {
-                        const today = new Date().toISOString().slice(0,10);
-                        const upcoming = siteData.agenda.filter(a => a.date >= today).slice(0,5);
+                        const nowIA = new Date(); nowIA.setHours(0,0,0,0);
+                        const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= nowIA).slice(0,5);
                         const officers = siteData.members.filter(m => m.role && m.role.trim()).slice(0,10);
                         const gradeLabel2 = { vm:'VM / Officier', architecte:'Architecte', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' };
                         const rankVal = rank();
@@ -3822,7 +3796,7 @@ INSTRUCTIONS :
                     <footer className="py-8 text-center text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] border-t bg-white font-serif">{logeIdentity?.name || 'Ma Loge'}{logeIdentity?.orient ? ` — Orient de ${logeIdentity.orient}` : ''}</footer>
 
                     {/* ── Le Petit Colibri — Widget flottant ── */}
-                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} />
+                    <ColibriFloat loginGradeKey={loginGradeKey} memberName={memberName} unlockedGrades={unlockedGrades} claudeApiKey={claudeApiKey} welcomeText={welcomeText} logeIdentity={logeIdentity} agendaItems={agendaItems} members={members} planches={planches} />
                 </div>
             );
         }
