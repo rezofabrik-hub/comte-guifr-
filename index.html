@@ -3210,6 +3210,7 @@
                     const couvreur = find(/couvreur/);
                     const hosp = find(/hospitalier/);
                     const intend = find(/intendant/);
+                    const mc = find(/ceremonie|maitre.*cere/);
                     const total = siteData.members.length;
 
                     // Si question sur un rôle précis, répondre directement
@@ -3233,6 +3234,10 @@
                         if (intend) return `🍽️ L'<strong>Intendant</strong> est <strong>${intend.name}</strong>${intend.grade?' ('+intend.grade+')':''}.<br>Il organise les agapes fraternelles.`;
                         return `Le rôle d'<strong>Intendant</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
                     }
+                    if (has('ceremonie','maitre ceremonie','mc')) {
+                        if (mc) return `🎭 Le <strong>Maître des Cérémonies</strong> est <strong>${mc.name}</strong>${mc.grade?' ('+mc.grade+')':''}.<br>Il dirige le déroulement des cérémonies et veille à l'ordonnancement des travaux.`;
+                        return `Le rôle de <strong>Maître des Cérémonies</strong> n'est pas renseigné. Consultez l'onglet <strong>Tableau de Loge</strong>.`;
+                    }
 
                     let reply = `👥 <strong>Tableau de la Loge Comte Guifré n°51</strong><br><br>`;
                     if (vm) reply += `👑 <strong>VM</strong> : ${vm.name}<br>`;
@@ -3245,6 +3250,7 @@
                     if (expert) reply += `🔍 <strong>Expert</strong> : ${expert.name}<br>`;
                     if (couvreur) reply += `🚪 <strong>Couvreur</strong> : ${couvreur.name}<br>`;
                     if (hosp) reply += `🤝 <strong>Hospitalier</strong> : ${hosp.name}<br>`;
+                    if (mc) reply += `🎭 <strong>M∴ des Cérémonies</strong> : ${mc.name}<br>`;
                     if (!vm && officers.length === 0) reply += `Consultez l'onglet <strong>Tableau de Loge</strong> pour la liste complète.<br>`;
                     if (officers.length > 0 && !vm && !s1 && !arch) {
                         reply += officers.slice(0,6).map(m=>`• <strong>${m.role}</strong> : ${m.name}`).join('<br>') + '<br>';
