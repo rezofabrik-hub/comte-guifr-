@@ -3286,12 +3286,7 @@ Officiers de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${
 Tous les membres : ${allMembers.length > 0 ? allMembers.map(m => `${m.name}${m.grade?' ('+m.grade+')':''}${m.role?' ['+m.role+']':''}`).join(', ') : 'Non disponible'}
 Total membres : ${siteData.members.length || 'Non disponible'}
 
-Planches disponibles (${rankName}) : ${(siteData.planches||[]).filter(p => {
-    const pg = (p.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    if (pg.includes('maitre')) return rankVal >= 2;
-    if (pg.includes('compagnon')) return rankVal >= 1;
-    return true;
-}).slice(0,8).map(p => `"${p.title}" (${p.author||'anonyme'})`).join(', ') || 'Aucune'}
+Planches disponibles (${rankName}) : ${(() => { const acc = (siteData.planches||[]).filter(p => { const pg = (p.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if (pg.includes('maitre')) return rankVal >= 2; if (pg.includes('compagnon')) return rankVal >= 1; return true; }); return `${acc.length} planches au total — exemples : ` + acc.slice(0,8).map(p => `"${p.title}" (${p.author||'anonyme'})`).join(', '); })() || 'Aucune'}
 
 Bibliothèque / Archives : ${(siteData.books||[]).filter(b => {
     const bg = (b.grade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
