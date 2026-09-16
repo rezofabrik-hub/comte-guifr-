@@ -3486,7 +3486,12 @@
                 setUnlockedGrades(n); setActiveView(pendingGrade); return true;
             };
 
-            if (!isLogged) return <LoginScreen onLogin={handleLogin} onArchitectLogin={handleArchitectLogin} error={fbError} logo={logeLogo} logeName={logeIdentity.name} />;
+            if (!isLogged) return (
+                <>
+                    <LoginScreen onLogin={handleLogin} onArchitectLogin={handleArchitectLogin} error={fbError} logo={logeLogo} logeName={logeIdentity.name} />
+                    <ColibriFloat loginGradeKey={null} memberName={null} unlockedGrades={null} />
+                </>
+            );
             const loader = document.getElementById('loading-screen'); if (loader) loader.style.display = 'none';
 
             return (
