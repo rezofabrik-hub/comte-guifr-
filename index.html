@@ -2856,13 +2856,11 @@
                         </div>
                     </div>
 
-                    {/* ── Comptes Membres Individuels ── */}
-                    <MembresComptesSection api={api} FB_KEY={FB_KEY} />
                 </div>
             );
         }
 
-        function MembresComptesSection({ api, FB_KEY }) {
+        function MembresComptesSection_UNUSED({ api, FB_KEY }) {
             const [membres, setMembres] = React.useState([]); // [{id, ...data}]
             const [statuts, setStatuts] = React.useState({});
             const [creerTout, setCreerTout] = React.useState(false);
