@@ -3429,9 +3429,15 @@
                     return `Des liens utiles sont disponibles dans l'onglet <strong>Chaîne d'Union</strong> :<br>• Hiram.be — weblog maçonnique<br>• GADLU.INFO — portail maçonnique<br>• Musée de la Franc-Maçonnerie`;
                 }
 
+                // Glossaire — définition d'un terme
+                {
+                    const gloss = GLOSSAIRE_FM.find(e => lq.includes(e.t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'')));
+                    if (gloss) return `📖 <strong>${gloss.t}</strong><br><br>${gloss.d}`;
+                }
+
                 // Aide / que peux-tu faire
                 if (has('aide','help','que peux tu','tu peux','tu sais','capacite','fonction','quoi faire','comment'))
-                    return `Je peux vous renseigner sur :<br><br>📅 <strong>Agenda</strong> — prochaines tenues, agapes<br>👥 <strong>Membres</strong> — officiers, tableau de loge<br>🔷 <strong>Symboles</strong> — équerre, compas, pierre brute…<br>📚 <strong>Rituels</strong> — selon votre grade<br>🏛️ <strong>La Loge</strong> — histoire, rite, Orient<br><br>Posez votre question librement !`;
+                    return `Je peux vous renseigner sur :<br><br>📅 <strong>Agenda</strong> — prochaines tenues, agapes<br>👥 <strong>Membres</strong> — officiers, tableau de loge<br>🔷 <strong>Symboles</strong> — équerre, compas, pierre brute…<br>📚 <strong>Rituels</strong> — selon votre grade<br>📖 <strong>Glossaire</strong> — définitions de plus de ${GLOSSAIRE_FM.length} termes maçonniques<br>🏛️ <strong>La Loge</strong> — histoire, rite, Orient<br><br>Posez votre question librement !`;
 
                 // Réponse par défaut enrichie
                 const suggestions = rank()>=2 ? `« Légende d'Hiram », « Prochaine tenue »` : rank()>=1 ? `« Étoile Flamboyante », « Prochaine tenue »` : `« Prochaine tenue », « Équerre », « Pierre brute »`;
@@ -3451,6 +3457,8 @@
                     try {
                         const nowIA = new Date(); nowIA.setHours(0,0,0,0);
                         const upcoming = siteData.agenda.filter(a => a.date && new Date(a.date) >= nowIA).slice(0,12);
+                        const sixMonthsAgo = new Date(nowIA); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+                        const past = siteData.agenda.filter(a => a.date && new Date(a.date) < nowIA && new Date(a.date) >= sixMonthsAgo).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
                         const officers = siteData.members.filter(m => m.role && m.role.trim());
                         const allMembers = siteData.members;
                         const gradeLabel2 = { vm:'VM / Officier', architecte:'Architecte', tresorier:'Trésorier', secretaire:'Secrétaire', maitre:'Maître', compagnon:'Compagnon', apprenti:'Apprenti' };
@@ -3486,6 +3494,9 @@ CONTENU RÉEL DU SITE (base-toi PRIORITAIREMENT sur ces données pour répondre)
 Message de bienvenue de la loge : ${welcomeText || 'Non défini'}
 
 Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' avec agapes' : ''}${a.agapesInfo ? ' ('+a.agapesInfo+')' : ''}`).join(' | ') : 'Aucune tenue programmée'}
+
+Tenues passées (6 derniers mois) : ${past.length > 0 ? past.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}`).join(' | ') : 'Aucune tenue récente enregistrée'}
+Total tenues dans le calendrier : ${siteData.agenda.length}
 
 Officiers de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}${m.grade?' ('+m.grade+')':''}`).join(' | ') : 'Non disponible'}
 Tous les membres : ${allMembers.length > 0 ? allMembers.map(m => `${m.name}${m.grade?' ('+m.grade+')':''}${m.role?' ['+m.role+']':''}`).join(', ') : 'Non disponible'}
