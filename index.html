@@ -3452,6 +3452,22 @@
                 setInput('');
                 setTyping(true);
 
+                // Glossaire — réponse immédiate sans passer par l'API
+                {
+                    const lqg = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'');
+                    const gloss = GLOSSAIRE_FM.find(e => {
+                        const nt = e.t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,'');
+                        return lqg.includes(nt) && nt.length >= 4;
+                    });
+                    if (gloss) {
+                        setTimeout(() => {
+                            setTyping(false);
+                            setMessages(m => [...m, { role:'bot', html: `📖 <strong>${gloss.t}</strong><br><br>${gloss.d}`, t: nowT() }]);
+                        }, 400);
+                        return;
+                    }
+                }
+
                 // Always use server-side proxy — key is stored in Cloudflare Worker secret
                 {
                     try {
@@ -3510,9 +3526,8 @@ Blagues / Humour maçonnique (selon grade) : ${(() => { const acc = (siteData.bo
 
 Liens Chaîne d'Union : ${(siteData.liens||[]).length > 0 ? (siteData.liens||[]).map(l => `${l.t||l.title||'Lien'} — ${l.d||l.description||''}`).join(' | ') : 'Aucun lien disponible'}
 
-GLOSSAIRE MAÇONNIQUE (Rite Français · G∴O∴D∴F∴) :
-${GLOSSAIRE_FM.map(e => `${e.t} : ${e.d}`).join('\n')}
-Si on te pose une question sur un terme maçonnique ("c'est quoi…", "que signifie…", "définis…"), cherche dans ce glossaire et réponds avec la définition en la reformulant de façon fraternelle.
+Glossaire maçonnique disponible sur le site (${GLOSSAIRE_FM.length} termes) : ${GLOSSAIRE_FM.map(e=>e.t).join(', ')}.
+Les questions sur ces termes sont traitées directement par l'interface — tu n'as pas à les définir toi-même.
 
 INSTRUCTIONS ABSOLUES :
 1. FORMAT OBLIGATOIRE : utilise UNIQUEMENT ces balises HTML : <strong>, <br>, <em>. JAMAIS de markdown (pas de **, pas de *, pas de #, pas de - liste, pas de [ ]).
