@@ -3499,6 +3499,10 @@ Blagues / Humour maçonnique (selon grade) : ${(() => { const acc = (siteData.bo
 
 Liens Chaîne d'Union : ${(siteData.liens||[]).length > 0 ? (siteData.liens||[]).map(l => `${l.t||l.title||'Lien'} — ${l.d||l.description||''}`).join(' | ') : 'Aucun lien disponible'}
 
+GLOSSAIRE MAÇONNIQUE (Rite Français · G∴O∴D∴F∴) :
+${GLOSSAIRE_FM.map(e => `${e.t} : ${e.d}`).join('\n')}
+Si on te pose une question sur un terme maçonnique ("c'est quoi…", "que signifie…", "définis…"), cherche dans ce glossaire et réponds avec la définition en la reformulant de façon fraternelle.
+
 INSTRUCTIONS ABSOLUES :
 1. FORMAT OBLIGATOIRE : utilise UNIQUEMENT ces balises HTML : <strong>, <br>, <em>. JAMAIS de markdown (pas de **, pas de *, pas de #, pas de - liste, pas de [ ]).
 2. Cite TOUJOURS les vraies données fournies ci-dessus : noms réels, dates exactes, titres réels des planches/documents.
