@@ -3493,9 +3493,9 @@ CONTENU RÉEL DU SITE (base-toi PRIORITAIREMENT sur ces données pour répondre)
 
 Message de bienvenue de la loge : ${welcomeText || 'Non défini'}
 
-Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.agapes||a.agapesInfo ? ' avec agapes' : ''}${a.agapesInfo ? ' ('+a.agapesInfo+')' : ''}`).join(' | ') : 'Aucune tenue programmée'}
+Prochaines tenues : ${upcoming.length > 0 ? upcoming.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${a.sujet ? ' — Sujet : '+a.sujet : ''}${a.agapes||a.agapesInfo ? ' avec agapes' : ''}${a.agapesInfo ? ' ('+a.agapesInfo+')' : ''}`).join(' | ') : 'Aucune tenue programmée'}
 
-Tenues passées (6 derniers mois) : ${past.length > 0 ? past.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}`).join(' | ') : 'Aucune tenue récente enregistrée'}
+Tenues passées (6 derniers mois) : ${past.length > 0 ? past.map(a => `"${a.title||'Tenue'}" le ${new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}${a.sujet ? ' — Sujet : '+a.sujet : ''}`).join(' | ') : 'Aucune tenue récente enregistrée'}
 Total tenues dans le calendrier : ${siteData.agenda.length}
 
 Officiers de la loge : ${officers.length > 0 ? officers.map(m => `${m.role} : ${m.name}${m.grade?' ('+m.grade+')':''}`).join(' | ') : 'Non disponible'}
