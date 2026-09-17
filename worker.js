@@ -49,6 +49,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Redirection www → non-www
+    if (url.hostname === 'www.lcg51.fr') {
+      url.hostname = 'lcg51.fr';
+      return Response.redirect(url.toString(), 301);
+    }
+
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
