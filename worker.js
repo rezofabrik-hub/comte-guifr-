@@ -34,6 +34,16 @@ async function fsGetAllDocs(path, idToken) {
   return docs;
 }
 
+async function fsAddDoc(collectionPath, data, idToken) {
+  const fields = {};
+  for (const [k, v] of Object.entries(data)) fields[k] = { stringValue: String(v) };
+  const r = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/${collectionPath}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify({ fields }) }
+  );
+  return r.ok;
+}
+
 async function fsUpdate(path, fields, idToken) {
   const fieldPaths = Object.keys(fields).join(',');
   const body = { fields: {} };
@@ -118,6 +128,16 @@ export default {
         // Mot de passe OK — récupérer le mot de passe de grade
         const pwdsDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/settings/gradesPasswords`, idToken);
         const gradePwd = pwdsDoc?.fields?.[gradeKey]?.stringValue || null;
+
+        // Enregistrer la connexion (silencieux si échec)
+        try {
+          await fsAddDoc(`artifacts/${LOGE_APP_ID}/public/data/connexions`, {
+            nom: fields.name?.stringValue || name,
+            grade: gradeKey,
+            date: new Date().toISOString(),
+            ip: request.headers.get('CF-Connecting-IP') || 'unknown',
+          }, idToken);
+        } catch (_) {}
 
         return new Response(JSON.stringify({
           ok: true,
