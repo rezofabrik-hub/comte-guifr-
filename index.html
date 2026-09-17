@@ -2168,6 +2168,8 @@
                         </div>
                         </>
                     )}
+
+                    <GlossaireSection />
                 </div>
             );
         }
@@ -2279,6 +2281,127 @@
                             </div>
                         </>
                     )}
+                </div>
+            );
+        }
+
+        const GLOSSAIRE_FM = [
+            {t:'Accepté',d:"Personne reçue dans une confrérie opérative sans appartenir au métier de tailleur de pierre."},
+            {t:'Acclamations',d:"Interjection rituelle suivant le signe et la batterie lors des cérémonies en loge."},
+            {t:'Agapes',d:"Repas fraternel partagé entre maçons après la clôture des travaux en loge."},
+            {t:'Âge maçonnique',d:"Âges symboliques (3, 5, 7 ans) correspondant à chaque degré d'initiation."},
+            {t:'Allumage des feux',d:"Cérémonie d'installation et de constitution d'une nouvelle loge."},
+            {t:'Alphabet maçonnique',d:"Système de cryptage associant des symboles géométriques aux lettres de l'alphabet."},
+            {t:'Art Royal',d:"Dénomination poétique de la franc-maçonnerie."},
+            {t:'Ateliers',d:"Groupements de base comprenant les loges, triangles et chapitres."},
+            {t:'Attouchements',d:"Gestes de reconnaissance secrets échangés entre francs-maçons selon leur grade."},
+            {t:'Augmentation de salaire',d:"Expression désignant l'accession à un grade supérieur dans la hiérarchie maçonnique."},
+            {t:'Bannière',d:"Étendard caractérisant une loge, orné de ses symboles et de sa date de fondation."},
+            {t:'Banquet d'ordre',d:"Repas rituel célébré lors des solstices, suivant un protocole strict."},
+            {t:'Batterie',d:"Frappes rythmées des mains ponctuant les moments importants d'une tenue."},
+            {t:'Bijoux',d:"Objets symboliques portés par les officiers (équerre, compas, plomb, niveau…)."},
+            {t:'Boaz',d:"Nom d'une des deux colonnes du temple de Salomon, signifiant « Force »."},
+            {t:'Cabinet de réflexion',d:"Pièce obscure où le profane médite avant son initiation."},
+            {t:'Capitation',d:"Contribution financière annuelle versée par chaque membre à sa loge."},
+            {t:'Chaîne d'union',d:"Rituel de fraternité effectué à la fin des tenues, les frères se tenant par la main."},
+            {t:'Chambre du milieu',d:"Espace symbolique réservé aux maîtres dans la représentation du temple."},
+            {t:'Circumambulation',d:"Déplacement rituel circulaire autour du temple lors des cérémonies."},
+            {t:'Colonnes',d:"Représentations symboliques des deux colonnes du temple de Salomon (Jakin et Boaz)."},
+            {t:'Compas',d:"Outil symbolique représentant l'esprit, l'une des trois grandes lumières de la maçonnerie."},
+            {t:'Convent',d:"Assemblée générale regroupant les représentants des loges d'une obédience."},
+            {t:'Cordon',d:"Ruban porté en sautoir avec des ornements symboliques selon le grade."},
+            {t:'Couvreur',d:"Officier gardant la porte du temple et vérifiant l'appartenance des visiteurs."},
+            {t:'Décors',d:"Éléments symboliques portés en tenue : tablier, gants, cordons."},
+            {t:'Degrés',d:"Étapes d'élévation progressive dans un rite donné (Apprenti, Compagnon, Maître…)."},
+            {t:'Delta lumineux',d:"Triangle lumineux surplombant l'Orient du temple, symbole du Grand Architecte."},
+            {t:'Enquête',d:"Démarche d'examen d'une candidature à l'initiation par les membres de la loge."},
+            {t:'Équerre',d:"Outil symbolique représentant la rectitude morale, l'une des grandes lumières."},
+            {t:'Étoile flamboyante',d:"Symbole à cinq branches représentant selon les traditions le génie ou l'étoile du matin."},
+            {t:'Fraternité',d:"Reconnaissance et lien fraternel unissant tous les maçons entre eux."},
+            {t:'G∴ (lettre)',d:"Lettre au centre de l'étoile flamboyante, signifiant Dieu (God) ou Géométrie."},
+            {t:'G∴A∴D∴L∴U∴',d:"Grand Architecte De L'Univers — principe supérieur reconnu par la franc-maçonnerie."},
+            {t:'Grades',d:"Synonyme de degrés d'initiation maçonnique."},
+            {t:'Grand Maître',d:"Responsable principal élu d'une obédience fédérant plusieurs loges."},
+            {t:'Hauts grades',d:"Grades pratiqués après les trois premiers degrés symboliques (Apprenti, Compagnon, Maître)."},
+            {t:'Hiram',d:"Artisan légendaire et architecte du temple de Salomon, figure centrale de la mythologie maçonnique."},
+            {t:'Houppe dentelée',d:"Corde ornée de nœuds parcourant le pourtour du tapis de loge."},
+            {t:'Initiation',d:"Cérémonie de passage de l'état de profane à celui d'initié au premier grade."},
+            {t:'Jakin',d:"Nom d'une des deux colonnes du temple de Salomon, signifiant « Il établira »."},
+            {t:'Landmark',d:"Points de repère fondamentaux servant de critères de reconnaissance entre obédiences."},
+            {t:'Loge',d:"Groupe de francs-maçons constitués en atelier et se réunissant régulièrement."},
+            {t:'Loge bleue',d:"Franc-maçonnerie des trois premiers degrés symboliques (Apprenti, Compagnon, Maître)."},
+            {t:'Loge mère',d:"Loge dans laquelle un maçon a été initié."},
+            {t:'Maître des cérémonies',d:"Officier dirigeant les déplacements rituels à l'intérieur du temple."},
+            {t:'Mot de semestre',d:"Mot de reconnaissance interne à une obédience, changé deux fois par an."},
+            {t:'Obédience',d:"Organisation maçonnique fédérant plusieurs loges sous une même autorité."},
+            {t:'Orateur',d:"Officier veillant au respect de la loi maçonnique et de la constitution de la loge."},
+            {t:'Orient',d:"Partie est du temple où siège le Vénérable Maître et les principaux officiers."},
+            {t:'Orient éternel',d:"Expression désignant un franc-maçon décédé : « Il est passé à l'Orient éternel »."},
+            {t:'Parvis',d:"Espace immédiat devant l'entrée du temple maçonnique."},
+            {t:'Pavé mosaïque',d:"Pavage damier noir et blanc du sol du temple, symbolisant le dualisme."},
+            {t:'Pierre brute',d:"Symbole du profane ou de l'Apprenti, à tailler et polir par le travail initiatique."},
+            {t:'Pierre cubique',d:"Symbole du Compagnon, pierre taillée représentant le travail accompli."},
+            {t:'Planche',d:"Conférence ou dissertation présentée oralement en loge par un frère ou une sœur."},
+            {t:'Profane',d:"Personne non initiée à la franc-maçonnerie, extérieure au temple."},
+            {t:'Rite',d:"Ensemble cohérent de symboles, rituels et degrés organisés progressivement (ex : Rite Français)."},
+            {t:'Rituel',d:"Ensemble des actions, paroles et symboles accompagnant chaque étape d'une tenue."},
+            {t:'Salle humide',d:"Lieu des agapes après les tenues, fermé aux profanes."},
+            {t:'Secrétaire',d:"Officier chargé de consigner les événements et de gérer la correspondance."},
+            {t:'Serment',d:"Engagement solennel pris lors de l'initiation, liant le maçon à sa loge."},
+            {t:'Signes',d:"Gestes ou postures de reconnaissance spécifiques à chaque degré."},
+            {t:'Surveillant',d:"Officier (1er et 2ème) dirigeant chacun une colonne durant les travaux."},
+            {t:'Tablier',d:"Pièce de peau ou d'étoffe portée en tenue, évoquant les tabliers des tailleurs de pierre."},
+            {t:'Tapis de loge',d:"Représentation symbolique au sol illustrant les éléments du degré pratiqué."},
+            {t:'Temple',d:"Lieu où se déroulent les réunions rituelles de la loge."},
+            {t:'Tenue',d:"Réunion rituelle de la loge, présidée par le Vénérable Maître."},
+            {t:'Triangle',d:"Petit groupe maçonnique en formation, ou symbole d'équilibre universel."},
+            {t:'Triponctuation',d:"Trois points (∴) utilisés pour abréger certains termes maçonniques (F∴, V∴M∴…)."},
+            {t:'Tronc de la veuve',d:"Récipient recueillant les oboles pour les œuvres philanthropiques de la loge."},
+            {t:'Tuiler',d:"Vérifier l'appartenance maçonnique d'un visiteur avant de l'admettre en tenue."},
+            {t:'Vénérable',d:"Maître maçon élu par ses pairs pour diriger la loge pendant une année."},
+            {t:'Volume de la Loi sacrée',d:"Texte sacré (Bible, constitutions…) posé sur l'autel lors des travaux."},
+            {t:'Voûte étoilée',d:"Plafond bleu parsemé d'étoiles du temple, symbolisant le ciel et l'infini."},
+            {t:'Voyages',d:"Cheminements rituels symboliques représentant les épreuves initiatiques du profane."},
+            {t:'Zénith',d:"Limite supérieure symbolique des dimensions du temple maçonnique."},
+        ];
+
+        function GlossaireSection() {
+            const letters = [...new Set(GLOSSAIRE_FM.map(e => e.t[0].toUpperCase()))].sort();
+            const [activeLetter, setActiveLetter] = React.useState(null);
+            const [search, setSearch] = React.useState('');
+            const filtered = GLOSSAIRE_FM.filter(e => {
+                if (search.trim()) return e.t.toLowerCase().includes(search.toLowerCase()) || e.d.toLowerCase().includes(search.toLowerCase());
+                if (activeLetter) return e.t[0].toUpperCase() === activeLetter;
+                return true;
+            });
+            return (
+                <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                    <div className="bg-slate-900 text-white px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-lg font-bold font-serif flex items-center gap-2"><i className="fa-solid fa-book-open-reader text-amber-400"></i> Glossaire Maçonnique</h3>
+                            <p className="text-slate-400 text-xs mt-0.5">{GLOSSAIRE_FM.length} termes — Rite Français · G∴O∴D∴F∴</p>
+                        </div>
+                        <input value={search} onChange={e=>{setSearch(e.target.value);setActiveLetter(null);}} placeholder="Rechercher un terme…" className="bg-slate-800 text-white placeholder-slate-500 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:border-amber-500 w-full md:w-56"/>
+                    </div>
+                    {!search && (
+                        <div className="flex flex-wrap gap-1 px-4 py-3 border-b bg-slate-50">
+                            <button onClick={()=>setActiveLetter(null)} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${!activeLetter?'bg-amber-600 text-white':'text-slate-500 hover:bg-amber-100 hover:text-amber-700'}`}>Tous</button>
+                            {letters.map(l=>(
+                                <button key={l} onClick={()=>setActiveLetter(l===activeLetter?null:l)} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${activeLetter===l?'bg-amber-600 text-white':'text-slate-500 hover:bg-amber-100 hover:text-amber-700'}`}>{l}</button>
+                            ))}
+                        </div>
+                    )}
+                    <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
+                        {filtered.length === 0 && <p className="text-slate-400 text-sm italic p-6 text-center">Aucun terme trouvé.</p>}
+                        {filtered.map(e=>(
+                            <div key={e.t} className="px-6 py-3 hover:bg-amber-50 transition-colors">
+                                <span className="font-bold text-slate-900 font-serif text-sm">{e.t}</span>
+                                <span className="text-slate-500 text-xs"> — </span>
+                                <span className="text-slate-600 text-sm">{e.d}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="px-6 py-3 bg-slate-50 border-t text-[10px] text-slate-400 text-right">Source : Vocabulaire de la franc-maçonnerie — Wikipédia · G∴O∴D∴F∴</div>
                 </div>
             );
         }
