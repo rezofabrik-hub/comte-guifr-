@@ -3399,8 +3399,8 @@
                 ),
                 React.createElement('div', { className: 'text-right text-sm text-slate-500 font-bold' }, 'Coups : ' + moves),
                 React.createElement('div', {
-                    className: 'grid gap-3',
-                    style: { gridTemplateColumns: 'repeat(4, 1fr)' }
+                    className: 'grid gap-1.5',
+                    style: { gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: '320px', margin: '0 auto' }
                 },
                     cards.map(card => {
                         const isFlipped = !!flipped.find(c => c.uid === card.uid);
@@ -3409,10 +3409,10 @@
                         return React.createElement('button', {
                             key: card.uid,
                             onClick: () => flip(card),
-                            className: 'aspect-square rounded-xl border-2 flex items-center justify-center transition-all ' +
+                            className: 'aspect-square rounded-lg border-2 flex items-center justify-center transition-all ' +
                                 (isMatched ? 'border-amber-400 bg-amber-50' : show ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'),
                             disabled: isMatched || (flipped.length === 2 && !show),
-                            style: { padding: '8px' }
+                            style: { padding: '4px' }
                         },
                             React.createElement('div', {
                                 dangerouslySetInnerHTML: { __html: show ? card.svg : BACK_SVG },
