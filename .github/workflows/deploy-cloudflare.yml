@@ -66,6 +66,29 @@ jobs:
             console.log(r.success?'✅ Route lcg51.fr/* → comte-guifr OK':'⚠️  '+JSON.stringify(r.errors||r));
           });"
 
+          # Ajouter la route www.lcg51.fr/* si absente
+          WWW_ROUTE_ID=$(echo "$ROUTES" | node -e "
+            process.stdin.on('data',d=>{
+              const r=JSON.parse(d);
+              const route=(r.result||[]).find(x=>x.pattern==='www.lcg51.fr/*');
+              console.log(route?.id||'');
+            })")
+
+          if [ -n "$WWW_ROUTE_ID" ]; then
+            echo "Route www existante ($WWW_ROUTE_ID) — déjà OK"
+          else
+            echo "Création route www.lcg51.fr/* → comte-guifr"
+            RESP_WWW=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/workers/routes" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"pattern":"www.lcg51.fr/*","script":"comte-guifr"}')
+            echo "$RESP_WWW" | node -e "process.stdin.on('data',d=>{
+              const r=JSON.parse(d);
+              console.log(r.success?'✅ Route www.lcg51.fr/* → comte-guifr OK':'⚠️  '+JSON.stringify(r.errors||r));
+            });"
+          fi
+
       - name: Nettoyer Worker velum-temple (si présent)
         run: |
           ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
