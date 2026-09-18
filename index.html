@@ -3579,6 +3579,262 @@
             );
         }
 
+        // ==========================================
+        // ESPACE JEUX
+        // ==========================================
+
+        const JEUX_SYMBOLS = [
+            { id:'equerre', label:'Équerre', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="15,65 15,15 65,65" stroke="#c8a84b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="15" y1="65" x2="65" y2="65" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/></svg>' },
+            { id:'compas', label:'Compas', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="12" x2="15" y2="68" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/><line x1="40" y1="12" x2="65" y2="68" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/><line x1="22" y1="48" x2="58" y2="48" stroke="#c8a84b" stroke-width="5" stroke-linecap="round"/></svg>' },
+            { id:'delta', label:'Delta', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 70,68 10,68" stroke="#c8a84b" stroke-width="7" stroke-linejoin="round" fill="none"/><circle cx="40" cy="44" r="6" fill="#c8a84b"/></svg>' },
+            { id:'maillet', label:'Maillet', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="10" width="24" height="32" rx="4" stroke="#c8a84b" stroke-width="6" fill="none"/><line x1="40" y1="42" x2="40" y2="72" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/></svg>' },
+            { id:'plomb', label:'Fil à plomb', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="10" x2="40" y2="55" stroke="#c8a84b" stroke-width="6" stroke-linecap="round"/><circle cx="40" cy="65" r="10" stroke="#c8a84b" stroke-width="6" fill="none"/></svg>' },
+            { id:'etoile', label:'Étoile', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 48,32 74,32 53,48 61,72 40,56 19,72 27,48 6,32 32,32" stroke="#c8a84b" stroke-width="5" stroke-linejoin="round" fill="none"/></svg>' },
+            { id:'niveau', label:'Niveau', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="40" x2="70" y2="40" stroke="#c8a84b" stroke-width="6" stroke-linecap="round"/><polyline points="25,40 40,18 55,40" stroke="#c8a84b" stroke-width="6" stroke-linejoin="round" fill="none"/></svg>' },
+            { id:'colonne', label:'Colonne', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="14" width="24" height="4" rx="2" fill="#c8a84b"/><rect x="26" y="62" width="28" height="6" rx="2" fill="#c8a84b"/><rect x="32" y="18" width="16" height="44" rx="2" fill="none" stroke="#c8a84b" stroke-width="5"/></svg>' },
+        ];
+
+        const BACK_SVG = '<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="6" width="68" height="68" rx="8" stroke="#c8a84b" stroke-width="3" fill="#1a1e2a"/><text x="40" y="52" text-anchor="middle" font-size="36" fill="#c8a84b">∴</text></svg>';
+
+        const MOTS_MACONS = [
+            { mot:'TENUE', def:'Réunion rituelle de la loge' },
+            { mot:'LOGE', def:'Atelier maçonnique' },
+            { mot:'GRADE', def:'Degré initiatique' },
+            { mot:'PLOMB', def:'Outil du fil à plomb' },
+            { mot:'DELTA', def:'Triangle lumineux en Orient' },
+            { mot:'ACIER', def:'Métal du burin et du ciseau' },
+            { mot:'RAYON', def:'Lumière de l\'Orient' },
+            { mot:'FRERE', def:'Membre masculin de la loge' },
+            { mot:'VOUTE', def:'Arche céleste du Temple' },
+            { mot:'PIERRE', def:'Matériau du travail initiatique' },
+            { mot:'MAROC', def:'Terre de tradition constructive' },
+            { mot:'BOITE', def:'Contient les offrandes fraternelles' },
+            { mot:'LAUBE', def:'Tablier de l\'initié (l\'aube)' },
+            { mot:'OUVRE', def:'Verbe du travail en loge' },
+            { mot:'PORTE', def:'Entrée du Temple sacré' },
+            { mot:'ORDRE', def:'Organisation et règle de la loge' },
+        ];
+
+        function MemoryGame({ memberName, api }) {
+            const PAIRS = 8;
+            const [cards, setCards] = React.useState([]);
+            const [flipped, setFlipped] = React.useState([]);
+            const [matched, setMatched] = React.useState([]);
+            const [moves, setMoves] = React.useState(0);
+            const [won, setWon] = React.useState(false);
+            const [saving, setSaving] = React.useState(false);
+            const [scores, setScores] = React.useState([]);
+            const lockRef = React.useRef(false);
+
+            React.useEffect(() => {
+                initGame();
+                if (api) loadScores();
+            }, []);
+
+            function initGame() {
+                const symbols = [...JEUX_SYMBOLS].sort(() => Math.random() - 0.5).slice(0, PAIRS);
+                const deck = [...symbols, ...symbols]
+                    .sort(() => Math.random() - 0.5)
+                    .map((s, i) => ({ ...s, uid: i }));
+                setCards(deck);
+                setFlipped([]);
+                setMatched([]);
+                setMoves(0);
+                setWon(false);
+                lockRef.current = false;
+            }
+
+            async function loadScores() {
+                try {
+                    const snap = await api.getDocs(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_memory'));
+                    const all = snap.docs.map(d => d.data());
+                    all.sort((a, b) => a.moves - b.moves);
+                    setScores(all.slice(0, 10));
+                } catch(e) {}
+            }
+
+            async function saveScore(mv) {
+                if (!api || !memberName) return;
+                setSaving(true);
+                try {
+                    await api.addDoc(
+                        api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_memory'),
+                        { name: memberName, moves: mv, date: new Date().toISOString() }
+                    );
+                    await loadScores();
+                } catch(e) {}
+                setSaving(false);
+            }
+
+            function flip(card) {
+                if (lockRef.current) return;
+                if (flipped.length === 2) return;
+                if (flipped.find(c => c.uid === card.uid)) return;
+                if (matched.includes(card.id)) return;
+                const newFlipped = [...flipped, card];
+                setFlipped(newFlipped);
+                if (newFlipped.length === 2) {
+                    const newMoves = moves + 1;
+                    setMoves(newMoves);
+                    lockRef.current = true;
+                    if (newFlipped[0].id === newFlipped[1].id) {
+                        const newMatched = [...matched, card.id];
+                        setTimeout(() => {
+                            setMatched(newMatched);
+                            setFlipped([]);
+                            lockRef.current = false;
+                            if (newMatched.length === PAIRS) {
+                                setWon(true);
+                                saveScore(newMoves);
+                            }
+                        }, 500);
+                    } else {
+                        setTimeout(() => { setFlipped([]); lockRef.current = false; }, 900);
+                    }
+                }
+            }
+
+            return React.createElement('div', { className: 'space-y-4' },
+                won && React.createElement('div', { className: 'text-center py-4 bg-amber-50 border border-amber-200 rounded-2xl' },
+                    React.createElement('div', { className: 'text-3xl font-bold text-amber-600 font-serif' }, '🏆 ' + moves + ' coups'),
+                    React.createElement('div', { className: 'text-slate-500 text-sm mt-1' }, saving ? 'Enregistrement...' : 'Score enregistré !'),
+                    React.createElement('button', { onClick: initGame, className: 'mt-3 px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold' }, 'Rejouer')
+                ),
+                React.createElement('div', { className: 'text-right text-sm text-slate-500 font-bold' }, 'Coups : ' + moves),
+                React.createElement('div', {
+                    className: 'grid gap-3',
+                    style: { gridTemplateColumns: 'repeat(4, 1fr)' }
+                },
+                    cards.map(card => {
+                        const isFlipped = !!flipped.find(c => c.uid === card.uid);
+                        const isMatched = matched.includes(card.id);
+                        const show = isFlipped || isMatched;
+                        return React.createElement('button', {
+                            key: card.uid,
+                            onClick: () => flip(card),
+                            className: 'aspect-square rounded-xl border-2 flex items-center justify-center transition-all ' +
+                                (isMatched ? 'border-amber-400 bg-amber-50' : show ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'),
+                            disabled: isMatched || (flipped.length === 2 && !show),
+                            style: { padding: '8px' }
+                        },
+                            React.createElement('div', {
+                                dangerouslySetInnerHTML: { __html: show ? card.svg : BACK_SVG },
+                                style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                            })
+                        );
+                    })
+                ),
+                scores.length > 0 && React.createElement('div', { className: 'mt-4' },
+                    React.createElement('p', { className: 'text-xs font-bold uppercase tracking-widest text-slate-400 mb-2' }, '🏅 Classement'),
+                    React.createElement('div', { className: 'space-y-1' },
+                        scores.slice(0, 5).map((s, i) =>
+                            React.createElement('div', { key: i, className: 'flex justify-between text-sm px-3 py-1.5 rounded-lg ' + (i === 0 ? 'bg-amber-50 font-bold' : '') },
+                                React.createElement('span', null, (i+1) + '. ' + s.name),
+                                React.createElement('span', { className: 'text-amber-600 font-bold' }, s.moves + ' coups')
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        function MotDuJourGame({ memberName }) {
+            const todayIndex = Math.floor(Date.now() / 86400000) % MOTS_MACONS.length;
+            const TARGET = MOTS_MACONS[todayIndex].mot;
+            const DEF = MOTS_MACONS[todayIndex].def;
+            const LEN = TARGET.length;
+            const MAX = 6;
+
+            const [guesses, setGuesses] = React.useState([]);
+            const [current, setCurrent] = React.useState('');
+            const [won, setWon] = React.useState(false);
+            const [lost, setLost] = React.useState(false);
+
+            function submit() {
+                const word = current.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').slice(0, LEN);
+                if (word.length < LEN) return;
+                const result = word.split('').map((l, i) => {
+                    if (l === TARGET[i]) return 'correct';
+                    if (TARGET.includes(l)) return 'present';
+                    return 'absent';
+                });
+                const newGuesses = [...guesses, { word, result }];
+                setGuesses(newGuesses);
+                setCurrent('');
+                if (word === TARGET) { setWon(true); return; }
+                if (newGuesses.length >= MAX) setLost(true);
+            }
+
+            const colors = { correct: '#2d8f5e', present: '#b59a2a', absent: '#64748b' };
+
+            return React.createElement('div', { className: 'space-y-4 max-w-xs mx-auto' },
+                React.createElement('p', { className: 'text-center text-xs text-slate-400 uppercase tracking-widest' }, 'Indice : ' + DEF),
+                React.createElement('div', { className: 'space-y-1.5' },
+                    guesses.map((g, ri) =>
+                        React.createElement('div', { key: ri, className: 'flex gap-1.5 justify-center' },
+                            g.word.split('').map((l, ci) =>
+                                React.createElement('div', {
+                                    key: ci,
+                                    className: 'w-11 h-11 flex items-center justify-center rounded-lg text-white font-bold text-lg',
+                                    style: { background: colors[g.result[ci]] }
+                                }, l)
+                            )
+                        )
+                    ),
+                    !won && !lost && guesses.length < MAX && React.createElement('div', { className: 'flex gap-1.5 justify-center' },
+                        Array.from({ length: LEN }, (_, i) =>
+                            React.createElement('div', {
+                                key: i,
+                                className: 'w-11 h-11 flex items-center justify-center rounded-lg border-2 border-slate-300 font-bold text-lg text-slate-700'
+                            }, (current[i] || ''))
+                        )
+                    )
+                ),
+                !won && !lost && React.createElement('div', { className: 'flex gap-2' },
+                    React.createElement('input', {
+                        type: 'text', value: current, maxLength: LEN,
+                        onChange: e => setCurrent(e.target.value.toUpperCase().replace(/[^A-ZÉÈÊÀÂÙÛÎÔŒÆÇ]/gi, '').slice(0, LEN)),
+                        onKeyDown: e => e.key === 'Enter' && submit(),
+                        className: 'flex-1 border-2 rounded-xl px-3 py-2 text-center font-bold tracking-widest text-lg outline-none focus:border-amber-500',
+                        placeholder: '·'.repeat(LEN), autoCapitalize: 'characters'
+                    }),
+                    React.createElement('button', {
+                        onClick: submit, disabled: current.length < LEN,
+                        className: 'px-4 py-2 bg-amber-600 text-white rounded-xl font-bold disabled:opacity-40'
+                    }, '→')
+                ),
+                won && React.createElement('div', { className: 'text-center py-3 bg-green-50 rounded-xl border border-green-200' },
+                    React.createElement('div', { className: 'text-green-700 font-bold text-lg' }, '✓ ' + TARGET),
+                    React.createElement('div', { className: 'text-green-600 text-sm' }, guesses.length + ' essai' + (guesses.length > 1 ? 's' : ''))
+                ),
+                lost && React.createElement('div', { className: 'text-center py-3 bg-red-50 rounded-xl border border-red-200' },
+                    React.createElement('div', { className: 'text-red-700 font-bold text-lg' }, 'Le mot était : ' + TARGET),
+                    React.createElement('div', { className: 'text-red-600 text-sm' }, DEF)
+                )
+            );
+        }
+
+        function JeuxView({ memberName, api }) {
+            const [tab, setTab] = React.useState('memory');
+            return React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', { className: 'flex items-center gap-4' },
+                    React.createElement('h2', { className: 'text-2xl font-serif font-bold text-slate-800' }, '⚔ Espace Jeux'),
+                ),
+                React.createElement('div', { className: 'flex gap-2 border-b border-slate-200 pb-0' },
+                    ['memory', 'motdujour'].map(t =>
+                        React.createElement('button', {
+                            key: t, onClick: () => setTab(t),
+                            className: 'px-4 py-2 text-sm font-bold uppercase tracking-widest border-b-2 transition-colors ' +
+                                (tab === t ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-400 hover:text-slate-600')
+                        }, t === 'memory' ? '🃏 Mémory' : '🔤 Mot du Jour')
+                    )
+                ),
+                tab === 'memory'
+                    ? React.createElement(MemoryGame, { memberName, api })
+                    : React.createElement(MotDuJourGame, { memberName })
+            );
+        }
+
         function MembresComptesSection({ api }) {
             const [membres, setMembres] = React.useState([]);
             const [statuts, setStatuts] = React.useState({});
