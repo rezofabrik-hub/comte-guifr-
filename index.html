@@ -2919,8 +2919,10 @@
             const saveCapitation = async () => {
                 setSaving('cap');
                 try {
-                    await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','capitation'), capitation, {merge:true});
-                    flash('Capitation sauvegardée ✓');
+                    const r = await fetch('/api/save-capitation', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(capitation) });
+                    const d = await r.json();
+                    if (d.ok) flash('Capitation sauvegardée ✓');
+                    else flash('Erreur : ' + (d.reason || 'inconnue'));
                 } catch(e) { flash('Erreur : ' + (e.message || e)); }
                 setSaving('');
             };
