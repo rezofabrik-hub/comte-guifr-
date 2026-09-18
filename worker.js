@@ -221,6 +221,56 @@ export default {
       }
     }
 
+    // ── Suppression connexions (par l'Architecte) ────────────────────────────
+    if (url.pathname === '/api/delete-connexions' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) {
+        return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
+      }
+      try {
+        const { ids } = await request.json();
+        if (!ids || !ids.length) return new Response(JSON.stringify({ ok: true }), { headers: JSON_HEADERS });
+        const auth = await fbSignIn(workerEmail, workerPwd);
+        if (!auth.idToken) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth' }), { headers: JSON_HEADERS });
+        const idToken = auth.idToken;
+        await Promise.all(ids.map(id =>
+          fetch(`https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/artifacts/${LOGE_APP_ID}/public/data/connexions/${id}`,
+            { method: 'DELETE', headers: { 'Authorization': `Bearer ${idToken}` } })
+        ));
+        return new Response(JSON.stringify({ ok: true }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
+    // ── Sauvegarde capitation (par l'Architecte) ──────────────────────────────
+    if (url.pathname === '/api/save-capitation' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) {
+        return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
+      }
+      try {
+        const cap = await request.json();
+        const auth = await fbSignIn(workerEmail, workerPwd);
+        if (!auth.idToken) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth' }), { headers: JSON_HEADERS });
+        const idToken = auth.idToken;
+        const fields = {};
+        for (const [k, v] of Object.entries(cap)) {
+          const num = parseFloat(v);
+          if (!isNaN(num)) fields[k] = { doubleValue: num };
+        }
+        const r = await fetch(
+          `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents/artifacts/${LOGE_APP_ID}/public/data/settings/capitation`,
+          { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify({ fields }) }
+        );
+        return new Response(JSON.stringify({ ok: r.ok }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
     // Tout le reste → assets statiques
     return env.ASSETS.fetch(request);
   }
