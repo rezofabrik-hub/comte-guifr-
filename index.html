@@ -389,7 +389,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche, books, reglementFile }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche, books, reglementFile, memberPayment }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -930,6 +930,30 @@
                                             <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0.5">Dernière mise en ligne</p>
                                             <p className="font-bold text-slate-900 text-sm truncate">{last.title}</p>
                                             <p className="text-slate-400 text-[10px] mt-0.5">{last.label} · {last.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {memberPayment && memberPayment.montantCotis > 0 && (() => {
+                                const pct = Math.min(100, Math.round((memberPayment.totalPaye / memberPayment.montantCotis) * 100));
+                                const aJour = memberPayment.totalPaye >= memberPayment.montantCotis;
+                                const reste = Math.max(0, memberPayment.montantCotis - memberPayment.totalPaye);
+                                return (
+                                    <div className={`bg-white border-l-4 ${aJour ? 'border-green-500' : 'border-amber-400'} rounded-2xl p-4 shadow-sm flex items-center gap-3`}>
+                                        <div className={`rounded-xl p-2.5 shrink-0 ${aJour ? 'bg-green-50' : 'bg-amber-50'}`}><SmartIcon name={aJour ? 'CircleCheckBig' : 'Coins'} size={20} className={aJour ? 'text-green-600' : 'text-amber-600'}/></div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${aJour ? 'text-green-600' : 'text-amber-600'}`}>Cotisation {memberPayment.annee}</p>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                                    <div className={`h-2 rounded-full transition-all ${aJour ? 'bg-green-500' : 'bg-amber-400'}`} style={{width:`${pct}%`}}></div>
+                                                </div>
+                                                <span className={`text-xs font-bold ${aJour ? 'text-green-700' : 'text-amber-700'}`}>{pct}%</span>
+                                            </div>
+                                            <p className="text-slate-500 text-[10px]">
+                                                {memberPayment.totalPaye.toFixed(2)} € payés sur {memberPayment.montantCotis.toFixed(2)} €
+                                                {aJour ? ' · À jour ✓' : ` · Reste ${reste.toFixed(2)} €`}
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -3843,6 +3867,7 @@ EXEMPLE DE FORMAT CORRECT :
             const [memberName, setMemberName] = useState('');
             const [memberRole, setMemberRole] = useState('');
             const [memberGenre, setMemberGenre] = useState('frere');
+            const [memberPayment, setMemberPayment] = useState(null);
             const [activeView, setActiveView] = useState('home');
             const [unlockedGrades, setUnlockedGrades] = useState({ apprenti: false, compagnon: false, maitre: false });
             const [pendingGrade, setPendingGrade] = useState('');
@@ -4084,6 +4109,13 @@ EXEMPLE DE FORMAT CORRECT :
                 setPendingNameMatch('');
             }, [members, pendingNameMatch]);
 
+            // Charger le statut de cotisation du membre connecté
+            useEffect(() => {
+                if (!memberName || !isLogged || isArchitect || isVM || isTresorier) { setMemberPayment(null); return; }
+                fetch('/api/member-payment', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:memberName}) })
+                    .then(r=>r.json()).then(d=>{ if(d.ok) setMemberPayment(d); }).catch(()=>{});
+            }, [memberName, isLogged, isArchitect, isVM, isTresorier]);
+
             const canSee = useCallback((v) => {
                 const vis = (v || 'apprenti').toLowerCase().trim();
                 if (unlockedGrades.maitre || isArchitect) return true;
@@ -4224,7 +4256,7 @@ EXEMPLE DE FORMAT CORRECT :
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} books={books} reglementFile={reglementFile} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} books={books} reglementFile={reglementFile} memberPayment={memberPayment} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}

@@ -171,6 +171,50 @@ export default {
       }
     }
 
+    // ── Cotisation membre : montant payé à ce jour pour l'année en cours ─────
+    if (url.pathname === '/api/member-payment' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) {
+        return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
+      }
+      try {
+        const { name } = await request.json();
+        if (!name) return new Response(JSON.stringify({ ok: false, reason: 'no_name' }), { headers: JSON_HEADERS });
+
+        const auth = await fbSignIn(workerEmail, workerPwd);
+        if (!auth.idToken) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth' }), { headers: JSON_HEADERS });
+        const idToken = auth.idToken;
+
+        // Trouver le membre par nom
+        const memberDocs = await fsGetAllDocs(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
+        const words = n => (n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z]+/).filter(w => w.length > 0);
+        const found = memberDocs.find(doc => {
+          const docName = doc.fields?.name?.stringValue || '';
+          const dw = words(docName); const nw = words(name);
+          return nw.every(w => dw.some(d => d.includes(w) || w.includes(d)));
+        });
+        if (!found) return new Response(JSON.stringify({ ok: true, totalPaye: 0, montantCotis: 0, annee: new Date().getFullYear(), reason: 'not_found' }), { headers: JSON_HEADERS });
+
+        const memberId = found.name.split('/').pop();
+        const annee = new Date().getFullYear();
+
+        // Lire les cotisations de ce membre pour l'année en cours
+        const cotisDocs = await fsGetAllDocs(`artifacts/${LOGE_APP_ID}/public/data/tresor_cotisations`, idToken);
+        const totalPaye = cotisDocs
+          .filter(d => d.fields?.membreId?.stringValue === memberId && parseInt(d.fields?.annee?.integerValue || d.fields?.annee?.doubleValue || 0) === annee)
+          .reduce((s, d) => s + parseFloat(d.fields?.montant?.doubleValue || d.fields?.montant?.integerValue || 0), 0);
+
+        // Lire le montant attendu dans les settings
+        const settingsDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/tresor_settings/config`, idToken);
+        const montantCotis = parseFloat(settingsDoc?.fields?.montantCotis?.doubleValue || settingsDoc?.fields?.montantCotis?.integerValue || 0);
+
+        return new Response(JSON.stringify({ ok: true, totalPaye, montantCotis, annee }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
     // Tout le reste → assets statiques
     return env.ASSETS.fetch(request);
   }
