@@ -3209,7 +3209,13 @@
 
             const deleteByNom = async (nom) => {
                 const ids = logs.filter(l => l.nom === nom).map(l => l.id);
-                await fetch('/api/delete-connexions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+                try {
+                    const r = await fetch('/api/delete-connexions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+                    const d = await r.json();
+                    if (!d.ok) alert('Erreur suppression : ' + (d.reason || JSON.stringify(d)));
+                } catch(e) {
+                    alert('Erreur réseau : ' + (e.message || e));
+                }
                 setConfirmDel(null);
                 loadLogs();
             };
