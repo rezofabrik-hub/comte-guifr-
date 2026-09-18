@@ -197,7 +197,7 @@ export default {
         if (!found) return new Response(JSON.stringify({ ok: true, totalPaye: 0, montantCotis: 0, annee: new Date().getFullYear(), reason: 'not_found' }), { headers: JSON_HEADERS });
 
         const memberId = found.name.split('/').pop();
-        const annee = new Date().getFullYear();
+        const annee = new Date().getFullYear() + 1;
 
         // Lire les cotisations de ce membre pour l'année en cours
         const cotisDocs = await fsGetAllDocs(`artifacts/${LOGE_APP_ID}/public/data/tresor_cotisations`, idToken);
