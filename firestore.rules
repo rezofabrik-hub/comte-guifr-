@@ -205,6 +205,16 @@ service cloud.firestore {
     // }
 
     // ─────────────────────────────────────────────────────────────────────
+    //  PHOTOS — galerie photos de la loge (lecture tous membres)
+    // ─────────────────────────────────────────────────────────────────────
+    match /artifacts/{appId}/public/data/photos/{docId} {
+      allow read:   if isMember(appId);
+      allow create: if isVMouArchitecte() && ownLodge(appId) && tailleOk();
+      allow delete: if isVMouArchitecte() && ownLodge(appId);
+      allow update: if false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     //  CONNEXIONS — journal des connexions membres (visible Architecte seul)
     // ─────────────────────────────────────────────────────────────────────
     // Écriture : tout membre authentifié de la loge (le Worker écrit avec
