@@ -935,7 +935,16 @@
                                 );
                             })()}
 
-                            {memberPayment && memberPayment.montantCotis > 0 && (() => {
+                            {memberPayment && (() => {
+                                if (!memberPayment.montantCotis) return (
+                                    <div className="bg-white border-l-4 border-slate-300 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+                                        <div className="bg-slate-50 rounded-xl p-2.5 shrink-0"><SmartIcon name="Coins" size={20} className="text-slate-400"/></div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Cotisation {memberPayment.annee}</p>
+                                            <p className="text-slate-400 text-[10px]">Montant non encore défini par l'Architecte</p>
+                                        </div>
+                                    </div>
+                                );
                                 const pct = Math.min(100, Math.round((memberPayment.totalPaye / memberPayment.montantCotis) * 100));
                                 const aJour = memberPayment.totalPaye >= memberPayment.montantCotis;
                                 const reste = Math.max(0, memberPayment.montantCotis - memberPayment.totalPaye);
@@ -4114,7 +4123,7 @@ EXEMPLE DE FORMAT CORRECT :
                 if (!memberName || !isLogged || isArchitect || isVM || isTresorier) { setMemberPayment(null); return; }
                 fetch('/api/member-payment', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:memberName, gradeKey:loginGradeKey}) })
                     .then(r=>r.json()).then(d=>{ if(d.ok) setMemberPayment(d); }).catch(()=>{});
-            }, [memberName, isLogged, isArchitect, isVM, isTresorier]);
+            }, [memberName, isLogged, isArchitect, isVM, isTresorier, loginGradeKey]);
 
             const canSee = useCallback((v) => {
                 const vis = (v || 'apprenti').toLowerCase().trim();
