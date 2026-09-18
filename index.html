@@ -3208,13 +3208,15 @@
             React.useEffect(() => { loadLogs(); }, [loadLogs]);
 
             const deleteByNom = async (nom) => {
-                const ids = logs.filter(l => l.nom === nom).map(l => l.id);
+                const toDelete = logs.filter(l => l.nom === nom);
+                alert('Suppression de ' + toDelete.length + ' doc(s) pour ' + nom + ' — IDs: ' + toDelete.map(l=>l.id).join(', '));
                 try {
-                    const r = await fetch('/api/delete-connexions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
-                    const d = await r.json();
-                    if (!d.ok) alert('Erreur suppression : ' + (d.reason || JSON.stringify(d)));
+                    await Promise.all(toDelete.map(l =>
+                        api.deleteDoc(api.doc(api.db, 'artifacts', api.appId, 'public', 'data', 'connexions', l.id))
+                    ));
+                    alert('Supprimé OK');
                 } catch(e) {
-                    alert('Erreur réseau : ' + (e.message || e));
+                    alert('Erreur suppression : ' + (e.message || e));
                 }
                 setConfirmDel(null);
                 loadLogs();
