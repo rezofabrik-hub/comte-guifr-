@@ -205,6 +205,18 @@ service cloud.firestore {
     // }
 
     // ─────────────────────────────────────────────────────────────────────
+    //  CONNEXIONS — journal des connexions membres (visible Architecte seul)
+    // ─────────────────────────────────────────────────────────────────────
+    // Écriture : tout membre authentifié de la loge (le Worker écrit avec
+    //   le compte worker qui appartient au domaine cg51-virtuel.fr).
+    // Lecture : Architecte uniquement.
+    match /artifacts/{appId}/public/data/connexions/{docId} {
+      allow read:   if isVMouArchitecte() && ownLodge(appId);
+      allow create: if isMember(appId) && tailleOk();
+      allow update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     //  FALLBACK : tout refuser
     // ─────────────────────────────────────────────────────────────────────
     match /{document=**} {
