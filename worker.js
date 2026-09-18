@@ -179,7 +179,7 @@ export default {
         return new Response(JSON.stringify({ error: 'Worker non configuré' }), { status: 500, headers: JSON_HEADERS });
       }
       try {
-        const { name } = await request.json();
+        const { name, gradeKey } = await request.json();
         if (!name) return new Response(JSON.stringify({ ok: false, reason: 'no_name' }), { headers: JSON_HEADERS });
 
         const auth = await fbSignIn(workerEmail, workerPwd);
@@ -205,9 +205,15 @@ export default {
           .filter(d => d.fields?.membreId?.stringValue === memberId && parseInt(d.fields?.annee?.integerValue || d.fields?.annee?.doubleValue || 0) === annee)
           .reduce((s, d) => s + parseFloat(d.fields?.montant?.doubleValue || d.fields?.montant?.integerValue || 0), 0);
 
-        // Lire le montant attendu dans les settings
-        const settingsDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/tresor_settings/config`, idToken);
-        const montantCotis = parseFloat(settingsDoc?.fields?.montantCotis?.doubleValue || settingsDoc?.fields?.montantCotis?.integerValue || 0);
+        // Lire le montant de capitation dans settings/capitation (configurateur Architecte)
+        const capDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/settings/capitation`, idToken);
+        const capFields = capDoc?.fields || {};
+        const fv = f => parseFloat(capFields[f]?.doubleValue || capFields[f]?.integerValue || capFields[f]?.stringValue || 0);
+        // Grade du membre : prendre le grade spécifique, sinon la base
+        const gradeNorm = (gradeKey || '').toLowerCase().replace('maître','maitre').replace('maître','maitre');
+        const montantGrade = fv(gradeNorm) || fv('maitre');
+        const montantBase = fv('base');
+        const montantCotis = (montantGrade || 0) + (montantBase || 0);
 
         return new Response(JSON.stringify({ ok: true, totalPaye, montantCotis, annee }), { headers: JSON_HEADERS });
       } catch (e) {
