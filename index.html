@@ -3295,7 +3295,6 @@
 
         const MOTS_MACONS = [
             { mot:'TENUE', def:'Réunion rituelle de la loge' },
-            { mot:'LOGE', def:'Atelier maçonnique' },
             { mot:'GRADE', def:'Degré initiatique' },
             { mot:'PLOMB', def:'Outil du fil à plomb' },
             { mot:'DELTA', def:'Triangle lumineux en Orient' },
@@ -3303,13 +3302,28 @@
             { mot:'RAYON', def:'Lumière de l\'Orient' },
             { mot:'FRERE', def:'Membre masculin de la loge' },
             { mot:'VOUTE', def:'Arche céleste du Temple' },
-            { mot:'PIERRE', def:'Matériau du travail initiatique' },
-            { mot:'MAROC', def:'Terre de tradition constructive' },
             { mot:'BOITE', def:'Contient les offrandes fraternelles' },
-            { mot:'LAUBE', def:'Tablier de l\'initié (l\'aube)' },
             { mot:'OUVRE', def:'Verbe du travail en loge' },
             { mot:'PORTE', def:'Entrée du Temple sacré' },
             { mot:'ORDRE', def:'Organisation et règle de la loge' },
+            { mot:'LOUVE', def:'Outil pour soulever la pierre de taille' },
+            { mot:'AUTEL', def:'Table sacrée au centre du Temple' },
+            { mot:'CABLE', def:'Longueur symbolique de trois lieues' },
+            { mot:'SIGNE', def:'Geste de reconnaissance entre Frères' },
+            { mot:'TISSU', def:'Matière du tablier de l\'initié' },
+            { mot:'ECLAT', def:'Fragment de pierre lors de la taille' },
+            { mot:'ANCRE', def:'Symbole d\'espérance et de stabilité' },
+            { mot:'BIBLE', def:'Volume de la Loi Sacrée sur l\'autel' },
+            { mot:'NAPPE', def:'Tissu recouvrant l\'autel en loge' },
+            { mot:'FORGE', def:'Lieu où le métal est transformé' },
+            { mot:'ARCHE', def:'Voûte symbolique du Temple royal' },
+            { mot:'REGLE', def:'Outil pour tracer les lignes droites' },
+            { mot:'CORDE', def:'Lien qui unit les pierres d\'une voûte' },
+            { mot:'STELE', def:'Pierre dressée portant une inscription' },
+            { mot:'DALLE', def:'Pierre plate du pavé mosaïque' },
+            { mot:'ROCHE', def:'Matière brute avant la taille initiatique' },
+            { mot:'LUEUR', def:'Clarté symbolique de la connaissance' },
+            { mot:'LECON', def:'Enseignement transmis en loge' },
         ];
 
         function MemoryGame({ memberName, api }) {
@@ -3399,8 +3413,8 @@
                 ),
                 React.createElement('div', { className: 'text-right text-sm text-slate-500 font-bold' }, 'Coups : ' + moves),
                 React.createElement('div', {
-                    className: 'grid gap-3',
-                    style: { gridTemplateColumns: 'repeat(4, 1fr)' }
+                    className: 'grid gap-1.5',
+                    style: { gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: '320px', margin: '0 auto' }
                 },
                     cards.map(card => {
                         const isFlipped = !!flipped.find(c => c.uid === card.uid);
@@ -3409,10 +3423,10 @@
                         return React.createElement('button', {
                             key: card.uid,
                             onClick: () => flip(card),
-                            className: 'aspect-square rounded-xl border-2 flex items-center justify-center transition-all ' +
+                            className: 'aspect-square rounded-lg border-2 flex items-center justify-center transition-all ' +
                                 (isMatched ? 'border-amber-400 bg-amber-50' : show ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'),
                             disabled: isMatched || (flipped.length === 2 && !show),
-                            style: { padding: '8px' }
+                            style: { padding: '4px' }
                         },
                             React.createElement('div', {
                                 dangerouslySetInnerHTML: { __html: show ? card.svg : BACK_SVG },
