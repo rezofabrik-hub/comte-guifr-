@@ -3553,32 +3553,6 @@
             );
         }
 
-        function JeuxView({ memberName, api }) {
-            const [jeu, setJeu] = React.useState('memory');
-            return (
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold font-serif text-slate-800">🎮 Espace Jeux</h2>
-                            <p className="text-slate-400 text-sm mt-1">Jeux initiatiques · Classement entre Frères et Sœurs</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-3 border-b border-slate-100 pb-0">
-                        <button onClick={()=>setJeu('memory')} className={`pb-3 px-4 text-sm font-bold font-serif border-b-2 transition-colors ${jeu==='memory'?'border-amber-600 text-amber-700':'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                            🔷 Mémory Maçonnique
-                        </button>
-                        <button onClick={()=>setJeu('motdujour')} className={`pb-3 px-4 text-sm font-bold font-serif border-b-2 transition-colors ${jeu==='motdujour'?'border-amber-600 text-amber-700':'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                            🔺 Mot du Jour
-                        </button>
-                    </div>
-                    <div>
-                        {jeu==='memory' && <MemoryGame memberName={memberName} api={api} />}
-                        {jeu==='motdujour' && <MotDuJourGame memberName={memberName} />}
-                    </div>
-                </div>
-            );
-        }
-
         // ==========================================
         // ESPACE JEUX
         // ==========================================
@@ -3814,24 +3788,266 @@
             );
         }
 
-        function JeuxView({ memberName, api }) {
-            const [tab, setTab] = React.useState('memory');
-            return React.createElement('div', { className: 'space-y-6' },
-                React.createElement('div', { className: 'flex items-center gap-4' },
-                    React.createElement('h2', { className: 'text-2xl font-serif font-bold text-slate-800' }, '⚔ Espace Jeux'),
+        // ─── Questions Quiz par grade ───────────────────────────────────────────
+        const QUIZ_QUESTIONS = {
+            apprenti: [
+                { q:"Que symbolise le tablier blanc de l'Apprenti ?", opts:["Un vêtement de travail","L'innocence et la pureté de l'âme","Un signe de richesse","La protection des outils"], ans:1, exp:"Le tablier blanc symbolise la <b>pureté de l'âme</b> et l'innocence avec laquelle l'Apprenti entre dans la Loge." },
+                { q:"Combien de coups l'Apprenti frappe-t-il à la porte ?", opts:["Un coup","Deux coups","Trois coups","Cinq coups"], ans:0, exp:"L'Apprenti frappe <b>un seul coup</b>, signifiant son unité et sa volonté singulière d'entrer dans la voie initiatique." },
+                { q:"Que représente la pierre brute ?", opts:["La matière de construction","L'état naturel de l'homme avant son perfectionnement","Un simple décor","La mort du profane"], ans:1, exp:"La pierre brute représente <b>l'état brut de l'homme</b> avant son travail initiatique. L'Apprenti doit la tailler — se tailler lui-même." },
+                { q:"À quelle colonne se tient l'Apprenti ?", opts:["À la colonne J (Jakin)","Au centre du temple","À la colonne B (Boaz)","Devant le Vénérable"], ans:2, exp:"L'Apprenti se tient à la colonne <b>B (Boaz)</b>, au nord du Temple, côté de l'ombre." },
+                { q:"Quel outil est associé à l'Apprenti ?", opts:["L'équerre","Le compas","Le maillet et le ciseau","La règle de 24 pouces"], ans:2, exp:"Le <b>maillet et le ciseau</b> symbolisent le travail volontaire et la précision nécessaires à l'élaboration de soi." },
+                { q:"Que représente la houpette dentelée ?", opts:["La frontière sacrée","Le lien fraternel entre tous les maçons","La limite des dépenses","Un décor sans sens"], ans:1, exp:"La houpette dentelée symbolise la <b>chaîne d'union fraternelle</b> qui relie tous les membres de la Loge." },
+                { q:"Dans quel sens l'Apprenti circule-t-il dans le Temple ?", opts:["Dans le sens des aiguilles d'une montre","Contre les aiguilles d'une montre","En ligne droite","Il ne se déplace pas"], ans:0, exp:"L'Apprenti circule de <b>gauche à droite</b>, dans le sens du soleil, vers la lumière." },
+                { q:"Que désigne la lettre G de l'Étoile Flamboyante ?", opts:["Grand Architecte uniquement","La Géométrie, science fondatrice","Gnose secrète","Les grandes loges"], ans:1, exp:"La lettre <b>G</b> désigne la <b>Géométrie</b>, science mère des arts, et renvoie aussi au Grand Architecte." },
+                { q:"Où se situe l'Orient dans le Temple ?", opts:["Au nord","À l'ouest","À l'est","Au sud"], ans:2, exp:"L'Orient est à l'<b>est</b> du Temple, là où siège le Vénérable Maître, symbole de la lumière qui se lève." },
+                { q:"Que représente le tablier de peau blanche ?", opts:["L'appartenance à la loge","Le travail manuel","La pureté et l'innocence initiale","Le rang du membre"], ans:2, exp:"Le tablier de peau blanche représente la <b>pureté et l'innocence</b> de celui qui commence son chemin maçonnique." },
+            ],
+            compagnon: [
+                { q:"Quels sont les cinq ordres d'architecture ?", opts:["Toscan, Dorique, Ionique, Corinthien, Composite","Roman, Gothique, Renaissance, Baroque, Classique","Carré, Rond, Triangulaire, Hexagonal, Octogonal","Les cinq degrés initiatiques"], ans:0, exp:"Les cinq ordres sont <b>Toscan, Dorique, Ionique, Corinthien et Composite</b>. Ils correspondent aux étapes du développement harmonieux." },
+                { q:"À quelle colonne se tient le Compagnon ?", opts:["À la colonne B (Boaz)","À la colonne J (Jakin)","Au centre","Devant l'Orient"], ans:1, exp:"Le Compagnon se tient à la colonne <b>J (Jakin)</b>, au sud, côté de la lumière. Il a progressé de l'ombre vers la clarté." },
+                { q:"Quelle figure symbolise le Compagnon ?", opts:["Le triangle","Le carré","L'étoile flamboyante à 5 branches","Le cercle"], ans:2, exp:"L'<b>étoile flamboyante à cinq branches</b> symbolise le Compagnon, ses cinq sens et les cinq ordres d'architecture." },
+                { q:"Que représentent les 7 marches de l'escalier en colimaçon ?", opts:["Les 7 péchés capitaux","Les 7 arts libéraux","Les 7 planètes","Les 7 jours de la création"], ans:1, exp:"Les sept marches correspondent aux <b>sept arts libéraux</b> : grammaire, rhétorique, logique, arithmétique, géométrie, musique, astronomie." },
+                { q:"Que signifie JAKIN ?", opts:["En lui est la force","Il établit","La sagesse divine","La beauté des formes"], ans:1, exp:"Jakin signifie <b>« Il établit »</b>. Boaz signifie « En lui est la force ». Ensemble, elles représentent force et stabilité." },
+                { q:"Qu'est-ce qu'une planche en loge ?", opts:["Un outil de traçage","Un exposé oral ou écrit d'un Frère","Un registre des membres","Le carnet de voyage"], ans:1, exp:"La planche est un <b>exposé</b> qu'un Frère présente à la Loge, fruit de ses réflexions, pour l'édification collective." },
+                { q:"Quels sont les cinq points des Compagnons ?", opts:["Les cinq sens","Les cinq vertus cardinales","Les cinq éléments","Les cinq directions"], ans:0, exp:"Les cinq points correspondent aux <b>cinq sens</b> — vue, ouïe, odorat, goût, toucher — l'éveil complet de l'homme." },
+                { q:"Combien de coups le Compagnon frappe-t-il à la porte ?", opts:["Un coup","Deux coups","Trois coups","Cinq coups"], ans:1, exp:"Le Compagnon frappe <b>deux coups</b>, signifiant la dualité, l'équilibre entre force et sagesse." },
+                { q:"Que symbolise la règle de 24 pouces ?", opts:["La mesure des pierres","Les 24 heures du jour à bien employer","La hauteur des colonnes","La longueur du tablier"], ans:1, exp:"La règle de 24 pouces symbolise les <b>24 heures du jour</b>, à diviser entre travail, repos et service à l'humanité." },
+                { q:"Quel métal est associé au Compagnon dans la symbolique ?", opts:["L'or","L'argent","Le cuivre (ou l'airain)","Le fer"], ans:2, exp:"Le <b>cuivre (airain)</b> est le métal des colonnes Jakin et Boaz, associé au Compagnon et à ses travaux d'architecture." },
+            ],
+            maitre: [
+                { q:"Qui était Hiram Abiff ?", opts:["Le roi de Tyr","L'architecte en chef du Temple de Salomon","Le grand prêtre","Le père de Salomon"], ans:1, exp:"Hiram Abiff était le <b>Grand Architecte du Temple de Salomon</b>. Sa mort et résurrection forment le mystère central du grade de Maître." },
+                { q:"Que symbolise l'acacia ?", opts:["La pureté du bois","L'immortalité de l'âme","Un arbre du jardin d'Eden","La connaissance cachée"], ans:1, exp:"L'acacia symbolise <b>l'immortalité de l'âme</b>. Il poussa sur la tombe d'Hiram, signalant sa sépulture." },
+                { q:"Que représente la chambre funèbre ?", opts:["Une punition","La mort symbolique pour renaître Maître","Un souvenir historique","La salle secrète"], ans:1, exp:"La chambre funèbre représente la <b>mort symbolique</b> nécessaire à la renaissance spirituelle. On doit mourir à son état de Compagnon pour renaître Maître." },
+                { q:"Qui sont les trois mauvais compagnons ?", opts:["Jubela, Jubelo, Jubelum","Caïn, Ésaü, Goliath","Abiram, Hiron, Stibbon","Leurs noms sont secrets"], ans:0, exp:"Les trois meurtriers sont <b>Jubela, Jubelo et Jubelum</b>. Ils symbolisent les forces du désordre, de l'ambition et de la trahison." },
+                { q:"Que représente le delta lumineux ?", opts:["La Trinité chrétienne","Le Grand Architecte de l'Univers","L'union de l'Équerre et du Compas","Les trois piliers"], ans:1, exp:"Le delta lumineux représente <b>le Grand Architecte de l'Univers (GADLU)</b> dans son principe ineffable." },
+                { q:"Qu'est-ce que le mot de substitution ?", opts:["Le mot d'ordre mensuel","Le mot perdu avec Hiram, remplacé provisoirement","Un titre de remplacement","La formule de fermeture"], ans:1, exp:"Après la mort d'Hiram, le vrai Mot fut perdu. Un <b>mot de substitution</b> fut institué jusqu'au jour où le Mot perdu serait retrouvé." },
+                { q:"Quels outils frappent Hiram ?", opts:["Maillet, équerre, ciseau","Règle, équerre, maillet","Compas, équerre, maillet","Ciseau, compas, niveau"], ans:1, exp:"Hiram reçoit trois coups : à la gorge par la <b>règle</b>, sur la poitrine par l'<b>équerre</b>, sur le front par le <b>maillet</b>." },
+                { q:"Que signifie relever un Maître ?", opts:["Aider un Maître à se lever","La résurrection symbolique lors de l'élévation","Réhabiliter un Maître","Élire un Vénérable"], ans:1, exp:"Relever un Maître correspond à la <b>résurrection symbolique</b> du récipiendaire lors de son élévation à la Maîtrise." },
+                { q:"Combien de coups frappe le Maître ?", opts:["Un coup","Deux coups","Trois coups","Sept coups"], ans:2, exp:"Le Maître frappe <b>trois coups</b>, renvoyant à la trilogie Sagesse, Force, Beauté — les trois piliers de la Loge." },
+                { q:"Que représente l'étoile à cinq branches pour le Maître ?", opts:["Le Compagnon accompli","La lumière divine non encore maîtrisée","Le signe de reconnaissance du grade","Les cinq sens développés"], ans:1, exp:"Pour le Maître, l'étoile flamboyante représente la <b>lumière divine</b> qu'il cherche à atteindre, la flamme intérieure à entretenir." },
+            ],
+        };
+
+        // ─── Quiz Maçonnique ────────────────────────────────────────────────────
+        function QuizMaconnique({ memberName, api, loginGradeKey, unlockedGrades }) {
+            const GRADES = [
+                { key:'apprenti', label:'Apprenti', sym:'⊾', color:'#5b8fe8' },
+                { key:'compagnon', label:'Compagnon', sym:'—', color:'#4dbf8a' },
+                { key:'maitre', label:'Maître', sym:'∧', color:'#c8a84b' },
+            ];
+            const highestUnlocked = () => {
+                if (unlockedGrades && unlockedGrades.maitre) return 'maitre';
+                if (unlockedGrades && unlockedGrades.compagnon) return 'compagnon';
+                return 'apprenti';
+            };
+            const canAccessGrade = (g) => {
+                if (g === 'apprenti') return true;
+                return unlockedGrades && unlockedGrades[g];
+            };
+            const isElevated = loginGradeKey === 'vm' || loginGradeKey === 'architecte';
+
+            const [selectedGrade, setSelectedGrade] = React.useState(highestUnlocked());
+            const [questions, setQuestions] = React.useState([]);
+            const [current, setCurrent] = React.useState(0);
+            const [score, setScore] = React.useState(0);
+            const [chosen, setChosen] = React.useState(null);
+            const [done, setDone] = React.useState(false);
+            const [scores, setScores] = React.useState([]);
+            const [saving, setSaving] = React.useState(false);
+            const [view, setView] = React.useState('grade'); // grade | quiz | result | classement
+
+            React.useEffect(() => { loadScores(); }, []);
+
+            async function loadScores() {
+                if (!api) return;
+                try {
+                    const snap = await api.getDocs(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_quiz'));
+                    const all = snap.docs.map(d => d.data());
+                    all.sort((a, b) => b.score - a.score || a.total - b.total);
+                    setScores(all.slice(0, 20));
+                } catch(e) {}
+            }
+
+            function startQuiz(grade) {
+                const pool = [...QUIZ_QUESTIONS[grade]].sort(() => Math.random() - 0.5).slice(0, 8);
+                setSelectedGrade(grade);
+                setQuestions(pool);
+                setCurrent(0);
+                setScore(0);
+                setChosen(null);
+                setDone(false);
+                setView('quiz');
+            }
+
+            function answer(idx) {
+                if (chosen !== null) return;
+                setChosen(idx);
+            }
+
+            async function next() {
+                const q = questions[current];
+                const correct = chosen === q.ans ? 1 : 0;
+                const newScore = score + correct;
+                if (current + 1 >= questions.length) {
+                    setScore(newScore);
+                    setDone(true);
+                    setView('result');
+                    if (api && memberName) {
+                        setSaving(true);
+                        try {
+                            await api.addDoc(
+                                api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_quiz'),
+                                { name: memberName, grade: selectedGrade, score: newScore, total: questions.length, date: new Date().toISOString() }
+                            );
+                            await loadScores();
+                        } catch(e) {}
+                        setSaving(false);
+                    }
+                } else {
+                    setScore(newScore);
+                    setCurrent(c => c + 1);
+                    setChosen(null);
+                }
+            }
+
+            const gradeColors = { apprenti:'#5b8fe8', compagnon:'#4dbf8a', maitre:'#c8a84b' };
+            const gradeLabels = { apprenti:'Apprenti', compagnon:'Compagnon', maitre:'Maître' };
+
+            // Écran sélection grade
+            if (view === 'grade') return React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', { className: 'flex justify-end' },
+                    React.createElement('button', { onClick: () => setView('classement'), className: 'text-xs text-amber-600 font-bold hover:underline' }, '🏆 Voir le classement')
                 ),
-                React.createElement('div', { className: 'flex gap-2 border-b border-slate-200 pb-0' },
-                    ['memory', 'motdujour'].map(t =>
-                        React.createElement('button', {
-                            key: t, onClick: () => setTab(t),
-                            className: 'px-4 py-2 text-sm font-bold uppercase tracking-widest border-b-2 transition-colors ' +
-                                (tab === t ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-400 hover:text-slate-600')
-                        }, t === 'memory' ? '🃏 Mémory' : '🔤 Mot du Jour')
+                React.createElement('p', { className: 'text-center text-slate-500 text-sm' }, 'Choisissez votre grade pour commencer le quiz'),
+                React.createElement('div', { className: 'flex flex-col gap-3 max-w-sm mx-auto' },
+                    GRADES.map(g => {
+                        const ok = isElevated || canAccessGrade(g.key);
+                        return React.createElement('button', {
+                            key: g.key, onClick: () => ok && startQuiz(g.key),
+                            className: 'flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ' +
+                                (ok ? 'border-slate-200 hover:border-amber-400 hover:bg-amber-50 cursor-pointer' : 'border-slate-100 opacity-40 cursor-not-allowed'),
+                        },
+                            React.createElement('span', { className: 'text-3xl font-bold w-10 text-center', style: { color: g.color } }, g.sym),
+                            React.createElement('div', null,
+                                React.createElement('div', { className: 'font-bold text-slate-700 font-serif' }, g.label),
+                                React.createElement('div', { className: 'text-xs text-slate-400' }, ok ? '8 questions · Symbolique et rituels' : '🔒 Grade non débloqué')
+                            )
+                        );
+                    })
+                )
+            );
+
+            // Écran classement
+            if (view === 'classement') return React.createElement('div', { className: 'space-y-4' },
+                React.createElement('div', { className: 'flex items-center gap-3' },
+                    React.createElement('button', { onClick: () => setView('grade'), className: 'text-slate-400 hover:text-slate-600 text-xl' }, '←'),
+                    React.createElement('h3', { className: 'font-bold font-serif text-lg text-slate-700' }, '🏆 Classement général')
+                ),
+                scores.length === 0
+                    ? React.createElement('p', { className: 'text-center text-slate-400 py-8 text-sm' }, 'Aucun score enregistré pour l\'instant.')
+                    : React.createElement('div', { className: 'space-y-1.5' },
+                        scores.map((s, i) => React.createElement('div', {
+                            key: i,
+                            className: 'flex items-center gap-3 px-4 py-3 rounded-xl ' + (i === 0 ? 'bg-amber-50 border border-amber-200' : i < 3 ? 'bg-slate-50' : '')
+                        },
+                            React.createElement('span', { className: 'font-bold text-slate-400 w-6 text-sm' }, i+1 + '.'),
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('span', { className: 'font-bold text-slate-700 text-sm' }, s.name),
+                                React.createElement('span', { className: 'ml-2 text-xs px-2 py-0.5 rounded-full', style: { background: gradeColors[s.grade]+'22', color: gradeColors[s.grade] } }, gradeLabels[s.grade])
+                            ),
+                            React.createElement('span', { className: 'font-bold text-amber-600' }, s.score + '/' + s.total)
+                        ))
+                    ),
+                React.createElement('button', { onClick: () => setView('grade'), className: 'w-full mt-2 py-3 bg-amber-600 text-white rounded-xl font-bold text-sm' }, 'Jouer')
+            );
+
+            // Écran résultat
+            if (view === 'result') {
+                const pct = score / questions.length;
+                const medal = pct === 1 ? '🥇' : pct >= 0.75 ? '🥈' : pct >= 0.5 ? '🥉' : '📿';
+                const msg = pct === 1 ? 'Parfait — Pierre polie à la perfection !'
+                    : pct >= 0.75 ? 'Excellent travail de Frère !'
+                    : pct >= 0.5 ? 'Sur le bon chemin, continuez !'
+                    : 'Méditez et recommencez.';
+                return React.createElement('div', { className: 'text-center space-y-5 py-4' },
+                    React.createElement('div', { className: 'text-5xl' }, medal),
+                    React.createElement('div', { className: 'text-4xl font-bold font-serif', style: { color: gradeColors[selectedGrade] } }, score + ' / ' + questions.length),
+                    React.createElement('div', { className: 'text-slate-600 font-serif text-lg' }, msg),
+                    saving && React.createElement('div', { className: 'text-xs text-slate-400' }, 'Enregistrement du score...'),
+                    React.createElement('div', { className: 'flex gap-3 justify-center flex-wrap' },
+                        React.createElement('button', { onClick: () => startQuiz(selectedGrade), className: 'px-5 py-2.5 border-2 border-amber-500 text-amber-600 rounded-xl font-bold text-sm' }, '↺ Rejouer'),
+                        React.createElement('button', { onClick: () => setView('grade'), className: 'px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm' }, 'Autre grade'),
+                        React.createElement('button', { onClick: () => setView('classement'), className: 'px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm' }, '🏆 Classement')
                     )
+                );
+            }
+
+            // Écran quiz
+            const q = questions[current];
+            if (!q) return null;
+            const letters = ['A','B','C','D'];
+            return React.createElement('div', { className: 'space-y-5' },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', { className: 'text-xs font-bold uppercase tracking-widest text-slate-400' },
+                        gradeLabels[selectedGrade] + ' · Q' + (current+1) + '/' + questions.length
+                    ),
+                    React.createElement('div', { className: 'text-xs font-bold text-amber-600' }, 'Score : ' + score)
                 ),
-                tab === 'memory'
-                    ? React.createElement(MemoryGame, { memberName, api })
-                    : React.createElement(MotDuJourGame, { memberName })
+                React.createElement('div', { className: 'w-full bg-slate-100 rounded-full h-1.5' },
+                    React.createElement('div', { className: 'h-1.5 rounded-full bg-amber-500 transition-all', style: { width: ((current/questions.length)*100)+'%' } })
+                ),
+                React.createElement('div', { className: 'bg-slate-50 rounded-2xl p-5 border border-slate-100' },
+                    React.createElement('p', { className: 'font-serif text-lg text-slate-800 leading-snug' }, q.q)
+                ),
+                React.createElement('div', { className: 'space-y-2.5' },
+                    q.opts.map((opt, i) => {
+                        let cls = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left text-sm font-medium transition-all ';
+                        if (chosen === null) cls += 'border-slate-200 hover:border-amber-400 hover:bg-amber-50 cursor-pointer';
+                        else if (i === q.ans) cls += 'border-green-500 bg-green-50 text-green-800';
+                        else if (i === chosen) cls += 'border-red-400 bg-red-50 text-red-700';
+                        else cls += 'border-slate-100 opacity-40';
+                        return React.createElement('button', { key:i, onClick:()=>answer(i), disabled:chosen!==null, className:cls },
+                            React.createElement('span', { className: 'w-7 h-7 rounded-lg border text-xs font-bold flex items-center justify-center flex-shrink-0 ' +
+                                (chosen !== null && i === q.ans ? 'bg-green-500 border-green-500 text-white' :
+                                 chosen === i && i !== q.ans ? 'bg-red-400 border-red-400 text-white' : 'border-slate-300 text-slate-400') }, letters[i]),
+                            opt
+                        );
+                    })
+                ),
+                chosen !== null && React.createElement('div', null,
+                    React.createElement('div', {
+                        className: 'text-sm rounded-xl p-4 border-l-4 border-amber-400 bg-amber-50 text-slate-700',
+                        dangerouslySetInnerHTML: { __html: q.exp }
+                    }),
+                    React.createElement('button', { onClick: next, className: 'mt-3 w-full py-3 bg-amber-600 text-white rounded-xl font-bold text-sm' },
+                        current + 1 < questions.length ? 'Question suivante →' : 'Voir mon résultat →'
+                    )
+                )
+            );
+        }
+
+        function JeuxView({ memberName, api, loginGradeKey, unlockedGrades }) {
+            const [jeu, setJeu] = React.useState('memory');
+            const tabs = [
+                { key:'memory', label:'🔷 Mémory' },
+                { key:'motdujour', label:'🔺 Mot du Jour' },
+                { key:'quiz', label:'📜 Quiz de Grade' },
+            ];
+            return React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', null,
+                    React.createElement('h2', { className: 'text-2xl font-bold font-serif text-slate-800' }, '🎮 Espace Jeux'),
+                    React.createElement('p', { className: 'text-slate-400 text-sm mt-1' }, 'Jeux initiatiques · Classement entre Frères et Sœurs')
+                ),
+                React.createElement('div', { className: 'flex gap-1 border-b border-slate-100' },
+                    tabs.map(t => React.createElement('button', {
+                        key: t.key, onClick: () => setJeu(t.key),
+                        className: 'pb-3 px-3 text-sm font-bold font-serif border-b-2 transition-colors ' +
+                            (jeu === t.key ? 'border-amber-600 text-amber-700' : 'border-transparent text-slate-400 hover:text-slate-600')
+                    }, t.label))
+                ),
+                jeu === 'memory' && React.createElement(MemoryGame, { memberName, api }),
+                jeu === 'motdujour' && React.createElement(MotDuJourGame, { memberName }),
+                jeu === 'quiz' && React.createElement(QuizMaconnique, { memberName, api, loginGradeKey, unlockedGrades })
             );
         }
 
@@ -4859,7 +5075,7 @@ EXEMPLE DE FORMAT CORRECT :
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
-                        {activeView === 'jeux' && <JeuxView memberName={memberName} api={api} />}
+                        {activeView === 'jeux' && <JeuxView memberName={memberName} api={api} loginGradeKey={loginGradeKey} unlockedGrades={unlockedGrades} />}
                         {activeView === 'tresorerie' && hasTresorAccess && (
                             <div style={{height:'calc(100vh - 80px)', width:'100%'}}>
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
