@@ -213,7 +213,7 @@ export default {
         const gradeNorm = (gradeKey || '').toLowerCase().replace('maître','maitre').replace('maître','maitre');
         const montantGrade = fv(gradeNorm) || fv('maitre');
         const montantBase = fv('base');
-        const montantCotis = (montantGrade || 0) + (montantBase || 0);
+        const montantCotis = montantGrade || montantBase || 0;
 
         return new Response(JSON.stringify({ ok: true, totalPaye, montantCotis, annee }), { headers: JSON_HEADERS });
       } catch (e) {
