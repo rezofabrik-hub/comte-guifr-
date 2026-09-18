@@ -3274,6 +3274,783 @@
             );
         }
 
+        // ══════════════════════════════════════════════════════
+        // ESPACE JEUX
+        // ══════════════════════════════════════════════════════
+        const JEUX_SYMBOLS = [
+            { id:'equerre', label:'Équerre', svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 10 L10 50 L50 50" stroke="#c8a84a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 50 L30 10" stroke="#c8a84a" stroke-width="3.5" stroke-linecap="round" opacity=".5"/></svg>` },
+            { id:'compas',  label:'Compas',  svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 8 L14 48" stroke="#c8a84a" stroke-width="4.5" stroke-linecap="round"/><path d="M30 8 L46 48" stroke="#c8a84a" stroke-width="4.5" stroke-linecap="round"/><line x1="18" y1="36" x2="42" y2="36" stroke="#c8a84a" stroke-width="3" stroke-linecap="round" opacity=".6"/><circle cx="14" cy="50" r="3.5" fill="#c8a84a"/><circle cx="46" cy="50" r="3.5" fill="#c8a84a"/><circle cx="30" cy="8" r="4" fill="#c8a84a"/></svg>` },
+            { id:'delta',   label:'Delta',   svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="30,6 56,52 4,52" stroke="#c8a84a" stroke-width="4" stroke-linejoin="round"/><circle cx="30" cy="33" r="7" stroke="#c8a84a" stroke-width="3"/><circle cx="30" cy="33" r="2.5" fill="#c8a84a"/></svg>` },
+            { id:'maillet', label:'Maillet', svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="8" width="24" height="16" rx="3" stroke="#c8a84a" stroke-width="4"/><line x1="30" y1="24" x2="30" y2="54" stroke="#c8a84a" stroke-width="5" stroke-linecap="round"/></svg>` },
+            { id:'plomb',   label:'Fil à plomb', svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="30" y1="4" x2="30" y2="42" stroke="#c8a84a" stroke-width="3" stroke-linecap="round"/><polygon points="30,56 20,38 40,38" fill="#c8a84a"/><circle cx="30" cy="7" r="5" stroke="#c8a84a" stroke-width="3"/></svg>` },
+            { id:'etoile',  label:'Étoile',  svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="30,4 35.5,21 53,21 39,32 44,49 30,38 16,49 21,32 7,21 24.5,21" stroke="#c8a84a" stroke-width="3" fill="none" stroke-linejoin="round"/><circle cx="30" cy="30" r="4" fill="#c8a84a" opacity=".7"/></svg>` },
+            { id:'niveau',  label:'Niveau',  svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="30" x2="54" y2="30" stroke="#c8a84a" stroke-width="4" stroke-linecap="round"/><path d="M30 12 L42 30 L18 30 Z" stroke="#c8a84a" stroke-width="3" fill="none" stroke-linejoin="round"/><circle cx="30" cy="30" r="3" fill="#c8a84a"/></svg>` },
+            { id:'colonne', label:'Colonne', svg:`<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="8" width="16" height="6" rx="2" stroke="#c8a84a" stroke-width="3"/><rect x="22" y="46" width="16" height="7" rx="2" stroke="#c8a84a" stroke-width="3"/><rect x="26" y="14" width="8" height="32" rx="1" stroke="#c8a84a" stroke-width="3"/></svg>` },
+        ];
+        const BACK_SVG_JEUX = `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="30,10 50,50 10,50" stroke="#c8a84a" stroke-width="2.5" fill="none"/><rect x="15" y="15" width="30" height="30" stroke="#c8a84a" stroke-width="2" fill="none" transform="rotate(45 30 30)"/></svg>`;
+
+        const MOTS_MACONS = [
+            { w:'DELTA', d:'Triangle lumineux placé à l\'Orient, symbole de la Divinité et de la Lumière suprême.' },
+            { w:'GRADE', d:'Degré d\'initiation conféré au Maçon : Apprenti, Compagnon ou Maître.' },
+            { w:'VOILE', d:'Symbole du mystère et de ce qui reste caché à l\'Apprenti.' },
+            { w:'ORDRE', d:'L\'Ordre maçonnique, fraternité fondée sur la Liberté, l\'Égalité et la Fraternité.' },
+            { w:'LIVRE', d:'Le Livre de la Loi sacrée, posé sur l\'Autel des Serments.' },
+            { w:'SIGNE', d:'Geste de reconnaissance permettant aux Maçons de s\'identifier.' },
+            { w:'CORDE', d:'La Corde à nœuds symbolise le lien fraternel qui unit les membres.' },
+            { w:'TENUE', d:'Réunion rituelle de la Loge, tenue en présence des Frères en tablier.' },
+            { w:'PLOMB', d:'Le Fil à Plomb symbolise la rectitude morale et la justice.' },
+            { w:'FORCE', d:'L\'une des trois grandes Colonnes : Sagesse, Force et Beauté.' },
+            { w:'TOILE', d:'Le Tableau de Loge représente les outils et enseignements du grade.' },
+            { w:'FRERE', d:'Tout Maçon régulièrement initié est un Frère, égal dans la Loge.' },
+            { w:'PIECE', d:'La Planche, rédigée par un Frère et lue en Loge lors des travaux.' },
+            { w:'TITRE', d:'Document officiel attestant de la régularité d\'une Loge.' },
+            { w:'MACON', d:'Membre d\'une Loge régulière, héritier des bâtisseurs de temples.' },
+            { w:'CABLE', d:'Le Câble de tir mesure la distance symbolique entre les Frères.' },
+        ];
+
+        function MemoryGame({ memberName, api }) {
+            const [cards, setCards] = React.useState([]);
+            const [flipped, setFlipped] = React.useState([]);
+            const [matched, setMatched] = React.useState(new Set());
+            const [moves, setMoves] = React.useState(0);
+            const [elapsed, setElapsed] = React.useState(0);
+            const [started, setStarted] = React.useState(false);
+            const [won, setWon] = React.useState(false);
+            const [scores, setScores] = React.useState([]);
+            const [locked, setLocked] = React.useState(false);
+            const timerRef = React.useRef(null);
+            const flippedRef = React.useRef([]);
+
+            const fmt = s => Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+            const loadScores = React.useCallback(async () => {
+                try {
+                    const snap = await api.getDocs(api.collection(api.db,'artifacts',api.appId,'public','data','jeux_memory'));
+                    const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+                    list.sort((a,b)=>a.moves-b.moves||a.time-b.time);
+                    setScores(list.slice(0,10));
+                } catch(e) {}
+            }, [api]);
+
+            React.useEffect(() => { loadScores(); }, [loadScores]);
+
+            const initGame = React.useCallback(() => {
+                clearInterval(timerRef.current);
+                setElapsed(0); setMoves(0); setStarted(false); setWon(false);
+                setFlipped([]); flippedRef.current = []; setLocked(false); setMatched(new Set());
+                const pairs = [...JEUX_SYMBOLS,...JEUX_SYMBOLS].map((s,i)=>({...s,uid:i}));
+                for(let i=pairs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pairs[i],pairs[j]]=[pairs[j],pairs[i]];}
+                setCards(pairs);
+            }, []);
+
+            React.useEffect(() => { initGame(); return ()=>clearInterval(timerRef.current); }, [initGame]);
+
+            const startTimer = () => {
+                if(timerRef.current) return;
+                timerRef.current = setInterval(()=>setElapsed(e=>e+1),1000);
+            };
+
+            const handleFlip = (uid) => {
+                if(locked || flippedRef.current.length>=2) return;
+                if(flippedRef.current.some(f=>f.uid===uid)) return;
+                if(matched.has(cards.find(c=>c.uid===uid)?.id+'_'+uid)) return;
+                if(!started){setStarted(true);startTimer();}
+                const card = cards.find(c=>c.uid===uid);
+                const newFlipped = [...flippedRef.current, card];
+                flippedRef.current = newFlipped;
+                setFlipped([...newFlipped]);
+                if(newFlipped.length===2){
+                    const [a,b]=newFlipped;
+                    const newMoves = moves+1;
+                    setMoves(newMoves);
+                    setLocked(true);
+                    if(a.id===b.id){
+                        setTimeout(()=>{
+                            setMatched(prev=>{const s=new Set(prev);s.add(a.uid);s.add(b.uid);return s;});
+                            flippedRef.current=[];setFlipped([]);setLocked(false);
+                            setMatched(prev=>{
+                                const s=new Set(prev);s.add(a.uid);s.add(b.uid);
+                                if(s.size===JEUX_SYMBOLS.length*2){
+                                    clearInterval(timerRef.current);timerRef.current=null;
+                                    setWon(true);
+                                    setElapsed(el=>{
+                                        saveScore(newMoves,el);
+                                        return el;
+                                    });
+                                }
+                                return s;
+                            });
+                        },500);
+                    } else {
+                        setTimeout(()=>{flippedRef.current=[];setFlipped([]);setLocked(false);},900);
+                    }
+                }
+            };
+
+            const saveScore = async (m, t) => {
+                try {
+                    await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','jeux_memory'),{
+                        name: memberName, moves: m, time: t, date: new Date().toISOString()
+                    });
+                    loadScores();
+                } catch(e) {}
+            };
+
+            return (
+                <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
+                    {/* Game */}
+                    <div className="flex flex-col items-center">
+                        <div className="flex gap-6 mb-4 text-center">
+                            {[['Paires',matched.size/2+'/'+JEUX_SYMBOLS.length],['Coups',moves],['Temps',fmt(elapsed)]].map(([l,v])=>(
+                                <div key={l} className="flex flex-col items-center">
+                                    <span className="text-xl font-black text-amber-700 font-serif tabular-nums">{v}</span>
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-widest">{l}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-4 gap-2" style={{width:'min(320px,90vw)'}}>
+                            {cards.map(card=>{
+                                const isFlipped=flipped.some(f=>f.uid===card.uid);
+                                const isMatched=matched.has(card.uid);
+                                return (
+                                    <div key={card.uid} onClick={()=>!isMatched&&!isFlipped&&handleFlip(card.uid)}
+                                        className={`cursor-pointer select-none rounded-lg border-2 flex flex-col items-center justify-center transition-all duration-300 ${isMatched?'bg-emerald-50 border-emerald-300':'bg-slate-800 border-slate-700 hover:border-amber-600'}`}
+                                        style={{aspectRatio:'3/4'}}>
+                                        {(isFlipped||isMatched)?(
+                                            <>
+                                                <div className="w-3/5 h-3/5" dangerouslySetInnerHTML={{__html:card.svg}}/>
+                                                <span className={`text-[8px] uppercase tracking-wide text-center px-1 leading-tight ${isMatched?'text-emerald-600':'text-amber-500'}`}>{card.label}</span>
+                                            </>
+                                        ):(
+                                            <div className="w-3/5 h-3/5 opacity-20" dangerouslySetInnerHTML={{__html:BACK_SVG_JEUX}}/>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {won && (
+                            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center animate-fade">
+                                <p className="text-amber-800 font-bold font-serif text-lg">🌟 Lumière !</p>
+                                <p className="text-amber-600 text-sm mt-1">{moves} coups · {fmt(elapsed)}</p>
+                            </div>
+                        )}
+                        <button onClick={initGame} className="mt-4 px-5 py-2 bg-slate-800 text-amber-400 border border-slate-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors font-serif">↺ Nouvelle partie</button>
+                    </div>
+                    {/* Leaderboard */}
+                    <div className="w-full lg:w-52 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-amber-700 mb-3 pb-2 border-b border-slate-100 font-serif">🏆 Classement</h4>
+                        {scores.length===0?(<p className="text-xs text-slate-400 text-center py-4">Aucun score encore</p>):(
+                            <div className="flex flex-col gap-2">
+                                {scores.map((s,i)=>(
+                                    <div key={s.id||i} className={`flex items-center gap-2 text-xs p-2 rounded-lg ${s.name===memberName?'bg-amber-50 border border-amber-200':'bg-slate-50'}`}>
+                                        <span className="font-black text-amber-600 w-5 text-center">{['🥇','🥈','🥉'][i]||'#'+(i+1)}</span>
+                                        <span className="flex-1 font-medium text-slate-700 truncate">{s.name}</span>
+                                        <span className="text-slate-400 text-right leading-tight">{s.moves}c<br/>{fmt(s.time)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function MotDuJourGame({ memberName }) {
+            const WORDS = MOTS_MACONS;
+            const getDailyWord = () => { const d=new Date(); const s=new Date(d.getFullYear(),0,0); const day=Math.floor((d-s)/86400000); return WORDS[day%WORDS.length]; };
+            const [targetObj] = React.useState(getDailyWord);
+            const target = targetObj.w;
+            const ROWS=6, LEN=5;
+            const [guesses, setGuesses] = React.useState(Array(ROWS).fill(null).map(()=>[]));
+            const [currentRow, setCurrentRow] = React.useState(0);
+            const [currentInput, setCurrentInput] = React.useState([]);
+            const [gameOver, setGameOver] = React.useState(false);
+            const [message, setMessage] = React.useState('');
+            const [revealed, setRevealed] = React.useState(Array(ROWS).fill(null).map(()=>[]));
+
+            const flash = (msg,dur=2000) => { setMessage(msg); if(dur) setTimeout(()=>setMessage(m=>m===msg?'':m),dur); };
+
+            const score = (guess,tgt) => {
+                const res=Array(LEN).fill('absent'); const ta=tgt.split(''); const used=Array(LEN).fill(false);
+                for(let i=0;i<LEN;i++) if(guess[i]===ta[i]){res[i]='correct';used[i]=true;}
+                for(let i=0;i<LEN;i++){if(res[i]==='correct')continue; for(let j=0;j<LEN;j++){if(!used[j]&&guess[i]===ta[j]){res[i]='present';used[j]=true;break;}}}
+                return res;
+            };
+
+            const submit = () => {
+                if(currentInput.length<LEN){flash('5 lettres requises');return;}
+                const guess=currentInput.join('');
+                const result=score(guess.split(''),target.split(''));
+                const newRevealed=[...revealed];newRevealed[currentRow]=result;setRevealed(newRevealed);
+                const newGuesses=[...guesses];newGuesses[currentRow]=currentInput;setGuesses(newGuesses);
+                if(result.every(r=>r==='correct')){setGameOver(true);flash(['Lumière !','À l\'Orient !','Parfait, Frère !','Bien joué !','Excellent !','Juste à temps !'][currentRow]||'Bien joué!',0);}
+                else if(currentRow===ROWS-1){setGameOver(true);flash('Le mot était : '+target,0);}
+                setCurrentRow(r=>r+1);setCurrentInput([]);
+            };
+
+            React.useEffect(()=>{
+                const handler=e=>{
+                    if(gameOver)return;
+                    const k=e.key.toUpperCase();
+                    if(k==='BACKSPACE'){setCurrentInput(c=>c.slice(0,-1));}
+                    else if(k==='ENTER'){submit();}
+                    else if(/^[A-Z]$/.test(k)&&currentInput.length<LEN){setCurrentInput(c=>[...c,k]);}
+                };
+                window.addEventListener('keydown',handler);
+                return()=>window.removeEventListener('keydown',handler);
+            },[currentInput,currentRow,gameOver]);
+
+            const keyStates={};
+            guesses.forEach((g,ri)=>g.forEach((letter,ci)=>{const st=revealed[ri]?.[ci];if(st){const p={'correct':3,'present':2,'absent':1};if(!keyStates[letter]||p[st]>(p[keyStates[letter]]||0))keyStates[letter]=st;}}));
+
+            const tileColor = (ri,ci) => {
+                const st=revealed[ri]?.[ci];
+                if(!st)return ri===currentRow&&currentInput[ci]?'border-slate-400 bg-white':'border-slate-200 bg-white';
+                return {correct:'bg-emerald-600 border-emerald-600 text-white',present:'bg-amber-500 border-amber-500 text-white',absent:'bg-slate-400 border-slate-400 text-white'}[st];
+            };
+
+            const KEYS=[['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['↵','W','X','C','V','B','N','⌫']];
+
+            return (
+                <div className="flex flex-col items-center gap-4">
+                    <div className="min-h-6 text-sm font-serif text-amber-700 font-bold">{message}</div>
+                    <div className="flex flex-col gap-1.5">
+                        {Array(ROWS).fill(0).map((_,ri)=>(
+                            <div key={ri} className="flex gap-1.5">
+                                {Array(LEN).fill(0).map((_,ci)=>{
+                                    const letter=ri===currentRow?currentInput[ci]:guesses[ri]?.[ci]||'';
+                                    return <div key={ci} className={`w-12 h-12 border-2 rounded flex items-center justify-center text-lg font-black font-serif transition-colors ${tileColor(ri,ci)}`}>{letter}</div>;
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        {KEYS.map((row,ri)=>(
+                            <div key={ri} className="flex gap-1 justify-center">
+                                {row.map(k=>{
+                                    const st=keyStates[k];
+                                    const base='rounded text-xs font-bold font-serif cursor-pointer select-none transition-colors py-3 px-2 min-w-[28px]';
+                                    const color=st?{correct:'bg-emerald-600 text-white',present:'bg-amber-500 text-white',absent:'bg-slate-300 text-slate-500'}[st]:'bg-slate-100 text-slate-700 hover:bg-slate-200';
+                                    return <button key={k} className={`${base} ${color} ${(k==='↵'||k==='⌫')?'min-w-[42px] text-[10px]':''}`}
+                                        onClick={()=>{
+                                            if(gameOver)return;
+                                            if(k==='⌫')setCurrentInput(c=>c.slice(0,-1));
+                                            else if(k==='↵')submit();
+                                            else if(currentInput.length<LEN)setCurrentInput(c=>[...c,k]);
+                                        }}>{k}</button>;
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                    {gameOver && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center max-w-xs animate-fade">
+                            <p className="font-bold font-serif text-amber-800">{targetObj.w}</p>
+                            <div className="w-8 h-px bg-amber-300 mx-auto my-2"/>
+                            <p className="text-sm text-amber-700 italic leading-relaxed">{targetObj.d}</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ==========================================
+        // ESPACE JEUX
+        // ==========================================
+
+        const JEUX_SYMBOLS = [
+            { id:'equerre', label:'Équerre', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="15,65 15,15 65,65" stroke="#c8a84b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="15" y1="65" x2="65" y2="65" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/></svg>' },
+            { id:'compas', label:'Compas', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="12" x2="15" y2="68" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/><line x1="40" y1="12" x2="65" y2="68" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/><line x1="22" y1="48" x2="58" y2="48" stroke="#c8a84b" stroke-width="5" stroke-linecap="round"/></svg>' },
+            { id:'delta', label:'Delta', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 70,68 10,68" stroke="#c8a84b" stroke-width="7" stroke-linejoin="round" fill="none"/><circle cx="40" cy="44" r="6" fill="#c8a84b"/></svg>' },
+            { id:'maillet', label:'Maillet', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="10" width="24" height="32" rx="4" stroke="#c8a84b" stroke-width="6" fill="none"/><line x1="40" y1="42" x2="40" y2="72" stroke="#c8a84b" stroke-width="7" stroke-linecap="round"/></svg>' },
+            { id:'plomb', label:'Fil à plomb', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="10" x2="40" y2="55" stroke="#c8a84b" stroke-width="6" stroke-linecap="round"/><circle cx="40" cy="65" r="10" stroke="#c8a84b" stroke-width="6" fill="none"/></svg>' },
+            { id:'etoile', label:'Étoile', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 48,32 74,32 53,48 61,72 40,56 19,72 27,48 6,32 32,32" stroke="#c8a84b" stroke-width="5" stroke-linejoin="round" fill="none"/></svg>' },
+            { id:'niveau', label:'Niveau', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="40" x2="70" y2="40" stroke="#c8a84b" stroke-width="6" stroke-linecap="round"/><polyline points="25,40 40,18 55,40" stroke="#c8a84b" stroke-width="6" stroke-linejoin="round" fill="none"/></svg>' },
+            { id:'colonne', label:'Colonne', svg:'<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="14" width="24" height="4" rx="2" fill="#c8a84b"/><rect x="26" y="62" width="28" height="6" rx="2" fill="#c8a84b"/><rect x="32" y="18" width="16" height="44" rx="2" fill="none" stroke="#c8a84b" stroke-width="5"/></svg>' },
+        ];
+
+        const BACK_SVG = '<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="6" width="68" height="68" rx="8" stroke="#c8a84b" stroke-width="3" fill="#1a1e2a"/><text x="40" y="52" text-anchor="middle" font-size="36" fill="#c8a84b">∴</text></svg>';
+
+        const MOTS_MACONS = [
+            { mot:'TENUE', def:'Réunion rituelle de la loge' },
+            { mot:'LOGE', def:'Atelier maçonnique' },
+            { mot:'GRADE', def:'Degré initiatique' },
+            { mot:'PLOMB', def:'Outil du fil à plomb' },
+            { mot:'DELTA', def:'Triangle lumineux en Orient' },
+            { mot:'ACIER', def:'Métal du burin et du ciseau' },
+            { mot:'RAYON', def:'Lumière de l\'Orient' },
+            { mot:'FRERE', def:'Membre masculin de la loge' },
+            { mot:'VOUTE', def:'Arche céleste du Temple' },
+            { mot:'PIERRE', def:'Matériau du travail initiatique' },
+            { mot:'MAROC', def:'Terre de tradition constructive' },
+            { mot:'BOITE', def:'Contient les offrandes fraternelles' },
+            { mot:'LAUBE', def:'Tablier de l\'initié (l\'aube)' },
+            { mot:'OUVRE', def:'Verbe du travail en loge' },
+            { mot:'PORTE', def:'Entrée du Temple sacré' },
+            { mot:'ORDRE', def:'Organisation et règle de la loge' },
+        ];
+
+        function MemoryGame({ memberName, api }) {
+            const PAIRS = 8;
+            const [cards, setCards] = React.useState([]);
+            const [flipped, setFlipped] = React.useState([]);
+            const [matched, setMatched] = React.useState([]);
+            const [moves, setMoves] = React.useState(0);
+            const [won, setWon] = React.useState(false);
+            const [saving, setSaving] = React.useState(false);
+            const [scores, setScores] = React.useState([]);
+            const lockRef = React.useRef(false);
+
+            React.useEffect(() => {
+                initGame();
+                if (api) loadScores();
+            }, []);
+
+            function initGame() {
+                const symbols = [...JEUX_SYMBOLS].sort(() => Math.random() - 0.5).slice(0, PAIRS);
+                const deck = [...symbols, ...symbols]
+                    .sort(() => Math.random() - 0.5)
+                    .map((s, i) => ({ ...s, uid: i }));
+                setCards(deck);
+                setFlipped([]);
+                setMatched([]);
+                setMoves(0);
+                setWon(false);
+                lockRef.current = false;
+            }
+
+            async function loadScores() {
+                try {
+                    const snap = await api.getDocs(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_memory'));
+                    const all = snap.docs.map(d => d.data());
+                    all.sort((a, b) => a.moves - b.moves);
+                    setScores(all.slice(0, 10));
+                } catch(e) {}
+            }
+
+            async function saveScore(mv) {
+                if (!api || !memberName) return;
+                setSaving(true);
+                try {
+                    await api.addDoc(
+                        api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_memory'),
+                        { name: memberName, moves: mv, date: new Date().toISOString() }
+                    );
+                    await loadScores();
+                } catch(e) {}
+                setSaving(false);
+            }
+
+            function flip(card) {
+                if (lockRef.current) return;
+                if (flipped.length === 2) return;
+                if (flipped.find(c => c.uid === card.uid)) return;
+                if (matched.includes(card.id)) return;
+                const newFlipped = [...flipped, card];
+                setFlipped(newFlipped);
+                if (newFlipped.length === 2) {
+                    const newMoves = moves + 1;
+                    setMoves(newMoves);
+                    lockRef.current = true;
+                    if (newFlipped[0].id === newFlipped[1].id) {
+                        const newMatched = [...matched, card.id];
+                        setTimeout(() => {
+                            setMatched(newMatched);
+                            setFlipped([]);
+                            lockRef.current = false;
+                            if (newMatched.length === PAIRS) {
+                                setWon(true);
+                                saveScore(newMoves);
+                            }
+                        }, 500);
+                    } else {
+                        setTimeout(() => { setFlipped([]); lockRef.current = false; }, 900);
+                    }
+                }
+            }
+
+            return React.createElement('div', { className: 'space-y-4' },
+                won && React.createElement('div', { className: 'text-center py-4 bg-amber-50 border border-amber-200 rounded-2xl' },
+                    React.createElement('div', { className: 'text-3xl font-bold text-amber-600 font-serif' }, '🏆 ' + moves + ' coups'),
+                    React.createElement('div', { className: 'text-slate-500 text-sm mt-1' }, saving ? 'Enregistrement...' : 'Score enregistré !'),
+                    React.createElement('button', { onClick: initGame, className: 'mt-3 px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold' }, 'Rejouer')
+                ),
+                React.createElement('div', { className: 'text-right text-sm text-slate-500 font-bold' }, 'Coups : ' + moves),
+                React.createElement('div', {
+                    className: 'grid gap-3',
+                    style: { gridTemplateColumns: 'repeat(4, 1fr)' }
+                },
+                    cards.map(card => {
+                        const isFlipped = !!flipped.find(c => c.uid === card.uid);
+                        const isMatched = matched.includes(card.id);
+                        const show = isFlipped || isMatched;
+                        return React.createElement('button', {
+                            key: card.uid,
+                            onClick: () => flip(card),
+                            className: 'aspect-square rounded-xl border-2 flex items-center justify-center transition-all ' +
+                                (isMatched ? 'border-amber-400 bg-amber-50' : show ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-100 hover:bg-slate-200'),
+                            disabled: isMatched || (flipped.length === 2 && !show),
+                            style: { padding: '8px' }
+                        },
+                            React.createElement('div', {
+                                dangerouslySetInnerHTML: { __html: show ? card.svg : BACK_SVG },
+                                style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                            })
+                        );
+                    })
+                ),
+                scores.length > 0 && React.createElement('div', { className: 'mt-4' },
+                    React.createElement('p', { className: 'text-xs font-bold uppercase tracking-widest text-slate-400 mb-2' }, '🏅 Classement'),
+                    React.createElement('div', { className: 'space-y-1' },
+                        scores.slice(0, 5).map((s, i) =>
+                            React.createElement('div', { key: i, className: 'flex justify-between text-sm px-3 py-1.5 rounded-lg ' + (i === 0 ? 'bg-amber-50 font-bold' : '') },
+                                React.createElement('span', null, (i+1) + '. ' + s.name),
+                                React.createElement('span', { className: 'text-amber-600 font-bold' }, s.moves + ' coups')
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        function MotDuJourGame({ memberName }) {
+            const todayIndex = Math.floor(Date.now() / 86400000) % MOTS_MACONS.length;
+            const TARGET = MOTS_MACONS[todayIndex].mot;
+            const DEF = MOTS_MACONS[todayIndex].def;
+            const LEN = TARGET.length;
+            const MAX = 6;
+
+            const [guesses, setGuesses] = React.useState([]);
+            const [current, setCurrent] = React.useState('');
+            const [won, setWon] = React.useState(false);
+            const [lost, setLost] = React.useState(false);
+
+            function submit() {
+                const word = current.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').slice(0, LEN);
+                if (word.length < LEN) return;
+                const result = word.split('').map((l, i) => {
+                    if (l === TARGET[i]) return 'correct';
+                    if (TARGET.includes(l)) return 'present';
+                    return 'absent';
+                });
+                const newGuesses = [...guesses, { word, result }];
+                setGuesses(newGuesses);
+                setCurrent('');
+                if (word === TARGET) { setWon(true); return; }
+                if (newGuesses.length >= MAX) setLost(true);
+            }
+
+            const colors = { correct: '#2d8f5e', present: '#b59a2a', absent: '#64748b' };
+
+            return React.createElement('div', { className: 'space-y-4 max-w-xs mx-auto' },
+                React.createElement('p', { className: 'text-center text-xs text-slate-400 uppercase tracking-widest' }, 'Indice : ' + DEF),
+                React.createElement('div', { className: 'space-y-1.5' },
+                    guesses.map((g, ri) =>
+                        React.createElement('div', { key: ri, className: 'flex gap-1.5 justify-center' },
+                            g.word.split('').map((l, ci) =>
+                                React.createElement('div', {
+                                    key: ci,
+                                    className: 'w-11 h-11 flex items-center justify-center rounded-lg text-white font-bold text-lg',
+                                    style: { background: colors[g.result[ci]] }
+                                }, l)
+                            )
+                        )
+                    ),
+                    !won && !lost && guesses.length < MAX && React.createElement('div', { className: 'flex gap-1.5 justify-center' },
+                        Array.from({ length: LEN }, (_, i) =>
+                            React.createElement('div', {
+                                key: i,
+                                className: 'w-11 h-11 flex items-center justify-center rounded-lg border-2 border-slate-300 font-bold text-lg text-slate-700'
+                            }, (current[i] || ''))
+                        )
+                    )
+                ),
+                !won && !lost && React.createElement('div', { className: 'flex gap-2' },
+                    React.createElement('input', {
+                        type: 'text', value: current, maxLength: LEN,
+                        onChange: e => setCurrent(e.target.value.toUpperCase().replace(/[^A-ZÉÈÊÀÂÙÛÎÔŒÆÇ]/gi, '').slice(0, LEN)),
+                        onKeyDown: e => e.key === 'Enter' && submit(),
+                        className: 'flex-1 border-2 rounded-xl px-3 py-2 text-center font-bold tracking-widest text-lg outline-none focus:border-amber-500',
+                        placeholder: '·'.repeat(LEN), autoCapitalize: 'characters'
+                    }),
+                    React.createElement('button', {
+                        onClick: submit, disabled: current.length < LEN,
+                        className: 'px-4 py-2 bg-amber-600 text-white rounded-xl font-bold disabled:opacity-40'
+                    }, '→')
+                ),
+                won && React.createElement('div', { className: 'text-center py-3 bg-green-50 rounded-xl border border-green-200' },
+                    React.createElement('div', { className: 'text-green-700 font-bold text-lg' }, '✓ ' + TARGET),
+                    React.createElement('div', { className: 'text-green-600 text-sm' }, guesses.length + ' essai' + (guesses.length > 1 ? 's' : ''))
+                ),
+                lost && React.createElement('div', { className: 'text-center py-3 bg-red-50 rounded-xl border border-red-200' },
+                    React.createElement('div', { className: 'text-red-700 font-bold text-lg' }, 'Le mot était : ' + TARGET),
+                    React.createElement('div', { className: 'text-red-600 text-sm' }, DEF)
+                )
+            );
+        }
+
+        // ─── Questions Quiz par grade ───────────────────────────────────────────
+        const QUIZ_QUESTIONS = {
+            apprenti: [
+                { q:"Que symbolise le tablier blanc de l'Apprenti ?", opts:["Un vêtement de travail","L'innocence et la pureté de l'âme","Un signe de richesse","La protection des outils"], ans:1, exp:"Le tablier blanc symbolise la <b>pureté de l'âme</b> et l'innocence avec laquelle l'Apprenti entre dans la Loge." },
+                { q:"Combien de coups l'Apprenti frappe-t-il à la porte ?", opts:["Un coup","Deux coups","Trois coups","Cinq coups"], ans:0, exp:"L'Apprenti frappe <b>un seul coup</b>, signifiant son unité et sa volonté singulière d'entrer dans la voie initiatique." },
+                { q:"Que représente la pierre brute ?", opts:["La matière de construction","L'état naturel de l'homme avant son perfectionnement","Un simple décor","La mort du profane"], ans:1, exp:"La pierre brute représente <b>l'état brut de l'homme</b> avant son travail initiatique. L'Apprenti doit la tailler — se tailler lui-même." },
+                { q:"À quelle colonne se tient l'Apprenti ?", opts:["À la colonne J (Jakin)","Au centre du temple","À la colonne B (Boaz)","Devant le Vénérable"], ans:2, exp:"L'Apprenti se tient à la colonne <b>B (Boaz)</b>, au nord du Temple, côté de l'ombre." },
+                { q:"Quel outil est associé à l'Apprenti ?", opts:["L'équerre","Le compas","Le maillet et le ciseau","La règle de 24 pouces"], ans:2, exp:"Le <b>maillet et le ciseau</b> symbolisent le travail volontaire et la précision nécessaires à l'élaboration de soi." },
+                { q:"Que représente la houpette dentelée ?", opts:["La frontière sacrée","Le lien fraternel entre tous les maçons","La limite des dépenses","Un décor sans sens"], ans:1, exp:"La houpette dentelée symbolise la <b>chaîne d'union fraternelle</b> qui relie tous les membres de la Loge." },
+                { q:"Dans quel sens l'Apprenti circule-t-il dans le Temple ?", opts:["Dans le sens des aiguilles d'une montre","Contre les aiguilles d'une montre","En ligne droite","Il ne se déplace pas"], ans:0, exp:"L'Apprenti circule de <b>gauche à droite</b>, dans le sens du soleil, vers la lumière." },
+                { q:"Que désigne la lettre G de l'Étoile Flamboyante ?", opts:["Grand Architecte uniquement","La Géométrie, science fondatrice","Gnose secrète","Les grandes loges"], ans:1, exp:"La lettre <b>G</b> désigne la <b>Géométrie</b>, science mère des arts, et renvoie aussi au Grand Architecte." },
+                { q:"Où se situe l'Orient dans le Temple ?", opts:["Au nord","À l'ouest","À l'est","Au sud"], ans:2, exp:"L'Orient est à l'<b>est</b> du Temple, là où siège le Vénérable Maître, symbole de la lumière qui se lève." },
+                { q:"Que représente le tablier de peau blanche ?", opts:["L'appartenance à la loge","Le travail manuel","La pureté et l'innocence initiale","Le rang du membre"], ans:2, exp:"Le tablier de peau blanche représente la <b>pureté et l'innocence</b> de celui qui commence son chemin maçonnique." },
+            ],
+            compagnon: [
+                { q:"Quels sont les cinq ordres d'architecture ?", opts:["Toscan, Dorique, Ionique, Corinthien, Composite","Roman, Gothique, Renaissance, Baroque, Classique","Carré, Rond, Triangulaire, Hexagonal, Octogonal","Les cinq degrés initiatiques"], ans:0, exp:"Les cinq ordres sont <b>Toscan, Dorique, Ionique, Corinthien et Composite</b>. Ils correspondent aux étapes du développement harmonieux." },
+                { q:"À quelle colonne se tient le Compagnon ?", opts:["À la colonne B (Boaz)","À la colonne J (Jakin)","Au centre","Devant l'Orient"], ans:1, exp:"Le Compagnon se tient à la colonne <b>J (Jakin)</b>, au sud, côté de la lumière. Il a progressé de l'ombre vers la clarté." },
+                { q:"Quelle figure symbolise le Compagnon ?", opts:["Le triangle","Le carré","L'étoile flamboyante à 5 branches","Le cercle"], ans:2, exp:"L'<b>étoile flamboyante à cinq branches</b> symbolise le Compagnon, ses cinq sens et les cinq ordres d'architecture." },
+                { q:"Que représentent les 7 marches de l'escalier en colimaçon ?", opts:["Les 7 péchés capitaux","Les 7 arts libéraux","Les 7 planètes","Les 7 jours de la création"], ans:1, exp:"Les sept marches correspondent aux <b>sept arts libéraux</b> : grammaire, rhétorique, logique, arithmétique, géométrie, musique, astronomie." },
+                { q:"Que signifie JAKIN ?", opts:["En lui est la force","Il établit","La sagesse divine","La beauté des formes"], ans:1, exp:"Jakin signifie <b>« Il établit »</b>. Boaz signifie « En lui est la force ». Ensemble, elles représentent force et stabilité." },
+                { q:"Qu'est-ce qu'une planche en loge ?", opts:["Un outil de traçage","Un exposé oral ou écrit d'un Frère","Un registre des membres","Le carnet de voyage"], ans:1, exp:"La planche est un <b>exposé</b> qu'un Frère présente à la Loge, fruit de ses réflexions, pour l'édification collective." },
+                { q:"Quels sont les cinq points des Compagnons ?", opts:["Les cinq sens","Les cinq vertus cardinales","Les cinq éléments","Les cinq directions"], ans:0, exp:"Les cinq points correspondent aux <b>cinq sens</b> — vue, ouïe, odorat, goût, toucher — l'éveil complet de l'homme." },
+                { q:"Combien de coups le Compagnon frappe-t-il à la porte ?", opts:["Un coup","Deux coups","Trois coups","Cinq coups"], ans:1, exp:"Le Compagnon frappe <b>deux coups</b>, signifiant la dualité, l'équilibre entre force et sagesse." },
+                { q:"Que symbolise la règle de 24 pouces ?", opts:["La mesure des pierres","Les 24 heures du jour à bien employer","La hauteur des colonnes","La longueur du tablier"], ans:1, exp:"La règle de 24 pouces symbolise les <b>24 heures du jour</b>, à diviser entre travail, repos et service à l'humanité." },
+                { q:"Quel métal est associé au Compagnon dans la symbolique ?", opts:["L'or","L'argent","Le cuivre (ou l'airain)","Le fer"], ans:2, exp:"Le <b>cuivre (airain)</b> est le métal des colonnes Jakin et Boaz, associé au Compagnon et à ses travaux d'architecture." },
+            ],
+            maitre: [
+                { q:"Qui était Hiram Abiff ?", opts:["Le roi de Tyr","L'architecte en chef du Temple de Salomon","Le grand prêtre","Le père de Salomon"], ans:1, exp:"Hiram Abiff était le <b>Grand Architecte du Temple de Salomon</b>. Sa mort et résurrection forment le mystère central du grade de Maître." },
+                { q:"Que symbolise l'acacia ?", opts:["La pureté du bois","L'immortalité de l'âme","Un arbre du jardin d'Eden","La connaissance cachée"], ans:1, exp:"L'acacia symbolise <b>l'immortalité de l'âme</b>. Il poussa sur la tombe d'Hiram, signalant sa sépulture." },
+                { q:"Que représente la chambre funèbre ?", opts:["Une punition","La mort symbolique pour renaître Maître","Un souvenir historique","La salle secrète"], ans:1, exp:"La chambre funèbre représente la <b>mort symbolique</b> nécessaire à la renaissance spirituelle. On doit mourir à son état de Compagnon pour renaître Maître." },
+                { q:"Qui sont les trois mauvais compagnons ?", opts:["Jubela, Jubelo, Jubelum","Caïn, Ésaü, Goliath","Abiram, Hiron, Stibbon","Leurs noms sont secrets"], ans:0, exp:"Les trois meurtriers sont <b>Jubela, Jubelo et Jubelum</b>. Ils symbolisent les forces du désordre, de l'ambition et de la trahison." },
+                { q:"Que représente le delta lumineux ?", opts:["La Trinité chrétienne","Le Grand Architecte de l'Univers","L'union de l'Équerre et du Compas","Les trois piliers"], ans:1, exp:"Le delta lumineux représente <b>le Grand Architecte de l'Univers (GADLU)</b> dans son principe ineffable." },
+                { q:"Qu'est-ce que le mot de substitution ?", opts:["Le mot d'ordre mensuel","Le mot perdu avec Hiram, remplacé provisoirement","Un titre de remplacement","La formule de fermeture"], ans:1, exp:"Après la mort d'Hiram, le vrai Mot fut perdu. Un <b>mot de substitution</b> fut institué jusqu'au jour où le Mot perdu serait retrouvé." },
+                { q:"Quels outils frappent Hiram ?", opts:["Maillet, équerre, ciseau","Règle, équerre, maillet","Compas, équerre, maillet","Ciseau, compas, niveau"], ans:1, exp:"Hiram reçoit trois coups : à la gorge par la <b>règle</b>, sur la poitrine par l'<b>équerre</b>, sur le front par le <b>maillet</b>." },
+                { q:"Que signifie relever un Maître ?", opts:["Aider un Maître à se lever","La résurrection symbolique lors de l'élévation","Réhabiliter un Maître","Élire un Vénérable"], ans:1, exp:"Relever un Maître correspond à la <b>résurrection symbolique</b> du récipiendaire lors de son élévation à la Maîtrise." },
+                { q:"Combien de coups frappe le Maître ?", opts:["Un coup","Deux coups","Trois coups","Sept coups"], ans:2, exp:"Le Maître frappe <b>trois coups</b>, renvoyant à la trilogie Sagesse, Force, Beauté — les trois piliers de la Loge." },
+                { q:"Que représente l'étoile à cinq branches pour le Maître ?", opts:["Le Compagnon accompli","La lumière divine non encore maîtrisée","Le signe de reconnaissance du grade","Les cinq sens développés"], ans:1, exp:"Pour le Maître, l'étoile flamboyante représente la <b>lumière divine</b> qu'il cherche à atteindre, la flamme intérieure à entretenir." },
+            ],
+        };
+
+        // ─── Quiz Maçonnique ────────────────────────────────────────────────────
+        function QuizMaconnique({ memberName, api, loginGradeKey, unlockedGrades }) {
+            const GRADES = [
+                { key:'apprenti', label:'Apprenti', sym:'⊾', color:'#5b8fe8' },
+                { key:'compagnon', label:'Compagnon', sym:'—', color:'#4dbf8a' },
+                { key:'maitre', label:'Maître', sym:'∧', color:'#c8a84b' },
+            ];
+            const highestUnlocked = () => {
+                if (unlockedGrades && unlockedGrades.maitre) return 'maitre';
+                if (unlockedGrades && unlockedGrades.compagnon) return 'compagnon';
+                return 'apprenti';
+            };
+            const canAccessGrade = (g) => {
+                if (g === 'apprenti') return true;
+                return unlockedGrades && unlockedGrades[g];
+            };
+            const isElevated = loginGradeKey === 'vm' || loginGradeKey === 'architecte';
+
+            const [selectedGrade, setSelectedGrade] = React.useState(highestUnlocked());
+            const [questions, setQuestions] = React.useState([]);
+            const [current, setCurrent] = React.useState(0);
+            const [score, setScore] = React.useState(0);
+            const [chosen, setChosen] = React.useState(null);
+            const [done, setDone] = React.useState(false);
+            const [scores, setScores] = React.useState([]);
+            const [saving, setSaving] = React.useState(false);
+            const [view, setView] = React.useState('grade'); // grade | quiz | result | classement
+
+            React.useEffect(() => { loadScores(); }, []);
+
+            async function loadScores() {
+                if (!api) return;
+                try {
+                    const snap = await api.getDocs(api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_quiz'));
+                    const all = snap.docs.map(d => d.data());
+                    all.sort((a, b) => b.score - a.score || a.total - b.total);
+                    setScores(all.slice(0, 20));
+                } catch(e) {}
+            }
+
+            function startQuiz(grade) {
+                const pool = [...QUIZ_QUESTIONS[grade]].sort(() => Math.random() - 0.5).slice(0, 8);
+                setSelectedGrade(grade);
+                setQuestions(pool);
+                setCurrent(0);
+                setScore(0);
+                setChosen(null);
+                setDone(false);
+                setView('quiz');
+            }
+
+            function answer(idx) {
+                if (chosen !== null) return;
+                setChosen(idx);
+            }
+
+            async function next() {
+                const q = questions[current];
+                const correct = chosen === q.ans ? 1 : 0;
+                const newScore = score + correct;
+                if (current + 1 >= questions.length) {
+                    setScore(newScore);
+                    setDone(true);
+                    setView('result');
+                    if (api && memberName) {
+                        setSaving(true);
+                        try {
+                            await api.addDoc(
+                                api.collection(api.db, 'artifacts', api.appId, 'public', 'data', 'jeux_quiz'),
+                                { name: memberName, grade: selectedGrade, score: newScore, total: questions.length, date: new Date().toISOString() }
+                            );
+                            await loadScores();
+                        } catch(e) {}
+                        setSaving(false);
+                    }
+                } else {
+                    setScore(newScore);
+                    setCurrent(c => c + 1);
+                    setChosen(null);
+                }
+            }
+
+            const gradeColors = { apprenti:'#5b8fe8', compagnon:'#4dbf8a', maitre:'#c8a84b' };
+            const gradeLabels = { apprenti:'Apprenti', compagnon:'Compagnon', maitre:'Maître' };
+
+            // Écran sélection grade
+            if (view === 'grade') return React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', { className: 'flex justify-end' },
+                    React.createElement('button', { onClick: () => setView('classement'), className: 'text-xs text-amber-600 font-bold hover:underline' }, '🏆 Voir le classement')
+                ),
+                React.createElement('p', { className: 'text-center text-slate-500 text-sm' }, 'Choisissez votre grade pour commencer le quiz'),
+                React.createElement('div', { className: 'flex flex-col gap-3 max-w-sm mx-auto' },
+                    GRADES.map(g => {
+                        const ok = isElevated || canAccessGrade(g.key);
+                        return React.createElement('button', {
+                            key: g.key, onClick: () => ok && startQuiz(g.key),
+                            className: 'flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ' +
+                                (ok ? 'border-slate-200 hover:border-amber-400 hover:bg-amber-50 cursor-pointer' : 'border-slate-100 opacity-40 cursor-not-allowed'),
+                        },
+                            React.createElement('span', { className: 'text-3xl font-bold w-10 text-center', style: { color: g.color } }, g.sym),
+                            React.createElement('div', null,
+                                React.createElement('div', { className: 'font-bold text-slate-700 font-serif' }, g.label),
+                                React.createElement('div', { className: 'text-xs text-slate-400' }, ok ? '8 questions · Symbolique et rituels' : '🔒 Grade non débloqué')
+                            )
+                        );
+                    })
+                )
+            );
+
+            // Écran classement
+            if (view === 'classement') return React.createElement('div', { className: 'space-y-4' },
+                React.createElement('div', { className: 'flex items-center gap-3' },
+                    React.createElement('button', { onClick: () => setView('grade'), className: 'text-slate-400 hover:text-slate-600 text-xl' }, '←'),
+                    React.createElement('h3', { className: 'font-bold font-serif text-lg text-slate-700' }, '🏆 Classement général')
+                ),
+                scores.length === 0
+                    ? React.createElement('p', { className: 'text-center text-slate-400 py-8 text-sm' }, 'Aucun score enregistré pour l\'instant.')
+                    : React.createElement('div', { className: 'space-y-1.5' },
+                        scores.map((s, i) => React.createElement('div', {
+                            key: i,
+                            className: 'flex items-center gap-3 px-4 py-3 rounded-xl ' + (i === 0 ? 'bg-amber-50 border border-amber-200' : i < 3 ? 'bg-slate-50' : '')
+                        },
+                            React.createElement('span', { className: 'font-bold text-slate-400 w-6 text-sm' }, i+1 + '.'),
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('span', { className: 'font-bold text-slate-700 text-sm' }, s.name),
+                                React.createElement('span', { className: 'ml-2 text-xs px-2 py-0.5 rounded-full', style: { background: gradeColors[s.grade]+'22', color: gradeColors[s.grade] } }, gradeLabels[s.grade])
+                            ),
+                            React.createElement('span', { className: 'font-bold text-amber-600' }, s.score + '/' + s.total)
+                        ))
+                    ),
+                React.createElement('button', { onClick: () => setView('grade'), className: 'w-full mt-2 py-3 bg-amber-600 text-white rounded-xl font-bold text-sm' }, 'Jouer')
+            );
+
+            // Écran résultat
+            if (view === 'result') {
+                const pct = score / questions.length;
+                const medal = pct === 1 ? '🥇' : pct >= 0.75 ? '🥈' : pct >= 0.5 ? '🥉' : '📿';
+                const msg = pct === 1 ? 'Parfait — Pierre polie à la perfection !'
+                    : pct >= 0.75 ? 'Excellent travail de Frère !'
+                    : pct >= 0.5 ? 'Sur le bon chemin, continuez !'
+                    : 'Méditez et recommencez.';
+                return React.createElement('div', { className: 'text-center space-y-5 py-4' },
+                    React.createElement('div', { className: 'text-5xl' }, medal),
+                    React.createElement('div', { className: 'text-4xl font-bold font-serif', style: { color: gradeColors[selectedGrade] } }, score + ' / ' + questions.length),
+                    React.createElement('div', { className: 'text-slate-600 font-serif text-lg' }, msg),
+                    saving && React.createElement('div', { className: 'text-xs text-slate-400' }, 'Enregistrement du score...'),
+                    React.createElement('div', { className: 'flex gap-3 justify-center flex-wrap' },
+                        React.createElement('button', { onClick: () => startQuiz(selectedGrade), className: 'px-5 py-2.5 border-2 border-amber-500 text-amber-600 rounded-xl font-bold text-sm' }, '↺ Rejouer'),
+                        React.createElement('button', { onClick: () => setView('grade'), className: 'px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm' }, 'Autre grade'),
+                        React.createElement('button', { onClick: () => setView('classement'), className: 'px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm' }, '🏆 Classement')
+                    )
+                );
+            }
+
+            // Écran quiz
+            const q = questions[current];
+            if (!q) return null;
+            const letters = ['A','B','C','D'];
+            return React.createElement('div', { className: 'space-y-5' },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', { className: 'text-xs font-bold uppercase tracking-widest text-slate-400' },
+                        gradeLabels[selectedGrade] + ' · Q' + (current+1) + '/' + questions.length
+                    ),
+                    React.createElement('div', { className: 'text-xs font-bold text-amber-600' }, 'Score : ' + score)
+                ),
+                React.createElement('div', { className: 'w-full bg-slate-100 rounded-full h-1.5' },
+                    React.createElement('div', { className: 'h-1.5 rounded-full bg-amber-500 transition-all', style: { width: ((current/questions.length)*100)+'%' } })
+                ),
+                React.createElement('div', { className: 'bg-slate-50 rounded-2xl p-5 border border-slate-100' },
+                    React.createElement('p', { className: 'font-serif text-lg text-slate-800 leading-snug' }, q.q)
+                ),
+                React.createElement('div', { className: 'space-y-2.5' },
+                    q.opts.map((opt, i) => {
+                        let cls = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left text-sm font-medium transition-all ';
+                        if (chosen === null) cls += 'border-slate-200 hover:border-amber-400 hover:bg-amber-50 cursor-pointer';
+                        else if (i === q.ans) cls += 'border-green-500 bg-green-50 text-green-800';
+                        else if (i === chosen) cls += 'border-red-400 bg-red-50 text-red-700';
+                        else cls += 'border-slate-100 opacity-40';
+                        return React.createElement('button', { key:i, onClick:()=>answer(i), disabled:chosen!==null, className:cls },
+                            React.createElement('span', { className: 'w-7 h-7 rounded-lg border text-xs font-bold flex items-center justify-center flex-shrink-0 ' +
+                                (chosen !== null && i === q.ans ? 'bg-green-500 border-green-500 text-white' :
+                                 chosen === i && i !== q.ans ? 'bg-red-400 border-red-400 text-white' : 'border-slate-300 text-slate-400') }, letters[i]),
+                            opt
+                        );
+                    })
+                ),
+                chosen !== null && React.createElement('div', null,
+                    React.createElement('div', {
+                        className: 'text-sm rounded-xl p-4 border-l-4 border-amber-400 bg-amber-50 text-slate-700',
+                        dangerouslySetInnerHTML: { __html: q.exp }
+                    }),
+                    React.createElement('button', { onClick: next, className: 'mt-3 w-full py-3 bg-amber-600 text-white rounded-xl font-bold text-sm' },
+                        current + 1 < questions.length ? 'Question suivante →' : 'Voir mon résultat →'
+                    )
+                )
+            );
+        }
+
+        function JeuxView({ memberName, api, loginGradeKey, unlockedGrades }) {
+            const [jeu, setJeu] = React.useState('memory');
+            const tabs = [
+                { key:'memory', label:'🔷 Mémory' },
+                { key:'motdujour', label:'🔺 Mot du Jour' },
+                { key:'quiz', label:'📜 Quiz de Grade' },
+            ];
+            return React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', null,
+                    React.createElement('h2', { className: 'text-2xl font-bold font-serif text-slate-800' }, '🎮 Espace Jeux'),
+                    React.createElement('p', { className: 'text-slate-400 text-sm mt-1' }, 'Jeux initiatiques · Classement entre Frères et Sœurs')
+                ),
+                React.createElement('div', { className: 'flex gap-1 border-b border-slate-100' },
+                    tabs.map(t => React.createElement('button', {
+                        key: t.key, onClick: () => setJeu(t.key),
+                        className: 'pb-3 px-3 text-sm font-bold font-serif border-b-2 transition-colors ' +
+                            (jeu === t.key ? 'border-amber-600 text-amber-700' : 'border-transparent text-slate-400 hover:text-slate-600')
+                    }, t.label))
+                ),
+                jeu === 'memory' && React.createElement(MemoryGame, { memberName, api }),
+                jeu === 'motdujour' && React.createElement(MotDuJourGame, { memberName }),
+                jeu === 'quiz' && React.createElement(QuizMaconnique, { memberName, api, loginGradeKey, unlockedGrades })
+            );
+        }
+
         function MembresComptesSection({ api }) {
             const [membres, setMembres] = React.useState([]);
             const [statuts, setStatuts] = React.useState({});
@@ -4193,6 +4970,7 @@ EXEMPLE DE FORMAT CORRECT :
                                 <NavTab active={activeView==='agenda'} onClick={()=>setActiveView('agenda')} icon="scroll" label="Ordre des Travaux" />
                                 <NavTab active={activeView==='bibliotheque'} onClick={()=>setActiveView('bibliotheque')} icon="book-open" label="Les Archives" />
                                 <NavTab active={activeView==='liens'} onClick={()=>setActiveView('liens')} icon="hands-holding" label="Chaîne d'Union" />
+                                <NavTab active={activeView==='jeux'} onClick={()=>setActiveView('jeux')} icon="gamepad" label="Jeux" />
                                 {(isVM || isArchitect || hasTresorAccess) && <NavTab active={activeView==='visite'} onClick={()=>setActiveView('visite')} icon="user-check" label="Visite" />}
                                 {hasTresorAccess && <NavTab active={activeView==='tresorerie'} onClick={()=>setActiveView('tresorerie')} icon="scale-balanced" label="Trésorerie" />}
                                 {(isVM || isArchitect) && <NavTab active={activeView==='configuration'} onClick={()=>setActiveView('configuration')} icon="compass-drafting" label="Configuration" />}
@@ -4239,6 +5017,7 @@ EXEMPLE DE FORMAT CORRECT :
                                     { view:'agenda', icon:'scroll', label:'Ordre des Travaux' },
                                     { view:'bibliotheque', icon:'book-open', label:'Les Archives' },
                                     { view:'liens', icon:'hands-holding', label:"Chaîne d'Union" },
+                                    { view:'jeux', icon:'gamepad', label:'Jeux' },
                                     ...(isVM || isArchitect || hasTresorAccess ? [{ view:'visite', icon:'user-check', label:'Visite' }] : []),
                                     ...(hasTresorAccess ? [{ view:'tresorerie', icon:'scale-balanced', label:'Trésorerie' }] : []),
                                     ...(isVM || isArchitect ? [{ view:'configuration', icon:'compass-drafting', label:'Configuration' }] : []),
@@ -4296,6 +5075,7 @@ EXEMPLE DE FORMAT CORRECT :
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
+                        {activeView === 'jeux' && <JeuxView memberName={memberName} api={api} loginGradeKey={loginGradeKey} unlockedGrades={unlockedGrades} />}
                         {activeView === 'tresorerie' && hasTresorAccess && (
                             <div style={{height:'calc(100vh - 80px)', width:'100%'}}>
                                 <iframe src="/tresor.html" style={{width:'100%', height:'100%', border:'none'}} title="Trésorerie" />
