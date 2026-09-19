@@ -4068,6 +4068,8 @@
             const [nomLoge, setNomLoge] = React.useState('');
             const [loading, setLoading] = React.useState(true);
             const [saving, setSaving] = React.useState(false);
+            const [testing, setTesting] = React.useState(false);
+            const [testEmail, setTestEmail] = React.useState('');
             const [msg, setMsg] = React.useState('');
 
             React.useEffect(() => {
@@ -4078,6 +4080,17 @@
                     }).catch(()=>{})
                 ]).finally(() => setLoading(false));
             }, []);
+
+            const testEmailSend = async () => {
+                if (!testEmail) return setMsg('❌ Entrez une adresse email de test');
+                setTesting(true); setMsg('');
+                try {
+                    const r = await fetch('/api/test-email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ toEmail: testEmail }) });
+                    const d = await r.json();
+                    setMsg(d.ok ? '✅ Email de test envoyé ! Vérifiez votre boîte mail.' : '❌ Erreur : ' + (d.reason || 'inconnue'));
+                } catch(e) { setMsg('❌ Erreur réseau : ' + e.message); }
+                setTesting(false);
+            };
 
             const save = async () => {
                 setSaving(true); setMsg('');
@@ -4107,6 +4120,13 @@
                                 <input type="text" value={nomLoge} onChange={e=>setNomLoge(e.target.value)} placeholder="Loge de l'Étoile du Nord" className="border p-2 rounded text-sm w-full" />
                             </div>
                             <button onClick={save} disabled={saving} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50">{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+                            <div className="border-t border-slate-200 pt-3 mt-2">
+                                <label className="text-xs font-bold text-slate-600 uppercase block mb-1">Tester l'envoi (uniquement à cette adresse)</label>
+                                <div className="flex gap-2">
+                                    <input type="email" value={testEmail} onChange={e=>setTestEmail(e.target.value)} placeholder="votre@email.fr" className="border p-2 rounded text-sm flex-1" />
+                                    <button onClick={testEmailSend} disabled={testing} className="bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 whitespace-nowrap">{testing ? '⏳' : '🧪 Tester'}</button>
+                                </div>
+                            </div>
                             {msg && <p className="text-sm mt-1">{msg}</p>}
                         </div>
                     )}

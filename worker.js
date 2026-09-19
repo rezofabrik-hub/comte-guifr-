@@ -271,6 +271,40 @@ export default {
       }
     }
 
+    // ── Test email anniversaire (uniquement à l'adresse fournie) ─────────────
+    if (url.pathname === '/api/test-email' && request.method === 'POST') {
+      const workerEmail = env.FIREBASE_WORKER_EMAIL;
+      const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+      if (!workerEmail || !workerPwd) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth' }), { status: 500, headers: JSON_HEADERS });
+      try {
+        const { toEmail } = await request.json();
+        if (!toEmail) return new Response(JSON.stringify({ ok: false, reason: 'email_manquant' }), { headers: JSON_HEADERS });
+        const auth = await fbSignIn(workerEmail, workerPwd);
+        if (!auth.idToken) return new Response(JSON.stringify({ ok: false, reason: 'worker_auth_fail' }), { headers: JSON_HEADERS });
+        const idToken = auth.idToken;
+        const cfgDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/settings/emailConfig`, idToken);
+        if (!cfgDoc || !cfgDoc.fields) return new Response(JSON.stringify({ ok: false, reason: 'config_manquante' }), { headers: JSON_HEADERS });
+        const resendKey = cfgDoc.fields.resendKey?.stringValue || '';
+        const nomLoge = cfgDoc.fields.nomLoge?.stringValue || 'Votre Loge';
+        if (!resendKey) return new Response(JSON.stringify({ ok: false, reason: 'cle_resend_manquante' }), { headers: JSON_HEADERS });
+        const sent = await sendEmail(resendKey, {
+          to: toEmail,
+          subject: `🌟 Test - Email automatique anniversaire`,
+          html: `<div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:30px;background:#1a1410;color:#d4af37;border:2px solid #d4af37;border-radius:8px">
+            <h2 style="text-align:center;color:#d4af37">∴ TEST EMAIL AUTOMATIQUE ∴</h2>
+            <p style="color:#e8d5a3">Bonjour,</p>
+            <p style="color:#e8d5a3">Ceci est un email de test pour vérifier que le système d'emails automatiques est bien configuré pour <strong style="color:#d4af37">${nomLoge}</strong>.</p>
+            <p style="color:#e8d5a3">Si vous recevez cet email, tout fonctionne correctement. Les emails d'anniversaire seront envoyés automatiquement chaque matin à 8h.</p>
+            <hr style="border-color:#d4af37;opacity:0.3;margin:20px 0">
+            <p style="color:#8a7a5a;font-size:12px;text-align:center">∴ ${nomLoge} ∴</p>
+          </div>`
+        });
+        return new Response(JSON.stringify({ ok: sent }), { headers: JSON_HEADERS });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, reason: e.message }), { status: 500, headers: JSON_HEADERS });
+      }
+    }
+
     // Tout le reste → assets statiques
     return env.ASSETS.fetch(request);
   },
