@@ -1116,8 +1116,8 @@
 
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
             const MOIS_FR = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-            const parseDMY = (v) => { if(!v) return {j:'',m:''}; const p=v.split('-'); return {j:p[2]?String(parseInt(p[2])):'', m:p[1]?String(parseInt(p[1])):''}; };
-            const toDMY = (j,m) => (j&&m) ? `1900-${String(m).padStart(2,'0')}-${String(j).padStart(2,'0')}` : '';
+            const parseDMY = (v) => { if(!v) return {j:'',m:''}; const p=v.split('-'); const j=p[2]?parseInt(p[2]):0; const m=p[1]?parseInt(p[1]):0; return {j:j?String(j):'', m:m?String(m):''}; };
+            const toDMY = (j,m) => (j||m) ? `1900-${String(parseInt(m)||0).padStart(2,'0')}-${String(parseInt(j)||0).padStart(2,'0')}` : '';
             const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'', genre:'frere', adresse:'', cp:'', ville:'', dateNaissance:'', dateInitiation:'' });
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
