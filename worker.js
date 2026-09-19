@@ -430,7 +430,7 @@ async function sendEmail(apiKey, { to, subject, html }) {
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Loge <noreply@resend.dev>', to, subject, html }),
+      body: JSON.stringify({ from: 'Loge <loge@lcg51.fr>', to, subject, html }),
     });
   } catch(e) {}
 }
