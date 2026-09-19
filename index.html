@@ -1115,6 +1115,9 @@
         }
 
         function MemberForm({ initialData, onSave, onCancel, onDelete }) {
+            const MOIS_FR = ['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            const parseDMY = (v) => { if(!v) return {j:'',m:''}; const p=v.split('-'); return {j:p[2]?String(parseInt(p[2])):'', m:p[1]?String(parseInt(p[1])):''}; };
+            const toDMY = (j,m) => (j&&m) ? `1900-${String(m).padStart(2,'0')}-${String(j).padStart(2,'0')}` : '';
             const [fd, sFd] = useState(initialData || { name:'', grade:'Maître', role:'', telephone:'', email:'', photoData:'', genre:'frere', adresse:'', cp:'', ville:'', dateNaissance:'', dateInitiation:'' });
             const [sub, sS] = useState(false);
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>sFd(prev=>({...prev, photoData:r.result})); r.readAsDataURL(f); };
@@ -1132,11 +1135,29 @@
                         <input type="text" placeholder="Fonction officière (ex: Orateur, Trésorier…)" value={fd.role} onChange={e=>sFd({...fd,role:e.target.value})} className="border p-2 rounded text-sm w-full" />
                         <div className="grid grid-cols-2 gap-3">
                             <input type="tel" placeholder="Téléphone" value={fd.telephone||fd.phone||''} onChange={e=>sFd({...fd,telephone:e.target.value})} className="border p-2 rounded text-sm" />
-                            <input type="date" value={fd.dateNaissance||''} onChange={e=>sFd({...fd,dateNaissance:e.target.value})} className="border p-2 rounded text-sm" title="Date de naissance" />
+                            <div className="flex gap-1 items-center">
+                                <select value={parseDMY(fd.dateNaissance).j} onChange={e=>{const {m}=parseDMY(fd.dateNaissance);sFd({...fd,dateNaissance:toDMY(e.target.value,m)});}} className="border p-2 rounded text-sm flex-1" title="Jour de naissance">
+                                    <option value="">Jour</option>
+                                    {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}
+                                </select>
+                                <select value={parseDMY(fd.dateNaissance).m} onChange={e=>{const {j}=parseDMY(fd.dateNaissance);sFd({...fd,dateNaissance:toDMY(j,e.target.value)});}} className="border p-2 rounded text-sm flex-1" title="Mois de naissance">
+                                    <option value="">Mois</option>
+                                    {MOIS_FR.slice(1).map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
+                                </select>
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <label className="text-[10px] font-bold text-slate-500 uppercase self-center">Date d'initiation</label>
-                            <input type="date" value={fd.dateInitiation||''} onChange={e=>sFd({...fd,dateInitiation:e.target.value})} className="border p-2 rounded text-sm" title="Date d'initiation / réception" />
+                            <div className="flex gap-1 items-center">
+                                <select value={parseDMY(fd.dateInitiation).j} onChange={e=>{const {m}=parseDMY(fd.dateInitiation);sFd({...fd,dateInitiation:toDMY(e.target.value,m)});}} className="border p-2 rounded text-sm flex-1" title="Jour initiation">
+                                    <option value="">Jour</option>
+                                    {Array.from({length:31},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}
+                                </select>
+                                <select value={parseDMY(fd.dateInitiation).m} onChange={e=>{const {j}=parseDMY(fd.dateInitiation);sFd({...fd,dateInitiation:toDMY(j,e.target.value)});}} className="border p-2 rounded text-sm flex-1" title="Mois initiation">
+                                    <option value="">Mois</option>
+                                    {MOIS_FR.slice(1).map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
+                                </select>
+                            </div>
                         </div>
                         <input type="email" placeholder="Email" value={fd.email||''} onChange={e=>sFd({...fd,email:e.target.value})} className="border p-2 rounded text-sm w-full" />
                         <input type="text" placeholder="Adresse (rue)" value={fd.adresse||''} onChange={e=>sFd({...fd,adresse:e.target.value})} className="border p-2 rounded text-sm w-full" />
