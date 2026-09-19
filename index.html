@@ -3851,28 +3851,173 @@
             );
         }
 
+        // ─── Tuilage Maçonnique ─────────────────────────────────────────────────────
+        const TUILAGE_QA_DEFAULT = [
+            { q: 'Êtes-vous Franc-Maçon ?', r: 'Mes Frères me reconnaissent pour tel.' },
+            { q: 'À quoi reconnaîtrai-je que vous êtes Franc-Maçon ?', r: 'À mes Signes, Mots et Attouchement ainsi qu\'à la description de la Loge et aux circonstances de ma réception.' },
+            { q: 'Que veut dire le Signe de Reconnaissance ?', r: 'Que je préférerais avoir la gorge coupée plutôt que de révéler les Secrets qui m\'ont été confiés.' },
+            { q: 'Où avez-vous été reçu Franc-Maçon ?', r: 'Dans une Loge juste et parfaite.' },
+            { q: 'Que faut-il pour qu\'une Loge soit juste et parfaite ?', r: '3 la dirigent, 5 l\'éclairent, 7 la rendent juste et parfaite.' },
+            { q: 'Où se tiennent les Apprentis en Loge ?', r: 'Au Septentrion.' },
+            { q: 'Sur quoi travaillent les Apprentis ?', r: 'Sur la Pierre Brute.' },
+            { q: 'Quel âge avez-vous ?', r: 'Trois ans.' },
+            { q: 'Qu\'est-ce que l\'attouchement d\'Apprenti ?', r: 'C\'est l\'attouchement d\'App. Franc-Maç. — c\'est la demande du Mot Sacré.' },
+            { q: 'Comment transmettez-vous le Mot Sacré ?', r: 'Je ne sais ni lire ni écrire, je ne puis qu\'épeler. Donnez-moi la première lettre et je vous donnerai la suivante.' },
+        ];
+
+        function tLoadQA() {
+            try { const s = localStorage.getItem('tuilage_qa'); if (s) return JSON.parse(s); } catch(e) {}
+            return null;
+        }
+        function tSaveQA(list) {
+            try { localStorage.setItem('tuilage_qa', JSON.stringify(list)); } catch(e) {}
+        }
+        function tGetQA() { return tLoadQA() || TUILAGE_QA_DEFAULT; }
+
+        function TuilageGame() {
+            const [mode, setMode] = React.useState('play'); // play | edit
+            const [nb, setNb] = React.useState(3);
+            const [order, setOrder] = React.useState([]);
+            const [idx, setIdx] = React.useState(0);
+            const [ok, setOk] = React.useState(0);
+            const [ko, setKo] = React.useState(0);
+            const [revealed, setRevealed] = React.useState(false);
+            const [qaList, setQaList] = React.useState(tGetQA());
+            const [newQ, setNewQ] = React.useState('');
+            const [newR, setNewR] = React.useState('');
+
+            function startGame(n, list) {
+                const all = list || qaList;
+                const count = n === 0 ? all.length : n;
+                const shuffled = [...all].sort(() => Math.random() - 0.5).slice(0, count);
+                setOrder(shuffled);
+                setIdx(0); setOk(0); setKo(0); setRevealed(false);
+            }
+
+            React.useEffect(() => { startGame(nb, qaList); }, []);
+
+            function reveal() { setRevealed(true); }
+            function mark(good) {
+                if (good) setOk(o => o + 1); else setKo(o => o + 1);
+                setIdx(i => i + 1);
+                setRevealed(false);
+            }
+            function changeNb(n) { setNb(n); startGame(n, qaList); }
+
+            function addQA() {
+                if (!newQ.trim() || !newR.trim()) return;
+                const updated = [...qaList, { q: newQ.trim(), r: newR.trim() }];
+                tSaveQA(updated); setQaList(updated);
+                setNewQ(''); setNewR('');
+            }
+            function deleteQA(i) {
+                const updated = qaList.filter((_, j) => j !== i);
+                tSaveQA(updated); setQaList(updated);
+            }
+            function resetDefault() {
+                if (!confirm('Rétablir les questions par défaut ?')) return;
+                try { localStorage.removeItem('tuilage_qa'); } catch(e) {}
+                setQaList(TUILAGE_QA_DEFAULT);
+                startGame(nb, TUILAGE_QA_DEFAULT);
+            }
+
+            const done = idx >= order.length;
+            const current = order[idx];
+
+            if (mode === 'edit') return React.createElement('div', { className: 'max-w-sm mx-auto space-y-4' },
+                React.createElement('div', { className: 'flex justify-between items-center' },
+                    React.createElement('span', { className: 'font-serif font-bold text-amber-700' }, 'Mes questions'),
+                    React.createElement('button', { onClick: () => { setMode('play'); startGame(nb, qaList); }, className: 'text-sm text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5' }, '← Retour')
+                ),
+                React.createElement('div', { className: 'space-y-2 max-h-64 overflow-y-auto' },
+                    qaList.length === 0
+                        ? React.createElement('p', { className: 'text-slate-400 text-sm text-center py-4' }, 'Aucune question.')
+                        : qaList.map((qa, i) => React.createElement('div', { key: i, className: 'bg-slate-50 rounded-xl p-3 flex gap-2 items-start border border-slate-100' },
+                            React.createElement('div', { className: 'flex-1 min-w-0' },
+                                React.createElement('div', { className: 'text-sm text-slate-700 font-medium' }, qa.q),
+                                React.createElement('div', { className: 'text-xs text-amber-600 italic mt-1' }, qa.r)
+                            ),
+                            React.createElement('button', { onClick: () => deleteQA(i), className: 'text-red-400 hover:text-red-600 text-lg leading-none flex-shrink-0' }, '×')
+                        ))
+                ),
+                React.createElement('div', { className: 'bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2' },
+                    React.createElement('p', { className: 'text-xs font-bold text-amber-700 uppercase tracking-wider' }, 'Ajouter une question'),
+                    React.createElement('textarea', { value: newQ, onChange: e => setNewQ(e.target.value), placeholder: 'La question…', rows: 2, className: 'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none' }),
+                    React.createElement('textarea', { value: newR, onChange: e => setNewR(e.target.value), placeholder: 'La réponse rituelle…', rows: 2, className: 'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none' }),
+                    React.createElement('button', { onClick: addQA, className: 'w-full py-2 bg-amber-600 text-white rounded-xl text-sm font-bold' }, 'Ajouter')
+                ),
+                React.createElement('button', { onClick: resetDefault, className: 'text-xs text-slate-400 block mx-auto' }, 'Rétablir les questions par défaut')
+            );
+
+            return React.createElement('div', { className: 'max-w-sm mx-auto space-y-4' },
+                React.createElement('div', { className: 'flex justify-between items-center' },
+                    React.createElement('div', { className: 'flex gap-1.5 flex-wrap' },
+                        React.createElement('span', { className: 'text-xs text-slate-400 self-center' }, 'Questions :'),
+                        [3,5,7,0].map(n => React.createElement('button', {
+                            key: n, onClick: () => changeNb(n),
+                            className: 'px-3 py-1 rounded-full text-xs font-bold border transition-colors ' +
+                                (nb === n ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 text-slate-500 hover:border-amber-400')
+                        }, n === 0 ? 'Toutes' : n))
+                    ),
+                    React.createElement('button', { onClick: () => setMode('edit'), className: 'text-xs text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5' }, '✏️ Mes questions')
+                ),
+                React.createElement('div', { className: 'flex justify-center gap-6 text-center' },
+                    React.createElement('div', null, React.createElement('div', { className: 'text-2xl font-serif font-bold text-green-600' }, ok), React.createElement('div', { className: 'text-xs text-slate-400 uppercase tracking-wider' }, 'Sus')),
+                    React.createElement('div', null, React.createElement('div', { className: 'text-2xl font-serif font-bold text-red-500' }, ko), React.createElement('div', { className: 'text-xs text-slate-400 uppercase tracking-wider' }, 'À revoir'))
+                ),
+                React.createElement('div', { className: 'flex gap-1.5 justify-center' },
+                    order.map((_, i) => React.createElement('div', {
+                        key: i,
+                        className: 'w-2 h-2 rounded-full transition-colors ' +
+                            (i < idx ? 'bg-green-400' : i === idx && !done ? 'bg-amber-500' : 'bg-slate-200')
+                    }))
+                ),
+                done
+                    ? React.createElement('div', { className: 'bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-3' },
+                        React.createElement('div', { className: 'text-2xl' }, ok === order.length ? '∴' : '📖'),
+                        React.createElement('div', { className: 'font-serif font-bold text-amber-800' }, ok === order.length ? 'Tuilage parfait, Frère !' : 'Tuilage terminé'),
+                        React.createElement('div', { className: 'text-sm text-slate-500' }, ok + ' sus · ' + ko + ' à revoir'),
+                        React.createElement('button', { onClick: () => startGame(nb, qaList), className: 'mt-2 px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold' }, 'Recommencer')
+                    )
+                    : React.createElement('div', { className: 'space-y-3' },
+                        React.createElement('div', { className: 'bg-white border border-slate-100 rounded-2xl p-5 shadow-sm min-h-28 flex flex-col items-center justify-center gap-3 text-center' },
+                            React.createElement('div', { className: 'font-serif text-slate-800 text-base' }, current.q),
+                            revealed && React.createElement('div', { className: 'text-sm text-amber-700 italic' }, current.r)
+                        ),
+                        !revealed
+                            ? React.createElement('button', { onClick: reveal, className: 'w-full py-3 bg-amber-600 text-white rounded-xl font-bold font-serif text-sm' }, 'Voir la réponse')
+                            : React.createElement('div', { className: 'flex gap-2' },
+                                React.createElement('button', { onClick: () => mark(true), className: 'flex-1 py-3 bg-green-500 text-white rounded-xl font-bold text-sm' }, 'Je savais ✓'),
+                                React.createElement('button', { onClick: () => mark(false), className: 'flex-1 py-3 bg-red-400 text-white rounded-xl font-bold text-sm' }, 'À revoir ✗')
+                            )
+                    )
+            );
+        }
+
         function JeuxView({ memberName, api, loginGradeKey, unlockedGrades }) {
             const [jeu, setJeu] = React.useState('memory');
             const tabs = [
                 { key:'memory', label:'🔷 Mémory' },
                 { key:'motdujour', label:'🔺 Mot du Jour' },
                 { key:'quiz', label:'📜 Quiz de Grade' },
+                { key:'tuilage', label:'🗝️ Tuilage' },
             ];
             return React.createElement('div', { className: 'space-y-6' },
                 React.createElement('div', null,
                     React.createElement('h2', { className: 'text-2xl font-bold font-serif text-slate-800' }, '🎮 Espace Jeux'),
                     React.createElement('p', { className: 'text-slate-400 text-sm mt-1' }, 'Jeux initiatiques · Classement entre Frères et Sœurs')
                 ),
-                React.createElement('div', { className: 'flex gap-1 border-b border-slate-100' },
+                React.createElement('div', { className: 'flex gap-1 border-b border-slate-100 overflow-x-auto' },
                     tabs.map(t => React.createElement('button', {
                         key: t.key, onClick: () => setJeu(t.key),
-                        className: 'pb-3 px-3 text-sm font-bold font-serif border-b-2 transition-colors ' +
+                        className: 'pb-3 px-3 text-sm font-bold font-serif border-b-2 transition-colors whitespace-nowrap ' +
                             (jeu === t.key ? 'border-amber-600 text-amber-700' : 'border-transparent text-slate-400 hover:text-slate-600')
                     }, t.label))
                 ),
                 jeu === 'memory' && React.createElement(MemoryGame, { memberName, api }),
                 jeu === 'motdujour' && React.createElement(MotDuJourGame, { memberName }),
-                jeu === 'quiz' && React.createElement(QuizMaconnique, { memberName, api, loginGradeKey, unlockedGrades })
+                jeu === 'quiz' && React.createElement(QuizMaconnique, { memberName, api, loginGradeKey, unlockedGrades }),
+                jeu === 'tuilage' && React.createElement(TuilageGame)
             );
         }
 
