@@ -389,7 +389,7 @@
             );
         }
 
-        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche, books, reglementFile, memberPayment }) {
+        function HomeView({ planchesCount, logo, agendaItems, canSee, memberName, memberGenre, onSaveLogo, canEdit, onUpdateAgenda, isArchitect, unlockedGrades, logeIdentity, onSaveIdentity, isVM, welcomeText, onSaveWelcome, planches, onReadPlanche, books, reglementFile, memberPayment, members }) {
             const hp = (e) => { const f=e.target.files[0]; if(!f)return; onSaveLogo(f); };
             
             const upcomingTenues = useMemo(() => {
@@ -883,6 +883,31 @@
                                     </div>
                                 )}
                             </div>
+
+                            {(() => {
+                                const now = new Date();
+                                const todayMM = String(now.getMonth()+1).padStart(2,'0');
+                                const todayDD = String(now.getDate()).padStart(2,'0');
+                                const bdayToday = (members||[]).filter(m => {
+                                    const nb = m.dateNaissance ? m.dateNaissance.split('-') : null;
+                                    const ni = m.dateInitiation ? m.dateInitiation.split('-') : null;
+                                    return (nb && nb[1]===todayMM && nb[2]===todayDD) || (ni && ni[1]===todayMM && ni[2]===todayDD);
+                                });
+                                if (!bdayToday.length) return null;
+                                return (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-5 shadow-sm animate-fade">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="text-2xl">🎂</span>
+                                            <h3 className="font-bold text-amber-800 text-sm uppercase tracking-widest font-serif">Anniversaire aujourd'hui</h3>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {bdayToday.map((m,i) => (
+                                                <p key={i} className="text-amber-900 font-semibold text-base font-serif">∴ {m.name} ∴</p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             <div className="bg-white p-6 rounded-[2rem] border shadow-sm text-center font-sans">
                                 <h3 className="font-bold text-slate-400 text-[10px] tracking-widest uppercase mb-2 font-serif">ARCHIVES</h3>
@@ -5211,7 +5236,7 @@ EXEMPLE DE FORMAT CORRECT :
                         </div>
                     )}
                     <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full font-sans">
-                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} books={books} reglementFile={reglementFile} memberPayment={memberPayment} />}
+                        {activeView === 'home' && <HomeView planchesCount={planches.length} logo={logeLogo} agendaItems={agendaItems} canSee={canSee} memberName={memberName} memberGenre={memberGenre} onSaveLogo={async(file)=>{ const url = await api.uploadFile(file, `${LOGE_APP_ID}/branding`); await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','branding'), {logoData:url}, {merge:true}); }} canEdit={canEdit} isArchitect={isArchitect} unlockedGrades={unlockedGrades} onUpdateAgenda={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','agenda',id),d)} logeIdentity={logeIdentity} onSaveIdentity={async(idData)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','identity'), idData, {merge:true})} isVM={isVM} welcomeText={welcomeText} onSaveWelcome={async(txt)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','welcome'), {text:txt}, {merge:true})} planches={planches} onReadPlanche={p=>{setSelectedPlanche(p);setActiveView('read');}} books={books} reglementFile={reglementFile} memberPayment={memberPayment} members={members} />}
                         {activeView === 'adherents' && <AdherentsView members={members} onAdd={async(m)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','members'),m)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','members',id))} canEdit={canEdit} />}
                         {activeView === 'bibliotheque' && <BibliothequeView books={books} onAdd={async(b)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','bibliotheque'),{...b,sharedBy:memberName})} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','bibliotheque',id))} unlockedGrades={unlockedGrades} currentUser={memberName} reglementFile={reglementFile} onSaveReglement={async(f)=>await api.setDoc(api.doc(api.db,'artifacts',api.appId,'public','data','settings','reglement'), f)} isArchitect={isArchitect} isVM={isVM} />}
                         {activeView === 'liens' && <LiensUtilesView liens={liens} canEdit={isVM || isArchitect} onAdd={async(l)=>await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','liens'),l)} onUpdate={async(id,d)=>await api.updateDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id),d)} onDelete={async(id)=>await api.deleteDoc(api.doc(api.db,'artifacts',api.appId,'public','data','liens',id))} />}
