@@ -4749,7 +4749,7 @@ EXEMPLE DE FORMAT CORRECT :
 
             // Charger le statut de cotisation du membre connecté
             useEffect(() => {
-                if (!memberName || !isLogged || isArchitect || isVM || isTresorier) { setMemberPayment(null); return; }
+                if (!memberName || !isLogged || isArchitect || isTresorier) { setMemberPayment(null); return; }
                 fetch('/api/member-payment', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:memberName, gradeKey:loginGradeKey}) })
                     .then(r=>r.json()).then(d=>{ if(d.ok) setMemberPayment(d); }).catch(()=>{});
             }, [memberName, isLogged, isArchitect, isVM, isTresorier, loginGradeKey]);
