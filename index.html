@@ -1233,7 +1233,7 @@
                                     <div className="space-y-0">
                                         <Row icon="Phone" label="Téléphone" value={phone}/>
                                         <Row icon="Mail" label="Email" value={member.email}/>
-                                        <Row icon="Calendar" label="Date de naissance" value={member.dateNaissance ? (member.dateNaissance.match(/^\d{4}-\d{2}-\d{2}$/) ? member.dateNaissance.split('-').reverse().join('/') : member.dateNaissance) : ''}/>
+                                        <Row icon="Calendar" label="Date de naissance" value={member.dateNaissance ? (()=>{ const p=member.dateNaissance.split('-'); const MOIS=['','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']; return p[2]&&p[1] ? `${parseInt(p[2])} ${MOIS[parseInt(p[1])]}` : member.dateNaissance; })() : ''}/>
                                         <Row icon="MapPin" label="Adresse" value={[member.adresse, member.cp && member.ville ? `${member.cp} ${member.ville}` : (member.cp||member.ville)].filter(Boolean).join(', ')}/>
                                     </div>
                                     {!phone && !member.email && !member.dateNaissance && !member.adresse && canEdit && (
