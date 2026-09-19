@@ -3888,7 +3888,7 @@
             function startGame(n, list) {
                 const all = list || qaList;
                 const count = n === 0 ? all.length : n;
-                const shuffled = [...all].sort(() => Math.random() - 0.5).slice(0, count);
+                const shuffled = [...all].slice(0, count);
                 setOrder(shuffled);
                 setIdx(0); setOk(0); setKo(0); setRevealed(false);
             }
