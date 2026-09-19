@@ -4847,11 +4847,13 @@ EXEMPLE DE FORMAT CORRECT :
                 setIsArchitect(false);
                 setIsTresorier(false);
                 setLoginGradeKey(gradeKey);
-                setMemberName(n.trim() || 'Vénérable Maître');
+                const vmName = n.trim() || 'Vénérable Maître';
+                setMemberName(vmName);
                 setMemberRole('Vénérable Maître');
                 setMemberGenre(genre || 'frere');
                 setPendingNameMatch(n.trim());
-                sessionStorage.setItem('lgMemberName', n.trim() || 'Vénérable Maître');
+                sessionStorage.setItem('lgMemberName', vmName);
+                try { await api.addDoc(api.collection(api.db,'artifacts',api.appId,'public','data','connexions'), { nom: vmName, grade: gradeKey, date: new Date().toISOString() }); } catch(_) {}
                 setIsLogged(true); setFbError(null);
             };
 
