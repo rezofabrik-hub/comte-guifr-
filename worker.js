@@ -427,12 +427,13 @@ async function sendBirthdayEmails(env) {
 
 async function sendEmail(apiKey, { to, subject, html }) {
   try {
-    await fetch('https://api.resend.com/emails', {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: 'Loge <loge@lcg51.fr>', to, subject, html }),
     });
-  } catch(e) {}
+    return r.ok;
+  } catch(e) { return false; }
 }
 
 function birthdayHtmlMember(name, titre, loge) {
