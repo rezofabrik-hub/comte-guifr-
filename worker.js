@@ -273,5 +273,221 @@ export default {
 
     // Tout le reste → assets statiques
     return env.ASSETS.fetch(request);
+  },
+
+  async scheduled(event, env) {
+    await sendBirthdayEmails(env);
   }
 };
+
+async function sendBirthdayEmails(env) {
+  try {
+    const workerEmail = env.FIREBASE_WORKER_EMAIL;
+    const workerPwd = env.FIREBASE_WORKER_PASSWORD;
+    if (!workerEmail || !workerPwd) return;
+
+    const auth = await fbSignIn(workerEmail, workerPwd);
+    if (!auth.idToken) return;
+    const idToken = auth.idToken;
+
+    // Récupérer la config email
+    const configDoc = await fsGet(`artifacts/${LOGE_APP_ID}/public/data/settings/emailConfig`, idToken);
+    if (!configDoc?.fields) return;
+    const resendKey = configDoc.fields.resendKey?.stringValue || '';
+    const vmEmail = configDoc.fields.vmEmail?.stringValue || '';
+    const nomLoge = configDoc.fields.nomLoge?.stringValue || 'La Loge';
+    if (!resendKey) return;
+
+    // Récupérer tous les membres
+    const memberDocs = await fsGetAllDocs(`artifacts/${LOGE_APP_ID}/public/data/members`, idToken);
+
+    // Date du jour (DD/MM)
+    const now = new Date();
+    const todayMM = String(now.getMonth() + 1).padStart(2, '0');
+    const todayDD = String(now.getDate()).padStart(2, '0');
+    const todayKey = `${todayMM}-${todayDD}`;
+
+    const birthdayMembers = [];
+    const initiationMembers = [];
+
+    for (const doc of memberDocs) {
+      const f = doc.fields || {};
+      const name = f.name?.stringValue || '';
+      const email = f.email?.stringValue || '';
+      const genre = f.genre?.stringValue || 'frere';
+      const grade = f.grade?.stringValue || '';
+      if (!name) continue;
+
+      // Anniversaire civil (format YYYY-MM-DD)
+      const dn = f.dateNaissance?.stringValue || '';
+      if (dn && dn.length >= 7) {
+        const parts = dn.split('-');
+        const mm = parts[1], dd = parts[2]?.slice(0,2);
+        if (mm && dd && `${mm}-${dd}` === todayKey) birthdayMembers.push({ name, email, genre, grade });
+      }
+
+      // Anniversaire d'initiation
+      const di = f.dateInitiation?.stringValue || '';
+      if (di && di.length >= 7) {
+        const parts = di.split('-');
+        const mm = parts[1], dd = parts[2]?.slice(0,2);
+        if (mm && dd && `${mm}-${dd}` === todayKey) initiationMembers.push({ name, email, genre, grade });
+      }
+    }
+
+    const titre = g => g === 'soeur' ? 'Sœur' : 'Frère';
+    const allEmails = [...memberDocs.map(d => d.fields?.email?.stringValue).filter(e => e && e.includes('@'))];
+
+    // ── Anniversaires civils ──
+    for (const m of birthdayMembers) {
+      const displayName = m.name.replace(/^(fr[eè]re|s[oœ]eur|f[∴.]\s*|s[∴.]\s*)/i, '').trim();
+      const t = titre(m.genre);
+
+      // Email au membre
+      if (m.email) {
+        await sendEmail(resendKey, {
+          to: m.email,
+          subject: `🎂 Joyeux anniversaire, ${t} ${displayName} !`,
+          html: birthdayHtmlMember(displayName, t, nomLoge),
+        });
+      }
+
+      // Email à tous les membres + VM
+      const recipients = [...new Set([...allEmails, vmEmail])].filter(e => e && e !== m.email);
+      for (const to of recipients) {
+        await sendEmail(resendKey, {
+          to,
+          subject: `🎂 Anniversaire — ${t} ${displayName}`,
+          html: birthdayHtmlAll(displayName, t, nomLoge),
+        });
+      }
+    }
+
+    // ── Anniversaires d'initiation ──
+    for (const m of initiationMembers) {
+      const displayName = m.name.replace(/^(fr[eè]re|s[oœ]eur|f[∴.]\s*|s[∴.]\s*)/i, '').trim();
+      const t = titre(m.genre);
+      const years = new Date().getFullYear() - parseInt((m.email ? (memberDocs.find(d => d.fields?.email?.stringValue === m.email)?.fields?.dateInitiation?.stringValue||'').split('-')[0] : '0')) || null;
+
+      if (m.email) {
+        await sendEmail(resendKey, {
+          to: m.email,
+          subject: `⚒️ Anniversaire maçonnique, ${t} ${displayName} !`,
+          html: initiationHtmlMember(displayName, t, nomLoge),
+        });
+      }
+
+      const recipients = [...new Set([...allEmails, vmEmail])].filter(e => e && e !== m.email);
+      for (const to of recipients) {
+        await sendEmail(resendKey, {
+          to,
+          subject: `⚒️ Anniversaire d'initiation — ${t} ${displayName}`,
+          html: initiationHtmlAll(displayName, t, nomLoge),
+        });
+      }
+    }
+  } catch(e) {
+    console.error('sendBirthdayEmails error:', e);
+  }
+}
+
+async function sendEmail(apiKey, { to, subject, html }) {
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Loge <noreply@resend.dev>', to, subject, html }),
+    });
+  } catch(e) {}
+}
+
+function birthdayHtmlMember(name, titre, loge) {
+  return `<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#fdf6e3;margin:0;padding:0">
+<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px #0001">
+  <div style="background:#1e293b;padding:32px;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">∴</div>
+    <h1 style="color:#f59e0b;font-family:Georgia,serif;margin:0;font-size:22px;letter-spacing:3px;text-transform:uppercase">À la Gloire du Grand Architecte</h1>
+  </div>
+  <div style="padding:40px 32px;text-align:center">
+    <p style="font-size:32px;margin:0 0 8px">🎂</p>
+    <h2 style="color:#1e293b;font-family:Georgia,serif;font-size:26px;margin:0 0 24px">Joyeux Anniversaire, ${titre} ${name} !</h2>
+    <p style="color:#475569;font-size:16px;line-height:1.7;margin:0 0 20px">En ce jour particulier, la Loge <strong>${loge}</strong> s'unit dans la joie et la fraternité pour vous souhaiter un très heureux anniversaire.</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7;margin:0 0 20px">Que cette nouvelle année vous apporte lumière, sagesse et bonheur, dans vos travaux de l'Ordre comme dans votre vie profane.</p>
+    <div style="background:#fdf6e3;border-left:4px solid #f59e0b;padding:16px 20px;margin:28px 0;text-align:left;border-radius:0 8px 8px 0">
+      <p style="color:#92400e;font-style:italic;margin:0;font-size:15px">"La Franc-Maçonnerie est un voyage intérieur dont chaque anniversaire marque une étape de plus vers la lumière."</p>
+    </div>
+    <p style="color:#475569;font-size:15px">Vos Frères et Sœurs de la Loge <strong>${loge}</strong> vous embrassent fraternellement. ⚒️</p>
+  </div>
+  <div style="background:#1e293b;padding:16px;text-align:center">
+    <p style="color:#64748b;font-size:11px;margin:0;letter-spacing:1px">LIBERTÉ · ÉGALITÉ · FRATERNITÉ</p>
+  </div>
+</div></body></html>`;
+}
+
+function birthdayHtmlAll(name, titre, loge) {
+  return `<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#fdf6e3;margin:0;padding:0">
+<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px #0001">
+  <div style="background:#1e293b;padding:32px;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">∴</div>
+    <h1 style="color:#f59e0b;font-family:Georgia,serif;margin:0;font-size:22px;letter-spacing:3px;text-transform:uppercase">${loge}</h1>
+  </div>
+  <div style="padding:40px 32px;text-align:center">
+    <p style="font-size:40px;margin:0 0 12px">🎂</p>
+    <h2 style="color:#1e293b;font-family:Georgia,serif;font-size:22px;margin:0 0 20px">Anniversaire en Loge</h2>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Chers Frères et Sœurs,</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Aujourd'hui, c'est le jour d'anniversaire de notre ${titre} <strong>${name}</strong>.</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7">N'hésitez pas à lui transmettre vos vœux fraternels !</p>
+    <div style="background:#fdf6e3;border:2px solid #f59e0b;border-radius:8px;padding:20px;margin:28px 0;display:inline-block">
+      <p style="color:#92400e;font-size:20px;font-weight:bold;margin:0">🎉 ${titre} ${name}</p>
+    </div>
+  </div>
+  <div style="background:#1e293b;padding:16px;text-align:center">
+    <p style="color:#64748b;font-size:11px;margin:0;letter-spacing:1px">LIBERTÉ · ÉGALITÉ · FRATERNITÉ</p>
+  </div>
+</div></body></html>`;
+}
+
+function initiationHtmlMember(name, titre, loge) {
+  return `<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#1e293b;margin:0;padding:0">
+<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px #0003">
+  <div style="background:#1e293b;padding:32px;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">⚒️</div>
+    <h1 style="color:#f59e0b;font-family:Georgia,serif;margin:0;font-size:22px;letter-spacing:3px;text-transform:uppercase">Anniversaire Maçonnique</h1>
+  </div>
+  <div style="padding:40px 32px;text-align:center">
+    <h2 style="color:#1e293b;font-family:Georgia,serif;font-size:24px;margin:0 0 24px">${titre} ${name},</h2>
+    <p style="color:#475569;font-size:16px;line-height:1.7">En ce jour, la Loge <strong>${loge}</strong> commémore avec vous l'anniversaire de votre initiation à nos Mystères.</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Depuis ce moment fondateur, vous avez cheminé sur la voie de la perfection, pierre après pierre, degré après degré.</p>
+    <div style="background:#fdf6e3;border-left:4px solid #f59e0b;padding:16px 20px;margin:28px 0;text-align:left;border-radius:0 8px 8px 0">
+      <p style="color:#92400e;font-style:italic;margin:0;font-size:15px">"La vraie initiation n'est pas un instant, c'est un chemin que l'on emprunte chaque jour avec courage et humilité."</p>
+    </div>
+    <p style="color:#475569;font-size:15px">Vos Frères et Sœurs vous adressent leurs vœux fraternels les plus sincères. Que la Lumière continue de guider vos pas. ∴</p>
+  </div>
+  <div style="background:#1e293b;padding:16px;text-align:center">
+    <p style="color:#64748b;font-size:11px;margin:0;letter-spacing:1px">LIBERTÉ · ÉGALITÉ · FRATERNITÉ</p>
+  </div>
+</div></body></html>`;
+}
+
+function initiationHtmlAll(name, titre, loge) {
+  return `<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#fdf6e3;margin:0;padding:0">
+<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px #0001">
+  <div style="background:#1e293b;padding:32px;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">⚒️</div>
+    <h1 style="color:#f59e0b;font-family:Georgia,serif;margin:0;font-size:22px;letter-spacing:3px;text-transform:uppercase">${loge}</h1>
+  </div>
+  <div style="padding:40px 32px;text-align:center">
+    <p style="font-size:40px;margin:0 0 12px">∴</p>
+    <h2 style="color:#1e293b;font-family:Georgia,serif;font-size:22px;margin:0 0 20px">Anniversaire d'Initiation</h2>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Chers Frères et Sœurs,</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Aujourd'hui marque l'anniversaire de l'initiation de notre ${titre} <strong>${name}</strong>.</p>
+    <p style="color:#475569;font-size:16px;line-height:1.7">Unissons-nous fraternellement pour lui adresser nos plus chaleureux vœux maçonniques !</p>
+    <div style="background:#1e293b;border-radius:8px;padding:20px;margin:28px 0;display:inline-block">
+      <p style="color:#f59e0b;font-size:20px;font-weight:bold;margin:0">⚒️ ${titre} ${name} ∴</p>
+    </div>
+  </div>
+  <div style="background:#1e293b;padding:16px;text-align:center">
+    <p style="color:#64748b;font-size:11px;margin:0;letter-spacing:1px">LIBERTÉ · ÉGALITÉ · FRATERNITÉ</p>
+  </div>
+</div></body></html>`;
+}
